@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: fintrack-mentor-api
+    runtime: docker
+    plan: free
+    region: singapore
+    repo: https://github.com/AKUBATU/Fintrack-Mentor
+    branch: main
+    dockerContext: backend
+    dockerfilePath: backend/Dockerfile
+    healthCheckPath: /health
+    autoDeployTrigger: commit
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET_KEY
+        generateValue: true
+      - key: CORS_ORIGINS
+        value: https://frontend-rose-ten-83.vercel.app
+      - key: FRONTEND_URL
+        value: https://frontend-rose-ten-83.vercel.app
+      - key: PASSWORD_RESET_DEV_MODE
+        value: "false"
