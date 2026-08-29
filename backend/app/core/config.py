@@ -10,6 +10,7 @@ class Settings(BaseSettings):
 
     # DB: prefer PostgreSQL, fallback SQLite
     DATABASE_URL: str = Field(default="sqlite:///./dev.db")
+    DATABASE_SCHEMA: str | None = None
 
     # JWT
     JWT_SECRET_KEY: str = Field(default="change-me-in-prod")

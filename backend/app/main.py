@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import text
 
 from .core.config import settings
 from .core.base import Base
@@ -13,7 +14,27 @@ app = FastAPI(title=settings.APP_NAME)
 @app.on_event("startup")
 def create_production_schema():
     if settings.AUTO_CREATE_SCHEMA:
+        if engine.dialect.name == "postgresql" and settings.DATABASE_SCHEMA == "fintrack_app":
+            with engine.begin() as connection:
+                connection.execute(text("CREATE SCHEMA IF NOT EXISTS fintrack_app"))
         Base.metadata.create_all(bind=engine)
+        if engine.dialect.name == "postgresql" and settings.DATABASE_SCHEMA == "fintrack_app":
+            with engine.begin() as connection:
+                expense_columns = (
+                    "transaction_type VARCHAR(10) NOT NULL DEFAULT 'expense'",
+                    "merchant VARCHAR(120) NOT NULL DEFAULT ''",
+                    "notes VARCHAR(500) NOT NULL DEFAULT ''",
+                    "receipt_path VARCHAR(500)",
+                    "predicted_category VARCHAR(80)",
+                    "confidence DOUBLE PRECISION",
+                    "model_used VARCHAR(40)",
+                    "created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP",
+                )
+                for column_definition in expense_columns:
+                    connection.execute(text(
+                        "ALTER TABLE fintrack_app.expenses ADD COLUMN IF NOT EXISTS "
+                        f"{column_definition}"
+                    ))
 
 # Origin yang diperbolehkan saat development
 default_origins = [

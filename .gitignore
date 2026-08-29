@@ -55,3 +55,5 @@ pnpm-debug.log*
 *.sqlite
 *.sqlite3
 backend/uploads/
+.vercel/
+supabase/.temp/
