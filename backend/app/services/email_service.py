@@ -15,7 +15,11 @@ def send_password_reset_email(recipient: str, token: str) -> bool:
     reset_url = f"{settings.FRONTEND_URL.rstrip('/')}/reset-password?token={token}"
     message = EmailMessage()
     message["Subject"] = "Reset password FinTrack Mentor"
-    message["From"] = settings.SMTP_FROM_EMAIL
+    smtp_username = "".join((settings.SMTP_USERNAME or "").split())
+    smtp_password = "".join((settings.SMTP_PASSWORD or "").split())
+    smtp_from_email = "".join(settings.SMTP_FROM_EMAIL.split())
+
+    message["From"] = smtp_from_email
     message["To"] = recipient
     message.set_content(
         "Kami menerima permintaan reset password akun FinTrack Mentor Anda.\n\n"
@@ -27,7 +31,7 @@ def send_password_reset_email(recipient: str, token: str) -> bool:
     with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT, timeout=10) as server:
         if settings.SMTP_USE_TLS:
             server.starttls()
-        if settings.SMTP_USERNAME:
-            server.login(settings.SMTP_USERNAME, settings.SMTP_PASSWORD or "")
+        if smtp_username:
+            server.login(smtp_username, smtp_password)
         server.send_message(message)
     return True
