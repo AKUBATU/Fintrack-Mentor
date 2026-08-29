@@ -1,0 +1,4 @@
+-r requirements.txt
+torch==2.5.1
+transformers==4.46.2
+tqdm==4.66.5

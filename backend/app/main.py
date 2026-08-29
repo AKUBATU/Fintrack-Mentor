@@ -2,9 +2,18 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .core.config import settings
+from .core.base import Base
+from .core.db import engine
+from . import models as _models  # noqa: F401 - register tables before create_all
 from .api.router import api_router
 
 app = FastAPI(title=settings.APP_NAME)
+
+
+@app.on_event("startup")
+def create_production_schema():
+    if settings.AUTO_CREATE_SCHEMA:
+        Base.metadata.create_all(bind=engine)
 
 # Origin yang diperbolehkan saat development
 default_origins = [

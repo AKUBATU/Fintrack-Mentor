@@ -13,7 +13,4 @@ joblib==1.4.2
 scikit-learn==1.5.2
 numpy==2.1.2
 pandas==2.2.3
-torch==2.5.1
-transformers==4.46.2
-tqdm==4.66.5
 email-validator

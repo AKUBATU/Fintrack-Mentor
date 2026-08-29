@@ -29,6 +29,7 @@ class Settings(BaseSettings):
     SMTP_FROM_EMAIL: str = "noreply@fintrack.local"
     SMTP_USE_TLS: bool = True
     PASSWORD_RESET_DEV_MODE: bool = False
+    AUTO_CREATE_SCHEMA: bool = False
 
     # ML artifact locations
     PROJECT_ROOT: Path = Path(__file__).resolve().parents[2]
