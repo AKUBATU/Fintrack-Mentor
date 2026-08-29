@@ -1,7 +1,19 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useData } from '../contexts/DataContext';
-import { Plus, TrendingUp, DollarSign } from 'lucide-react';
+import { Plus, TrendingUp, DollarSign, X, Pencil, Trash2, Activity, Layers3 } from 'lucide-react';
 import { toast } from 'sonner';
+import { api } from '../services/api';
+
+const ASSET_TYPES = [
+  ['stock', 'Saham'], ['etf', 'ETF'], ['mutual_fund', 'Reksa Dana'], ['bond', 'Obligasi'],
+  ['deposit', 'Deposito'], ['cash', 'Kas'], ['crypto', 'Kripto'], ['gold', 'Emas'],
+  ['commodity', 'Komoditas'], ['property', 'Properti'], ['business', 'Bisnis'],
+  ['private_equity', 'Private Equity'], ['p2p', 'P2P Lending'], ['pension', 'Dana Pensiun'],
+  ['insurance_investment', 'Asuransi Investasi'], ['collectible', 'Koleksi'],
+  ['forex', 'Forex'], ['derivative', 'Derivatif'], ['other', 'Lainnya'],
+] as const;
+
+const assetTypeLabel = (type: string) => ASSET_TYPES.find(([value]) => value === type)?.[1] || type;
 
 export default function Portfolio() {
   // ✅ ambil context apa adanya (tetap), tapi kita bikin aman kalau ada field yang belum disediakan
@@ -12,6 +24,8 @@ export default function Portfolio() {
   const dividends = (data?.dividends ?? []) as any[];
 
   const addStockTransaction = data?.addStockTransaction as undefined | ((payload: any) => Promise<void>);
+  const updateStockTransaction = data?.updateStockTransaction as undefined | ((id: string, payload: any) => Promise<void>);
+  const deleteStockTransaction = data?.deleteStockTransaction as undefined | ((id: string) => Promise<void>);
   const addDividend = data?.addDividend as undefined | ((payload: any) => Promise<void>);
 
   // ✅ ini yang bikin error kamu: kalau context belum punya, dia undefined → kita guard biar nggak crash
@@ -22,6 +36,19 @@ export default function Portfolio() {
   const [showAddDividend, setShowAddDividend] = useState(false);
   const [showUpdatePrice, setShowUpdatePrice] = useState(false);
   const [selectedTicker, setSelectedTicker] = useState('');
+  const [editingTransactionId, setEditingTransactionId] = useState<string | null>(null);
+  const [savingTransaction, setSavingTransaction] = useState(false);
+  const [investmentAssets, setInvestmentAssets] = useState<any[]>([]);
+  const [portfolioHealth, setPortfolioHealth] = useState<any>(null);
+  const [assetLoading, setAssetLoading] = useState(true);
+  const [showAssetModal, setShowAssetModal] = useState(false);
+  const [editingAssetId, setEditingAssetId] = useState<number | null>(null);
+  const [savingAsset, setSavingAsset] = useState(false);
+  const emptyAssetForm = {
+    name: '', symbol: '', asset_type: 'mutual_fund', quantity: '', average_price: '',
+    current_price: '', currency: 'IDR', exchange_rate_to_idr: '1', acquired_date: '', notes: '',
+  };
+  const [assetForm, setAssetForm] = useState(emptyAssetForm);
 
   const [transactionForm, setTransactionForm] = useState({
     ticker: '',
@@ -44,6 +71,20 @@ export default function Portfolio() {
     ticker: '',
     price: ''
   });
+
+  const loadAssetsAndHealth = async () => {
+    try {
+      const [assets, health] = await Promise.all([api.listInvestmentAssets(), api.portfolioHealth()]);
+      setInvestmentAssets(assets);
+      setPortfolioHealth(health);
+    } catch (error: any) {
+      toast.error(error?.message || 'Data aset investasi gagal dimuat');
+    } finally {
+      setAssetLoading(false);
+    }
+  };
+
+  useEffect(() => { void loadAssetsAndHealth(); }, []);
 
   // ======================
   // Helpers (biar cocok dengan schema DataContext kamu)
@@ -157,6 +198,20 @@ export default function Portfolio() {
     };
   }, [holdings, dividends, stockTransactions]);
 
+  const transactionHistory = useMemo(
+    () => [...stockTransactions].sort((a: any, b: any) =>
+      new Date(b?.date).getTime() - new Date(a?.date).getTime() || Number(b?.id || 0) - Number(a?.id || 0)
+    ),
+    [stockTransactions]
+  );
+
+  const dividendHistory = useMemo(
+    () => [...dividends].sort((a: any, b: any) =>
+      new Date(getDividendPaymentDate(b)).getTime() - new Date(getDividendPaymentDate(a)).getTime() || Number(b?.id || 0) - Number(a?.id || 0)
+    ),
+    [dividends]
+  );
+
   // ======================
   // Handlers (mapping ke DataContext schema)
   // ======================
@@ -173,23 +228,30 @@ export default function Portfolio() {
     if (!Number.isFinite(priceNum) || priceNum <= 0) return toast.error('Price harus > 0');
     if (!transactionForm.date) return toast.error('Tanggal wajib diisi');
 
-    if (!addStockTransaction) {
-      toast.error('addStockTransaction belum tersedia di DataContext');
-      return;
-    }
+    if (editingTransactionId && !updateStockTransaction) return toast.error('Fitur edit transaksi belum tersedia');
+    if (!editingTransactionId && !addStockTransaction) return toast.error('Fitur tambah transaksi belum tersedia');
 
     try {
+      setSavingTransaction(true);
       // ✅ DataContext expects: { ticker, type: 'BUY'|'SELL', lots, price, date }
-      await addStockTransaction({
+      const payload = {
         ticker,
         type: transactionForm.type === 'buy' ? 'BUY' : 'SELL',
         lots: lotsNum,
         price: priceNum,
         date: transactionForm.date
-      });
+      };
 
-      toast.success(`Transaksi ${transactionForm.type} berhasil ditambahkan!`);
+      if (editingTransactionId) {
+        await updateStockTransaction!(editingTransactionId, payload);
+      } else {
+        await addStockTransaction!(payload);
+      }
+
+      toast.success(editingTransactionId ? 'Transaksi berhasil diperbarui!' : `Transaksi ${transactionForm.type} berhasil ditambahkan!`);
+      await loadAssetsAndHealth();
       setShowAddTransaction(false);
+      setEditingTransactionId(null);
       setTransactionForm({
         ticker: '',
         type: 'buy',
@@ -199,7 +261,89 @@ export default function Portfolio() {
         fee: ''
       });
     } catch (e: any) {
-      toast.error(e?.message || 'Gagal menambahkan transaksi');
+      console.error('Stock transaction save failed:', e);
+      toast.error(e?.message || (editingTransactionId ? 'Gagal menyimpan perubahan transaksi' : 'Gagal menambahkan transaksi'));
+    } finally {
+      setSavingTransaction(false);
+    }
+  };
+
+  const openEditTransaction = (transaction: any) => {
+    setEditingTransactionId(String(transaction.id));
+    setTransactionForm({
+      ticker: String(transaction.ticker || '').toUpperCase(),
+      type: getTxUIType(transaction),
+      date: String(transaction.date || '').slice(0, 10),
+      lots: String(getTxLots(transaction)),
+      pricePerShare: String(getTxPricePerShare(transaction)),
+      fee: '',
+    });
+    setShowAddTransaction(true);
+  };
+
+  const handleDeleteTransaction = async (transaction: any) => {
+    if (!deleteStockTransaction) return toast.error('Fitur hapus transaksi belum tersedia');
+    const confirmed = window.confirm(`Hapus transaksi ${transaction.ticker} tanggal ${new Date(transaction.date).toLocaleDateString('id-ID')}?`);
+    if (!confirmed) return;
+    try {
+      await deleteStockTransaction(String(transaction.id));
+      toast.success('Transaksi saham berhasil dihapus');
+      window.setTimeout(() => void loadAssetsAndHealth(), 0);
+    } catch (error: any) {
+      toast.error(error?.message || 'Gagal menghapus transaksi saham');
+    }
+  };
+
+  const openAddAsset = () => {
+    setEditingAssetId(null);
+    setAssetForm(emptyAssetForm);
+    setShowAssetModal(true);
+  };
+
+  const openEditAsset = (asset: any) => {
+    setEditingAssetId(Number(asset.id));
+    setAssetForm({
+      name: asset.name, symbol: asset.symbol || '', asset_type: asset.asset_type,
+      quantity: String(asset.quantity), average_price: String(asset.average_price),
+      current_price: String(asset.current_price), currency: asset.currency || 'IDR',
+      exchange_rate_to_idr: String(asset.exchange_rate_to_idr || 1),
+      acquired_date: asset.acquired_date || '', notes: asset.notes || '',
+    });
+    setShowAssetModal(true);
+  };
+
+  const saveAsset = async () => {
+    const payload = {
+      ...assetForm,
+      quantity: Number(assetForm.quantity), average_price: Number(assetForm.average_price),
+      current_price: Number(assetForm.current_price), exchange_rate_to_idr: Number(assetForm.exchange_rate_to_idr),
+      acquired_date: assetForm.acquired_date || null,
+    };
+    if (!payload.name.trim() || payload.quantity <= 0 || payload.average_price < 0 || payload.current_price < 0 || payload.exchange_rate_to_idr <= 0) {
+      return toast.error('Lengkapi nama, jumlah, harga, dan kurs dengan benar');
+    }
+    try {
+      setSavingAsset(true);
+      if (editingAssetId) await api.updateInvestmentAsset(editingAssetId, payload);
+      else await api.createInvestmentAsset(payload);
+      toast.success(editingAssetId ? 'Aset berhasil diperbarui' : 'Aset berhasil ditambahkan');
+      setShowAssetModal(false);
+      await loadAssetsAndHealth();
+    } catch (error: any) {
+      toast.error(error?.message || 'Aset gagal disimpan');
+    } finally {
+      setSavingAsset(false);
+    }
+  };
+
+  const deleteAsset = async (asset: any) => {
+    if (!window.confirm(`Hapus aset ${asset.name}?`)) return;
+    try {
+      await api.deleteInvestmentAsset(Number(asset.id));
+      toast.success('Aset berhasil dihapus');
+      await loadAssetsAndHealth();
+    } catch (error: any) {
+      toast.error(error?.message || 'Aset gagal dihapus');
     }
   };
 
@@ -278,10 +422,13 @@ export default function Portfolio() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Portofolio Saham</h1>
-          <p className="text-gray-600">Kelola investasi & dividen Anda</p>
+          <h1 className="text-2xl font-bold text-gray-900">Portofolio Investasi</h1>
+          <p className="text-gray-600">Kelola seluruh instrumen investasi dan pantau kesehatan portofolio</p>
         </div>
         <div className="flex gap-2">
+          <button onClick={openAddAsset} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+            <Layers3 className="w-4 h-4" /> Tambah Instrumen
+          </button>
           <button
             onClick={() => setShowUpdatePrice(true)}
             className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
@@ -297,12 +444,79 @@ export default function Portfolio() {
             Dividen
           </button>
           <button
-            onClick={() => setShowAddTransaction(true)}
+            onClick={() => {
+              setEditingTransactionId(null);
+              setShowAddTransaction(true);
+            }}
             className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
           >
             <Plus className="w-4 h-4" />
-            Transaksi
+            Catat Aset
           </button>
+        </div>
+      </div>
+
+      {/* Portfolio health */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="text-sm text-gray-500">Kesehatan Portofolio</p>
+              <div className="flex items-end gap-3 mt-1">
+                <p className="text-4xl font-bold text-gray-900">{portfolioHealth?.score ?? 0}</p>
+                <p className="text-sm text-gray-500 mb-1">/ 100</p>
+              </div>
+            </div>
+            <div className="p-3 bg-blue-50 text-blue-600 rounded-xl"><Activity className="w-6 h-6" /></div>
+          </div>
+          <div className="w-full bg-gray-200 rounded-full h-2 mt-4">
+            <div className="h-2 rounded-full" style={{ width: `${portfolioHealth?.score || 0}%`, backgroundColor: (portfolioHealth?.score || 0) >= 75 ? '#22c55e' : (portfolioHealth?.score || 0) >= 55 ? '#3b82f6' : (portfolioHealth?.score || 0) >= 35 ? '#eab308' : '#ef4444' }} />
+          </div>
+          <p className="font-semibold text-gray-900 mt-3">{portfolioHealth?.status || (assetLoading ? 'Menghitung…' : 'Belum dapat dinilai')}</p>
+          <div className="grid grid-cols-2 gap-3 mt-4 text-sm">
+            <div className="p-3 bg-gray-50 rounded-lg"><p className="text-gray-500">Diversifikasi</p><p className="font-semibold">{portfolioHealth?.diversification_score ?? 0}/100</p></div>
+            <div className="p-3 bg-gray-50 rounded-lg"><p className="text-gray-500">Konsentrasi</p><p className="font-semibold">{portfolioHealth?.concentration_score ?? 0}/100</p></div>
+            <div className="p-3 bg-gray-50 rounded-lg"><p className="text-gray-500">Likuiditas</p><p className="font-semibold">{portfolioHealth?.liquidity_score ?? 0}/100</p></div>
+            <div className="p-3 bg-gray-50 rounded-lg"><p className="text-gray-500">Keseimbangan risiko</p><p className="font-semibold">{portfolioHealth?.risk_score ?? 0}/100</p></div>
+          </div>
+        </div>
+        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+          <h3 className="font-semibold text-gray-900 mb-3">Analisis Singkat</h3>
+          <div className="space-y-3">
+            {(portfolioHealth?.insights || ['Tambahkan aset untuk memulai analisis.']).map((insight: string, index: number) => (
+              <div key={index} className="flex gap-3 p-3 bg-gray-50 rounded-lg"><span className="text-blue-600">•</span><p className="text-sm text-gray-700">{insight}</p></div>
+            ))}
+          </div>
+          <p className="text-xs text-gray-400 mt-4">Indikator edukatif berdasarkan komposisi aset, bukan rekomendasi investasi.</p>
+        </div>
+      </div>
+
+      {/* Generic investment assets */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div className="flex items-center justify-between gap-4 mb-4">
+          <div><h3 className="font-semibold text-gray-900">Instrumen Investasi Lain</h3><p className="text-sm text-gray-500">Aset selain transaksi saham yang dicatat di bagian bawah.</p></div>
+          <span className="px-2 py-1 bg-blue-50 text-blue-700 text-xs rounded-full">{investmentAssets.length} aset</span>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead><tr className="border-b border-gray-200">
+              <th className="text-left py-3 px-3 text-sm font-medium text-gray-700">Aset</th>
+              <th className="text-left py-3 px-3 text-sm font-medium text-gray-700">Jenis</th>
+              <th className="text-right py-3 px-3 text-sm font-medium text-gray-700">Modal</th>
+              <th className="text-right py-3 px-3 text-sm font-medium text-gray-700">Nilai Kini</th>
+              <th className="text-right py-3 px-3 text-sm font-medium text-gray-700">P/L</th>
+              <th className="text-right py-3 px-3 text-sm font-medium text-gray-700">Aksi</th>
+            </tr></thead>
+            <tbody>{investmentAssets.map((asset) => <tr key={asset.id} className="border-b border-gray-100 hover:bg-gray-50">
+              <td className="py-3 px-3"><p className="font-medium text-gray-900">{asset.name}</p><p className="text-xs text-gray-500">{asset.symbol || 'Tanpa simbol'} · {asset.quantity} unit</p></td>
+              <td className="py-3 px-3 text-sm text-gray-700">{assetTypeLabel(asset.asset_type)}</td>
+              <td className="py-3 px-3 text-right text-sm">{formatCurrency(asset.cost_basis)}</td>
+              <td className="py-3 px-3 text-right font-medium">{formatCurrency(asset.market_value)}</td>
+              <td className={`py-3 px-3 text-right text-sm font-medium ${asset.unrealized_pl >= 0 ? 'text-green-600' : 'text-red-600'}`}>{asset.unrealized_pl >= 0 ? '+' : ''}{formatCurrency(asset.unrealized_pl)}</td>
+              <td className="py-3 px-3"><div className="flex justify-end gap-2"><button onClick={() => openEditAsset(asset)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"><Pencil className="w-4 h-4" /></button><button onClick={() => deleteAsset(asset)} className="p-2 text-red-600 hover:bg-red-50 rounded-lg"><Trash2 className="w-4 h-4" /></button></div></td>
+            </tr>)}</tbody>
+          </table>
+          {!assetLoading && investmentAssets.length === 0 && <div className="text-center py-8"><p className="font-medium text-gray-700">Belum ada instrumen lain</p><p className="text-sm text-gray-500 mt-1">Tambahkan reksa dana, kripto, emas, properti, deposito, atau aset lainnya.</p></div>}
         </div>
       </div>
 
@@ -345,7 +559,8 @@ export default function Portfolio() {
       {/* Holdings Table */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200">
         <div className="p-6">
-          <h3 className="font-semibold text-gray-900 mb-4">Holdings</h3>
+          <h3 className="font-semibold text-gray-900 mb-1">Daftar Aset Saham</h3>
+          <p className="text-sm text-gray-500 mb-4">Kepemilikan dihitung otomatis dari seluruh transaksi beli dan jual Anda.</p>
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
@@ -384,7 +599,12 @@ export default function Portfolio() {
                 ))}
               </tbody>
             </table>
-            {holdings.length === 0 && <p className="text-center text-gray-500 py-8">Belum ada holdings</p>}
+            {holdings.length === 0 && (
+              <div className="text-center py-8">
+                <p className="font-medium text-gray-700">Belum ada aset saham</p>
+                <p className="text-sm text-gray-500 mt-1">Klik “Catat Aset” lalu masukkan saham yang sudah Anda miliki.</p>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -393,13 +613,15 @@ export default function Portfolio() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Transactions */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <h3 className="font-semibold text-gray-900 mb-4">Transaksi Terakhir</h3>
-          <div className="space-y-3">
-            {stockTransactions
-              .slice()
-              .reverse()
-              .slice(0, 5)
-              .map((tx: any) => {
+          <div className="flex items-start justify-between mb-4">
+            <div>
+              <h3 className="font-semibold text-gray-900">Riwayat Transaksi Saham</h3>
+              <p className="text-sm text-gray-500">Urutan transaksi terbaru</p>
+            </div>
+            <span className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-full">{transactionHistory.length} transaksi</span>
+          </div>
+          <div className="space-y-3 overflow-y-auto" style={{ maxHeight: 420 }}>
+            {transactionHistory.map((tx: any) => {
                 const uiType = getTxUIType(tx);
                 const lots = getTxLots(tx);
                 const shares = getTxShares(tx);
@@ -416,17 +638,25 @@ export default function Portfolio() {
                             uiType === 'buy' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
                           }`}
                         >
-                          {uiType.toUpperCase()}
+                          {uiType === 'buy' ? 'BELI' : 'JUAL'}
                         </span>
                       </div>
                       <p className="text-sm text-gray-600 mt-1">
                         {lots} lot @ {formatCurrency(pricePerShare)}
                       </p>
-                      <p className="text-xs text-gray-500">{new Date(tx.date).toLocaleDateString('id-ID')}</p>
+                      <p className="text-xs text-gray-500">Tanggal: {new Date(tx.date).toLocaleDateString('id-ID')}</p>
                     </div>
                     <div className="text-right">
                       <p className="font-medium text-gray-900">{formatCurrency(shares * pricePerShare + fee)}</p>
-                      <p className="text-xs text-gray-500">Fee: {formatCurrency(fee)}</p>
+                      <p className="text-xs text-gray-500">{shares.toLocaleString('id-ID')} lembar</p>
+                      <div className="mt-2 flex items-center justify-end gap-3">
+                        <button type="button" onClick={() => openEditTransaction(tx)} className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800" title="Edit transaksi">
+                          <Pencil className="w-3 h-3" /> Edit
+                        </button>
+                        <button type="button" onClick={() => handleDeleteTransaction(tx)} className="inline-flex items-center gap-1 text-xs text-red-600 hover:text-red-800" title="Hapus transaksi">
+                          <Trash2 className="w-3 h-3" /> Hapus
+                        </button>
+                      </div>
                     </div>
                   </div>
                 );
@@ -437,23 +667,24 @@ export default function Portfolio() {
 
         {/* Dividends */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <h3 className="font-semibold text-gray-900 mb-4">Dividen</h3>
-          <div className="space-y-3">
-            {dividends
-              .slice()
-              .reverse()
-              .slice(0, 5)
-              .map((div: any) => {
+          <div className="flex items-start justify-between mb-4">
+            <div>
+              <h3 className="font-semibold text-gray-900">Riwayat Dividen</h3>
+              <p className="text-sm text-gray-500">Seluruh pendapatan dividen</p>
+            </div>
+            <span className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">{dividendHistory.length} pembayaran</span>
+          </div>
+          <div className="space-y-3 overflow-y-auto" style={{ maxHeight: 420 }}>
+            {dividendHistory.map((div: any) => {
                 const total = getDividendTotal(div);
                 const payment = getDividendPaymentDate(div);
 
                 return (
-                  <div key={div.id} className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+                <div key={div.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                     <div>
                       <p className="font-medium text-gray-900">{div.ticker}</p>
-                      <p className="text-sm text-gray-600">{formatCurrency(total)}</p>
                       <p className="text-xs text-gray-500">
-                        Payment: {payment ? new Date(payment).toLocaleDateString('id-ID') : '-'}
+                        Dibayar: {payment ? new Date(payment).toLocaleDateString('id-ID') : '-'}
                       </p>
                     </div>
                     <div className="text-right">
@@ -467,11 +698,44 @@ export default function Portfolio() {
         </div>
       </div>
 
+      {/* Generic asset modal */}
+      {showAssetModal && (
+        <div className="fixed inset-0 flex items-center justify-center z-50 p-4" style={{ backgroundColor: 'rgba(17, 24, 39, 0.22)', backdropFilter: 'blur(7px)', WebkitBackdropFilter: 'blur(7px)' }} onClick={() => setShowAssetModal(false)} role="dialog" aria-modal="true">
+          <div className="relative bg-white rounded-xl max-w-md w-full p-6 overflow-y-auto" style={{ maxHeight: '90vh' }} onClick={(event) => event.stopPropagation()}>
+            <button onClick={() => setShowAssetModal(false)} className="absolute top-4 right-4 p-1 text-gray-500"><X className="w-5 h-5" /></button>
+            <h3 className="text-xl font-bold text-gray-900 pr-8">{editingAssetId ? 'Edit Instrumen' : 'Tambah Instrumen Investasi'}</h3>
+            <p className="text-sm text-gray-500 mt-1 mb-5">Catat jumlah kepemilikan dan nilai per unit dalam mata uang aset.</p>
+            <div className="space-y-4">
+              <div><label className="block text-sm font-medium text-gray-700 mb-1">Jenis Instrumen</label><select value={assetForm.asset_type} onChange={(e) => setAssetForm({ ...assetForm, asset_type: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg">{ASSET_TYPES.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></div>
+              <div><label className="block text-sm font-medium text-gray-700 mb-1">Nama Aset</label><input value={assetForm.name} onChange={(e) => setAssetForm({ ...assetForm, name: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="Contoh: Bitcoin, Emas Antam, Rumah Jakarta" /></div>
+              <div><label className="block text-sm font-medium text-gray-700 mb-1">Simbol / Kode <span className="text-gray-400">(opsional)</span></label><input value={assetForm.symbol} onChange={(e) => setAssetForm({ ...assetForm, symbol: e.target.value.toUpperCase() })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="BTC, XAU, FR0096" /></div>
+              <div className="grid grid-cols-2 gap-3"><div><label className="block text-sm font-medium text-gray-700 mb-1">Jumlah Unit</label><input type="number" step="any" value={assetForm.quantity} onChange={(e) => setAssetForm({ ...assetForm, quantity: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div><div><label className="block text-sm font-medium text-gray-700 mb-1">Mata Uang</label><input value={assetForm.currency} onChange={(e) => setAssetForm({ ...assetForm, currency: e.target.value.toUpperCase() })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="IDR" /></div></div>
+              <div className="grid grid-cols-2 gap-3"><div><label className="block text-sm font-medium text-gray-700 mb-1">Harga Beli / Unit</label><input type="number" step="any" value={assetForm.average_price} onChange={(e) => setAssetForm({ ...assetForm, average_price: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div><div><label className="block text-sm font-medium text-gray-700 mb-1">Harga Kini / Unit</label><input type="number" step="any" value={assetForm.current_price} onChange={(e) => setAssetForm({ ...assetForm, current_price: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div></div>
+              <div><label className="block text-sm font-medium text-gray-700 mb-1">Kurs ke IDR</label><input type="number" step="any" value={assetForm.exchange_rate_to_idr} onChange={(e) => setAssetForm({ ...assetForm, exchange_rate_to_idr: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" /><p className="text-xs text-gray-500 mt-1">Gunakan 1 untuk aset berdenominasi Rupiah.</p></div>
+              <div><label className="block text-sm font-medium text-gray-700 mb-1">Tanggal Perolehan</label><input type="date" value={assetForm.acquired_date} onChange={(e) => setAssetForm({ ...assetForm, acquired_date: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div>
+              <div><label className="block text-sm font-medium text-gray-700 mb-1">Catatan</label><textarea value={assetForm.notes} onChange={(e) => setAssetForm({ ...assetForm, notes: e.target.value })} rows={2} className="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div>
+            </div>
+            <div className="flex gap-2 mt-6"><button disabled={savingAsset} onClick={() => setShowAssetModal(false)} className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg">Batal</button><button disabled={savingAsset} onClick={saveAsset} className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg disabled:opacity-50">{savingAsset ? 'Menyimpan…' : editingAssetId ? 'Simpan Perubahan' : 'Simpan Aset'}</button></div>
+          </div>
+        </div>
+      )}
+
       {/* Add Transaction Modal */}
       {showAddTransaction && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl max-w-md w-full p-6 max-h-[90vh] overflow-y-auto">
-            <h3 className="text-xl font-bold text-gray-900 mb-4">Tambah Transaksi</h3>
+        <div
+          className="fixed inset-0 flex items-center justify-center z-50 p-4"
+          style={{ backgroundColor: 'rgba(17, 24, 39, 0.22)', backdropFilter: 'blur(7px)', WebkitBackdropFilter: 'blur(7px)' }}
+          onClick={() => setShowAddTransaction(false)}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="asset-modal-title"
+        >
+          <div className="relative bg-white rounded-xl max-w-md w-full p-6 max-h-[90vh] overflow-y-auto" onClick={(event) => event.stopPropagation()}>
+            <button type="button" onClick={() => setShowAddTransaction(false)} className="absolute top-4 right-4 p-1 text-gray-500 hover:text-gray-800" aria-label="Tutup popup catat aset">
+              <X className="w-5 h-5" />
+            </button>
+            <h3 id="asset-modal-title" className="text-xl font-bold text-gray-900 mb-1 pr-8">{editingTransactionId ? 'Edit Transaksi Saham' : 'Catat Aset Saham'}</h3>
+            <p className="text-sm text-gray-500 mb-4">{editingTransactionId ? 'Perbaiki data yang salah lalu simpan perubahan.' : 'Gunakan Beli untuk menambah kepemilikan dan Jual untuk menguranginya.'}</p>
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Tipe</label>
@@ -564,16 +828,20 @@ export default function Portfolio() {
 
             <div className="flex gap-2 mt-6">
               <button
-                onClick={() => setShowAddTransaction(false)}
+                type="button"
+                onClick={() => { setShowAddTransaction(false); setEditingTransactionId(null); }}
+                disabled={savingTransaction}
                 className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200"
               >
                 Batal
               </button>
               <button
+                type="button"
                 onClick={handleAddTransaction}
-                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                disabled={savingTransaction}
+                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
               >
-                Simpan
+                {savingTransaction ? 'Menyimpan…' : editingTransactionId ? 'Simpan Perubahan' : 'Simpan'}
               </button>
             </div>
           </div>
@@ -582,9 +850,19 @@ export default function Portfolio() {
 
       {/* Add Dividend Modal */}
       {showAddDividend && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl max-w-md w-full p-6">
-            <h3 className="text-xl font-bold text-gray-900 mb-4">Catat Dividen</h3>
+        <div
+          className="fixed inset-0 flex items-center justify-center z-50 p-4"
+          style={{ backgroundColor: 'rgba(17, 24, 39, 0.22)', backdropFilter: 'blur(7px)', WebkitBackdropFilter: 'blur(7px)' }}
+          onClick={() => setShowAddDividend(false)}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="dividend-modal-title"
+        >
+          <div className="relative bg-white rounded-xl max-w-md w-full p-6 max-h-[90vh] overflow-y-auto" onClick={(event) => event.stopPropagation()}>
+            <button type="button" onClick={() => setShowAddDividend(false)} className="absolute top-4 right-4 p-1 text-gray-500 hover:text-gray-800" aria-label="Tutup popup dividen">
+              <X className="w-5 h-5" />
+            </button>
+            <h3 id="dividend-modal-title" className="text-xl font-bold text-gray-900 mb-4 pr-8">Catat Dividen</h3>
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Ticker</label>

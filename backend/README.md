@@ -23,8 +23,6 @@ Create `.env` (optional):
 DATABASE_URL=sqlite:///./dev.db
 JWT_SECRET_KEY=change-me-in-prod
 CORS_ORIGINS=http://localhost:5173
-OPENAI_API_KEY=  # optional
-OPENAI_MODEL=gpt-4o-mini
 ```
 
 Run migrations:
@@ -88,5 +86,4 @@ Artifacts saved to:
 
 ## Chat Endpoint
 - `POST /api/chat` (requires auth)
-Uses tool-calling when `OPENAI_API_KEY` exists, otherwise fallback heuristic response.
-
+Menghasilkan ringkasan lokal dari data keuangan milik user yang sedang login.

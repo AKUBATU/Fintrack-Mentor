@@ -32,7 +32,7 @@ def compute_portfolio_summary(db: Session, user_id: int):
 
     holdings = []
     total_cost = 0.0
-    total_realized = 0.0
+    total_realized = sum(realized.values())
     for ticker, qty in shares.items():
         if qty <= 0:
             continue
@@ -49,7 +49,6 @@ def compute_portfolio_summary(db: Session, user_id: int):
             "realized_pl": realized.get(ticker, 0.0),
         })
         total_cost += cost[ticker]
-        total_realized += realized.get(ticker, 0.0)
 
     total_div = sum(d.amount for d in dividends)
 

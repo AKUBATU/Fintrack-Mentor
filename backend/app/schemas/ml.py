@@ -50,5 +50,5 @@ class AnomalyItem(BaseModel):
     reason: str
 
 
-class AnomalyOut(BaseModel):
-    items: List[AnomalyItem]
+class AnomalyOut(AnomalyItem):
+    pass

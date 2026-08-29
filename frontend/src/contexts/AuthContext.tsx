@@ -50,6 +50,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     init();
   }, []);
 
+  useEffect(() => {
+    const handleUnauthorized = () => {
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('user');
+      setUser(null);
+      toast.error('Sesi sudah tidak berlaku. Silakan login kembali.');
+    };
+    window.addEventListener('auth:unauthorized', handleUnauthorized);
+    return () => window.removeEventListener('auth:unauthorized', handleUnauthorized);
+  }, []);
+
   const login = async (email: string, password: string) => {
     try {
       const res = await api.login(email, password);

@@ -4,9 +4,6 @@ import pandas as pd
 import numpy as np
 import joblib
 
-import torch
-from transformers import AutoTokenizer, AutoModelForSequenceClassification
-
 from ..core.config import settings
 
 class ExpenseCategorizer:
@@ -30,6 +27,8 @@ class ExpenseCategorizer:
     def load_dl(self):
         if self._dl_model is None:
             if self.dl_dir.exists():
+                from transformers import AutoTokenizer, AutoModelForSequenceClassification
+
                 self._tokenizer = AutoTokenizer.from_pretrained(str(self.dl_dir))
                 self._dl_model = AutoModelForSequenceClassification.from_pretrained(str(self.dl_dir))
                 self._dl_model.eval()
@@ -38,6 +37,8 @@ class ExpenseCategorizer:
     def predict(self, text: str, amount: float | None = None):
         # prefer DL if available
         if self.load_dl() is not None and self._tokenizer is not None:
+            import torch
+
             inputs = self._tokenizer(text, truncation=True, padding=True, return_tensors="pt")
             with torch.no_grad():
                 logits = self._dl_model(**inputs).logits

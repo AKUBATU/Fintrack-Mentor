@@ -1,29 +1,35 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
-import numpy as np
-import pandas as pd
-
 from ..core.db import get_db
 from ..schemas.ml import PredictCategoryIn, PredictCategoryOut, FeedbackIn, AnomalyOut
 from ..models.expense import Expense
-from ..services.ml_service import categorizer, append_feedback
 from .deps import get_current_user
 
 router = APIRouter(prefix="/ml", tags=["ml"])
 
 @router.post("/predict-category", response_model=PredictCategoryOut)
 def predict_category(payload: PredictCategoryIn):
+    from ..services.ml_service import categorizer
+
     label, conf, model_used, candidates = categorizer.predict(payload.text, payload.amount)
     return PredictCategoryOut(predicted_category=label, confidence=conf, model_used=model_used, candidates=candidates)
 
 @router.post("/feedback")
-def feedback(payload: FeedbackIn):
-    append_feedback(payload.text, payload.amount, payload.category)
+def feedback(payload: FeedbackIn, user=Depends(get_current_user)):
+    from ..services.ml_service import append_feedback
+
+    append_feedback(payload.text, payload.amount, payload.correct_category)
     return {"ok": True}
 
 @router.get("/anomalies", response_model=list[AnomalyOut])
 def anomalies(db: Session = Depends(get_db), user=Depends(get_current_user)):
-    rows = db.query(Expense).filter(Expense.user_id==user.id).all()
+    import numpy as np
+    import pandas as pd
+
+    rows = db.query(Expense).filter(
+        Expense.user_id==user.id,
+        Expense.transaction_type=="expense",
+    ).all()
     if not rows:
         return []
     # z-score within category
@@ -42,13 +48,13 @@ def anomalies(db: Session = Depends(get_db), user=Depends(get_current_user)):
             if abs(float(zz)) >= 3.0:
                 r = df.loc[idx]
                 out.append(AnomalyOut(
-                    id=int(r["id"]),
-                    date=str(r["date"]),
+                    expense_id=int(r["id"]),
+                    date=r["date"],
                     amount=float(r["amount"]),
                     category=str(r["category"]),
                     reason=f"z-score anomaly in {cat}",
-                    score=float(zz),
+                    z_score=float(zz),
                 ))
     # sort by abs score desc
-    out.sort(key=lambda a: abs(a.score), reverse=True)
+    out.sort(key=lambda a: abs(a.z_score or 0), reverse=True)
     return out[:50]

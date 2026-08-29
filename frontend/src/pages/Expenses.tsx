@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useData } from '../contexts/DataContext';
-import { Plus, Trash2, Download, Upload, AlertTriangle } from 'lucide-react';
+import { Plus, Trash2, Download, Upload, AlertTriangle, Camera, Search, X, WalletCards } from 'lucide-react';
 import { toast } from 'sonner';
 import { api } from '../services/api';
 
@@ -23,9 +23,19 @@ export default function Expenses() {
   // ✅ missing states (fix crash)
   const [autoLoading, setAutoLoading] = useState(false);
   const [autoPred, setAutoPred] = useState<AutoPred>(null);
+  const [receiptFile, setReceiptFile] = useState<File | null>(null);
+  const [receiptFiles, setReceiptFiles] = useState<File[]>([]);
+  const [receiptPreview, setReceiptPreview] = useState<string | null>(null);
+  const [receiptScanning, setReceiptScanning] = useState(false);
+  const [receiptScanText, setReceiptScanText] = useState('');
+  const [entryMode, setEntryMode] = useState<'scan' | 'manual'>('scan');
+  const [selectedReceipt, setSelectedReceipt] = useState<string | null>(null);
+  const [historyType, setHistoryType] = useState<'all' | 'income' | 'expense'>('all');
+  const [historySearch, setHistorySearch] = useState('');
 
   // Form states
   const [formData, setFormData] = useState({
+    transactionType: 'expense' as 'income' | 'expense',
     date: new Date().toISOString().split('T')[0],
     amount: '',
     category: 'Makan',
@@ -40,7 +50,9 @@ export default function Expenses() {
     period: 'monthly' as 'monthly' | 'weekly',
   });
 
-  const categories = ['Makan', 'Transport', 'Belanja', 'Tagihan', 'Hiburan', 'Kesehatan', 'Pendidikan', 'Lainnya'];
+  const expenseCategories = ['Makan', 'Transport', 'Belanja', 'Tagihan', 'Hiburan', 'Kesehatan', 'Pendidikan', 'Lainnya'];
+  const incomeCategories = ['Gaji', 'Bonus', 'Usaha', 'Investasi', 'Hadiah', 'Lainnya'];
+  const categories = formData.transactionType === 'income' ? incomeCategories : expenseCategories;
   const paymentMethods = ['Cash', 'Debit Card', 'Credit Card', 'E-Wallet', 'Transfer Bank'];
 
   // ✅ when editing, prefill form
@@ -50,6 +62,7 @@ export default function Expenses() {
     if (!exp) return;
 
     setFormData({
+      transactionType: exp.transactionType,
       date: exp.date,
       amount: String(exp.amount),
       category: exp.category,
@@ -59,6 +72,73 @@ export default function Expenses() {
     });
     setAutoPred(null);
   }, [editingExpense, expenses]);
+
+  useEffect(() => () => {
+    if (receiptPreview) URL.revokeObjectURL(receiptPreview);
+    if (selectedReceipt) URL.revokeObjectURL(selectedReceipt);
+  }, [receiptPreview, selectedReceipt]);
+
+  const filteredTransactions = useMemo(() => {
+    const search = historySearch.trim().toLowerCase();
+    return expenses.filter((transaction) => {
+      const matchesType = historyType === 'all' || transaction.transactionType === historyType;
+      const matchesSearch = !search || [transaction.merchant, transaction.category, transaction.notes]
+        .some((value) => value?.toLowerCase().includes(search));
+      return matchesType && matchesSearch;
+    });
+  }, [expenses, historySearch, historyType]);
+
+  const handleReceiptChange = async (files: File[]) => {
+    if (files.length > 4) {
+      toast.error('Maksimal 4 foto untuk satu struk');
+      return;
+    }
+    if (files.some((file) => file.size > 5 * 1024 * 1024)) {
+      toast.error('Ukuran setiap foto struk maksimal 5 MB');
+      return;
+    }
+    if (files.some((file) => !['image/jpeg', 'image/png', 'image/webp'].includes(file.type))) {
+      toast.error('Foto struk harus berformat JPG, PNG, atau WebP');
+      return;
+    }
+    if (receiptPreview) URL.revokeObjectURL(receiptPreview);
+    setReceiptFiles(files);
+    setReceiptFile(files[0] || null);
+    setReceiptPreview(files[0] ? URL.createObjectURL(files[0]) : null);
+    setReceiptScanText('');
+
+    if (files.length === 0) return;
+    setReceiptScanning(true);
+    try {
+      const result = await api.scanReceipt(files);
+      setFormData((current) => ({
+        ...current,
+        transactionType: 'expense',
+        date: result.date || current.date,
+        amount: result.amount != null ? String(result.amount) : current.amount,
+        category: result.category || current.category,
+        paymentMethod: result.payment_method || current.paymentMethod,
+        merchant: result.merchant || current.merchant,
+        notes: result.notes || current.notes,
+      }));
+      setReceiptScanText(result.raw_text || 'Struk berhasil dibaca. Silakan periksa kembali hasilnya.');
+      toast.success('Struk berhasil dibaca dan form sudah diisi otomatis');
+    } catch (error: any) {
+      toast.error(error?.message || 'Foto struk gagal dibaca');
+    } finally {
+      setReceiptScanning(false);
+    }
+  };
+
+  const handleViewReceipt = async (id: string) => {
+    try {
+      const blob = await api.getReceiptBlob(Number(id));
+      if (selectedReceipt) URL.revokeObjectURL(selectedReceipt);
+      setSelectedReceipt(URL.createObjectURL(blob));
+    } catch (error: any) {
+      toast.error(error?.message || 'Foto struk tidak dapat dimuat');
+    }
+  };
 
   const handleAutoCategorize = async () => {
     try {
@@ -100,12 +180,15 @@ export default function Expenses() {
     const currentMonth = new Date().getMonth();
     const currentYear = new Date().getFullYear();
 
-    const monthlyExpenses = expenses.filter(e => {
+    const monthlyTransactions = expenses.filter(e => {
       const date = new Date(e.date);
       return date.getMonth() === currentMonth && date.getFullYear() === currentYear;
     });
 
-    const total = monthlyExpenses.reduce((sum, e) => sum + e.amount, 0);
+    const monthlyExpenses = monthlyTransactions.filter(e => e.transactionType !== 'income');
+    const monthlyIncome = monthlyTransactions.filter(e => e.transactionType === 'income');
+    const totalExpense = monthlyExpenses.reduce((sum, e) => sum + e.amount, 0);
+    const totalIncome = monthlyIncome.reduce((sum, e) => sum + e.amount, 0);
 
     const byCategory = new Map<string, number>();
     monthlyExpenses.forEach(e => {
@@ -113,8 +196,10 @@ export default function Expenses() {
     });
 
     return {
-      total,
-      count: monthlyExpenses.length,
+      totalExpense,
+      totalIncome,
+      balance: totalIncome - totalExpense,
+      count: monthlyTransactions.length,
       byCategory: Array.from(byCategory.entries()).map(([category, amount]) => ({
         category,
         amount,
@@ -140,6 +225,7 @@ export default function Expenses() {
 
     try {
       await addExpense({
+        transactionType: formData.transactionType,
         date: formData.date,
         amount: amountNum,
         category: formData.category,
@@ -148,12 +234,16 @@ export default function Expenses() {
         notes: formData.notes,
         predictedCategory,
         confidence,
+        receiptFile: receiptFile || undefined,
       });
 
       toast.success('Transaksi berhasil ditambahkan!');
       setShowAddExpense(false);
       setAutoPred(null);
+      setEntryMode('scan');
+      void handleReceiptChange([]);
       setFormData({
+        transactionType: 'expense',
         date: new Date().toISOString().split('T')[0],
         amount: '',
         category: 'Makan',
@@ -175,17 +265,20 @@ export default function Expenses() {
 
     try {
       await updateExpense(id, {
+        transactionType: formData.transactionType,
         date: formData.date,
         amount: amountNum,
         category: formData.category,
         paymentMethod: formData.paymentMethod,
         merchant: formData.merchant,
         notes: formData.notes,
+        receiptFile: receiptFile || undefined,
       });
 
       toast.success('Transaksi berhasil diupdate!');
       setEditingExpense(null);
       setAutoPred(null);
+      void handleReceiptChange([]);
     } catch (e: any) {
       toast.error(e?.message || 'Gagal update transaksi');
     }
@@ -238,9 +331,9 @@ export default function Expenses() {
 
   const handleExportCSV = () => {
     const csvContent = [
-      ['Tanggal', 'Kategori', 'Merchant', 'Metode Bayar', 'Jumlah', 'Catatan'].join(','),
+      ['Tanggal', 'Jenis', 'Kategori', 'Sumber/Merchant', 'Metode', 'Jumlah', 'Catatan'].join(','),
       ...expenses.map(e =>
-        [e.date, e.category, e.merchant, e.paymentMethod, e.amount, e.notes].join(',')
+        [e.date, e.transactionType, e.category, e.merchant, e.paymentMethod, e.amount, e.notes].join(',')
       ),
     ].join('\n');
 
@@ -248,7 +341,7 @@ export default function Expenses() {
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'expenses.csv';
+    a.download = 'financial-transactions.csv';
     a.click();
     toast.success('Data berhasil diekspor!');
   };
@@ -264,62 +357,87 @@ export default function Expenses() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="finance-page-header">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Pengeluaran</h1>
-          <p className="text-gray-600">Kelola transaksi & budget Anda</p>
+          <h1 className="text-2xl font-bold text-gray-900">Keuangan</h1>
+          <p className="text-gray-600">Kelola pemasukan, pengeluaran, dan budget Anda</p>
         </div>
-        <div className="flex gap-2">
+        <div className="finance-header-actions">
           <button
             onClick={handleImportCSV}
             className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
           >
             <Upload className="w-4 h-4" />
-            <span className="hidden sm:inline">Import CSV</span>
+            <span>Import</span>
           </button>
           <button
             onClick={handleExportCSV}
             className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
           >
             <Download className="w-4 h-4" />
-            <span className="hidden sm:inline">Export</span>
+            <span>Export</span>
           </button>
           <button
             onClick={() => {
               setEditingExpense(null);
               setAutoPred(null);
+              setEntryMode('scan');
+              void handleReceiptChange([]);
               setShowAddExpense(true);
             }}
             className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
           >
             <Plus className="w-4 h-4" />
-            Tambah
+            Tambah Transaksi
           </button>
         </div>
       </div>
 
       {/* Monthly Summary */}
-      <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-        <h3 className="font-semibold text-gray-900 mb-4">Ringkasan Bulan Ini</h3>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+      <section>
+        <div className="flex items-center justify-between mb-3">
           <div>
-            <p className="text-sm text-gray-600">Total Pengeluaran</p>
-            <p className="text-2xl font-bold text-gray-900">{formatCurrency(monthlySummary.total)}</p>
-          </div>
-          <div>
-            <p className="text-sm text-gray-600">Jumlah Transaksi</p>
-            <p className="text-2xl font-bold text-gray-900">{monthlySummary.count}</p>
-          </div>
-          <div>
-            <p className="text-sm text-gray-600">Rata-rata per Transaksi</p>
-            <p className="text-2xl font-bold text-gray-900">
-              {formatCurrency(monthlySummary.count > 0 ? monthlySummary.total / monthlySummary.count : 0)}
-            </p>
+            <h3 className="font-semibold text-gray-900">Ringkasan Bulan Ini</h3>
+            <p className="text-sm text-gray-500">Arus keuangan pada bulan berjalan</p>
           </div>
         </div>
 
-        {/* Category breakdown with budgets */}
+        <div className="finance-overview-grid">
+          <div className="finance-balance-card">
+            <div className="finance-balance-decoration finance-balance-decoration-one" />
+            <div className="finance-balance-decoration finance-balance-decoration-two" />
+            <div className="finance-balance-content">
+              <div className="finance-balance-heading">
+                <div className="finance-balance-icon"><WalletCards className="w-5 h-5" /></div>
+                <div>
+                  <p className="finance-balance-label">Saldo bulan ini</p>
+                  <p className="finance-balance-period">Pemasukan dikurangi pengeluaran</p>
+                </div>
+              </div>
+              <p className="finance-balance-value">{formatCurrency(monthlySummary.balance)}</p>
+              <div className="finance-balance-footer">
+                <span className={`finance-cashflow-badge ${monthlySummary.balance >= 0 ? 'finance-cashflow-positive' : 'finance-cashflow-negative'}`}>
+                  {monthlySummary.balance >= 0 ? 'Arus kas positif' : 'Arus kas negatif'}
+                </span>
+                <span className="finance-transaction-count">{monthlySummary.count} transaksi</span>
+              </div>
+            </div>
+          </div>
+          <div className="finance-flow-grid">
+            <div className="finance-flow-card finance-income-card">
+              <p className="text-sm text-gray-600">Pemasukan</p>
+              <p className="text-xl font-bold text-green-600">+{formatCurrency(monthlySummary.totalIncome)}</p>
+            </div>
+            <div className="finance-flow-card finance-expense-card">
+              <p className="text-sm text-gray-600">Pengeluaran</p>
+              <p className="text-xl font-bold text-red-600">-{formatCurrency(monthlySummary.totalExpense)}</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Category breakdown with budgets */}
+      <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
         <div className="space-y-3">
           <div className="flex items-center justify-between mb-2">
             <h4 className="font-medium text-gray-900">Per Kategori</h4>
@@ -358,18 +476,106 @@ export default function Expenses() {
               </div>
             );
           })}
+          {monthlySummary.byCategory.length === 0 && (
+            <div className="text-center py-6">
+              <p className="text-sm text-gray-500">Belum ada pengeluaran bulan ini.</p>
+            </div>
+          )}
         </div>
       </div>
 
       {/* Add/Edit Expense Modal */}
       {(showAddExpense || editingExpense) && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl max-w-md w-full p-6">
+        <div className="fixed inset-0 flex items-center justify-center z-50 p-4" style={{ backgroundColor: 'rgba(17, 24, 39, 0.22)', backdropFilter: 'blur(7px)', WebkitBackdropFilter: 'blur(7px)' }}>
+          <div className="bg-white rounded-xl max-w-md w-full p-6 max-h-[92vh] overflow-y-auto">
             <h3 className="text-xl font-bold text-gray-900 mb-4">
               {editingExpense ? 'Edit Transaksi' : 'Tambah Transaksi'}
             </h3>
 
             <div className="space-y-4">
+              {!editingExpense && (
+                <div className="grid grid-cols-2 gap-2 p-1 bg-gray-100 rounded-lg">
+                  <button type="button" onClick={() => setEntryMode('scan')} className={`px-3 py-2 rounded-lg text-sm font-medium ${entryMode === 'scan' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-600'}`}>
+                    Scan Struk
+                  </button>
+                  <button type="button" onClick={() => setEntryMode('manual')} className={`px-3 py-2 rounded-lg text-sm font-medium ${entryMode === 'manual' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-600'}`}>
+                    Input Manual
+                  </button>
+                </div>
+              )}
+
+              {!editingExpense && entryMode === 'scan' && (
+                <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl">
+                  <label className="block text-sm font-semibold text-blue-900 mb-1">Scan Struk Otomatis</label>
+                  <p className="text-xs text-blue-700 mb-3">Upload satu foto—tanggal, total, merchant, pembayaran, kategori, dan catatan akan terisi otomatis.</p>
+                  <label className="flex items-center justify-center gap-3 w-full min-h-24 px-4 py-3 bg-white border-2 border-dashed border-blue-300 rounded-lg cursor-pointer hover:bg-blue-50 transition-colors">
+                    {receiptPreview ? (
+                      <div className="text-center">
+                        <img src={receiptPreview} alt="Preview struk" className="h-20 max-w-32 object-cover rounded-lg" />
+                        <p className="text-xs text-blue-700 mt-1">{receiptFiles.length} foto dipilih</p>
+                      </div>
+                    ) : (
+                      <>
+                        <Camera className="w-6 h-6 text-blue-500" />
+                        <div>
+                          <p className="text-sm font-medium text-gray-800">Pilih beberapa foto struk</p>
+                          <p className="text-xs text-gray-500">Foto penuh + close-up lipatan · maksimal 4 foto</p>
+                        </div>
+                      </>
+                    )}
+                    <input type="file" accept="image/jpeg,image/png,image/webp" multiple className="hidden" onChange={(event) => void handleReceiptChange(Array.from(event.target.files || []))} />
+                  </label>
+                  {receiptScanning && <p className="mt-3 text-sm font-medium text-blue-700">Membaca seluruh informasi pada struk…</p>}
+                  {!receiptScanning && receiptScanText && (
+                    <div className="mt-3 space-y-3">
+                      <div className="p-3 bg-green-50 rounded-lg text-sm text-green-800">
+                        <p className="font-semibold">Struk berhasil dibaca</p>
+                        <p className="text-xs mt-1">Periksa ringkasan berikut sebelum disimpan.</p>
+                      </div>
+                      <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+                        <div className="flex justify-between gap-4 p-3 border-b border-gray-200"><span className="text-sm text-gray-500">Merchant</span><span className="text-sm font-medium text-gray-900 text-right">{formData.merchant || '-'}</span></div>
+                        <div className="flex justify-between gap-4 p-3 border-b border-gray-200"><span className="text-sm text-gray-500">Tanggal</span><span className="text-sm font-medium text-gray-900">{formData.date || '-'}</span></div>
+                        <div className="flex justify-between gap-4 p-3 border-b border-gray-200"><span className="text-sm text-gray-500">Total</span><span className="text-sm font-semibold text-red-600">{formData.amount ? formatCurrency(Number(formData.amount)) : '-'}</span></div>
+                        <div className="flex justify-between gap-4 p-3 border-b border-gray-200"><span className="text-sm text-gray-500">Pembayaran</span><span className="text-sm font-medium text-gray-900">{formData.paymentMethod || '-'}</span></div>
+                        <div className="flex justify-between gap-4 p-3"><span className="text-sm text-gray-500">Kategori</span><span className="text-sm font-medium text-gray-900">{formData.category || '-'}</span></div>
+                      </div>
+                      <button type="button" onClick={() => setEntryMode('manual')} className="w-full px-3 py-2 text-sm text-blue-600 bg-white border border-blue-200 rounded-lg hover:bg-blue-50">Perbaiki hasil scan</button>
+                      <details className="p-3 bg-white border border-gray-200 rounded-lg text-sm text-gray-700">
+                        <summary className="font-medium cursor-pointer">Lihat seluruh teks struk</summary>
+                        <pre className="mt-2 text-xs overflow-x-auto" style={{ whiteSpace: 'pre-wrap', maxHeight: 160 }}>{receiptScanText}</pre>
+                      </details>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {(editingExpense || entryMode === 'manual') && <>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Jenis Transaksi</label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFormData({ ...formData, transactionType: 'expense', category: 'Makan' });
+                      setAutoPred(null);
+                    }}
+                    className={`px-4 py-2 rounded-lg border ${formData.transactionType === 'expense' ? 'bg-red-50 border-red-500 text-red-700' : 'border-gray-300 text-gray-600'}`}
+                  >
+                    Pengeluaran
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFormData({ ...formData, transactionType: 'income', category: 'Gaji' });
+                      setAutoPred(null);
+                    }}
+                    className={`px-4 py-2 rounded-lg border ${formData.transactionType === 'income' ? 'bg-green-50 border-green-500 text-green-700' : 'border-gray-300 text-gray-600'}`}
+                  >
+                    Pemasukan
+                  </button>
+                </div>
+              </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Tanggal</label>
                 <input
@@ -381,13 +587,13 @@ export default function Expenses() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Merchant</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Sumber / Merchant</label>
                 <input
                   type="text"
                   value={formData.merchant}
                   onChange={(e) => setFormData({ ...formData, merchant: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                  placeholder="Nama toko/tempat"
+                  placeholder={formData.transactionType === 'income' ? 'Contoh: Perusahaan atau klien' : 'Nama toko/tempat'}
                 />
               </div>
 
@@ -405,7 +611,7 @@ export default function Expenses() {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Kategori</label>
 
-                <div className="flex items-center gap-2 mb-2">
+                {formData.transactionType === 'expense' && <div className="flex items-center gap-2 mb-2">
                   <button
                     type="button"
                     onClick={handleAutoCategorize}
@@ -419,7 +625,7 @@ export default function Expenses() {
                       Confidence: {Math.round(autoPred.confidence * 100)}%
                     </span>
                   )}
-                </div>
+                </div>}
 
                 <select
                   value={formData.category}
@@ -433,7 +639,7 @@ export default function Expenses() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Metode Bayar</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Metode Transaksi</label>
                 <select
                   value={formData.paymentMethod}
                   onChange={(e) => setFormData({ ...formData, paymentMethod: e.target.value })}
@@ -455,6 +661,18 @@ export default function Expenses() {
                   placeholder="Catatan opsional"
                 />
               </div>
+
+              {editingExpense && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Ganti Foto Struk <span className="text-gray-400 font-normal">(opsional)</span></label>
+                  <label className="flex items-center justify-center gap-3 w-full px-4 py-3 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50">
+                    <Camera className="w-5 h-5 text-gray-400" />
+                    <span className="text-sm text-gray-700">Pilih foto baru</span>
+                    <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={(event) => void handleReceiptChange(Array.from(event.target.files || []))} />
+                  </label>
+                </div>
+              )}
+              </>}
             </div>
 
             <div className="flex gap-2 mt-6">
@@ -463,6 +681,8 @@ export default function Expenses() {
                   setShowAddExpense(false);
                   setEditingExpense(null);
                   setAutoPred(null);
+                  setEntryMode('scan');
+                  void handleReceiptChange([]);
                 }}
                 className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200"
               >
@@ -470,9 +690,10 @@ export default function Expenses() {
               </button>
               <button
                 onClick={editingExpense ? () => handleUpdateExpense(editingExpense) : handleAddExpense}
-                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                disabled={receiptScanning || (!editingExpense && entryMode === 'scan' && !receiptScanText)}
+                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
               >
-                {editingExpense ? 'Update' : 'Simpan'}
+                {receiptScanning ? 'Membaca Struk…' : editingExpense ? 'Update' : entryMode === 'scan' && !receiptScanText ? 'Upload Struk Dahulu' : 'Simpan'}
               </button>
             </div>
           </div>
@@ -481,7 +702,7 @@ export default function Expenses() {
 
       {/* Add Budget Modal */}
       {showAddBudget && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 flex items-center justify-center z-50 p-4" style={{ backgroundColor: 'rgba(17, 24, 39, 0.22)', backdropFilter: 'blur(7px)', WebkitBackdropFilter: 'blur(7px)' }}>
           <div className="bg-white rounded-xl max-w-md w-full p-6">
             <h3 className="text-xl font-bold text-gray-900 mb-4">Atur Budget</h3>
 
@@ -544,18 +765,37 @@ export default function Expenses() {
       {/* Transactions List */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200">
         <div className="p-6">
-          <h3 className="font-semibold text-gray-900 mb-4">Riwayat Transaksi</h3>
+          <div className="finance-history-header">
+            <div>
+              <h3 className="font-semibold text-gray-900">Riwayat Transaksi</h3>
+              <p className="text-sm text-gray-500">{filteredTransactions.length} transaksi ditemukan</p>
+            </div>
+            <div className="finance-history-tools">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <input value={historySearch} onChange={(event) => setHistorySearch(event.target.value)} placeholder="Cari transaksi..." className="w-full sm:w-56 pl-9 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500" />
+              </div>
+              <select value={historyType} onChange={(event) => setHistoryType(event.target.value as typeof historyType)} className="px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white">
+                <option value="all">Semua jenis</option>
+                <option value="income">Pemasukan</option>
+                <option value="expense">Pengeluaran</option>
+              </select>
+            </div>
+          </div>
           <div className="space-y-3">
-            {expenses.slice().reverse().map((expense) => (
+            {filteredTransactions.map((expense) => (
               <div
                 key={expense.id}
-                className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                className={`finance-history-row ${expense.transactionType === 'income' ? 'finance-history-income' : 'finance-history-expense'}`}
               >
                 <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    <p className="font-medium text-gray-900">{expense.merchant}</p>
+                  <div className="flex flex-wrap items-center gap-2 mb-1">
+                    <p className="font-medium text-gray-900">{expense.merchant || 'Tanpa sumber/merchant'}</p>
                     <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-full">
                       {expense.category}
+                    </span>
+                    <span className={`px-2 py-0.5 text-xs rounded-full ${expense.transactionType === 'income' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                      {expense.transactionType === 'income' ? 'Pemasukan' : 'Pengeluaran'}
                     </span>
                     {expense.predictedCategory && typeof expense.confidence === 'number' && (
                       <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded-full">
@@ -569,8 +809,16 @@ export default function Expenses() {
                   {expense.notes && <p className="text-sm text-gray-500 mt-1">{expense.notes}</p>}
                 </div>
 
-                <div className="flex items-center gap-3">
-                  <p className="font-semibold text-gray-900">{formatCurrency(expense.amount)}</p>
+                <div className="finance-history-amount">
+                  <p className={`font-semibold ${expense.transactionType === 'income' ? 'text-green-600' : 'text-red-600'}`} style={{ whiteSpace: 'nowrap' }}>
+                    {expense.transactionType === 'income' ? '+' : '-'}{formatCurrency(expense.amount)}
+                  </p>
+
+                  {expense.hasReceipt && (
+                    <button onClick={() => handleViewReceipt(expense.id)} className="p-2 text-amber-600 hover:bg-amber-50 rounded-lg" title="Lihat foto struk">
+                      <Camera className="w-4 h-4" />
+                    </button>
+                  )}
 
                   <button
                     onClick={() => {
@@ -595,12 +843,23 @@ export default function Expenses() {
               </div>
             ))}
 
-            {expenses.length === 0 && (
+            {filteredTransactions.length === 0 && (
               <p className="text-center text-gray-500 py-8">Belum ada transaksi</p>
             )}
           </div>
         </div>
       </div>
+
+      {selectedReceipt && (
+        <div className="fixed inset-0 flex items-center justify-center z-50 p-4" style={{ backgroundColor: 'rgba(17, 24, 39, 0.35)', backdropFilter: 'blur(7px)', WebkitBackdropFilter: 'blur(7px)' }} onClick={() => setSelectedReceipt(null)}>
+          <div className="relative max-w-3xl max-h-[90vh]" onClick={(event) => event.stopPropagation()}>
+            <button onClick={() => setSelectedReceipt(null)} className="absolute -top-3 -right-3 p-2 bg-white rounded-full shadow-lg text-gray-700" aria-label="Tutup foto struk">
+              <X className="w-5 h-5" />
+            </button>
+            <img src={selectedReceipt} alt="Foto struk transaksi" className="max-w-full max-h-[85vh] object-contain rounded-xl shadow-2xl" />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

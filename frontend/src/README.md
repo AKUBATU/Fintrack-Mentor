@@ -16,13 +16,12 @@
 
 ## Overview
 
-**FinTrack Mentor** adalah aplikasi web full-stack untuk memantau pengeluaran, portofolio investasi saham, dan menyediakan chatbot AI mentor yang terintegrasi dengan ChatGPT. Aplikasi ini dirancang untuk investor pemula yang melakukan DCA (Dollar Cost Averaging) mingguan dan compounding dividen.
+**FinTrack Mentor** adalah aplikasi web full-stack untuk memantau arus kas dan berbagai instrumen investasi, serta menyediakan mentor keuangan lokal berbasis data akun. Aplikasi ini dirancang untuk membantu pengguna mencatat dan mengevaluasi kondisi keuangannya.
 
 ### Key Features
 - ✅ Expense tracking dengan budget alerts & ML categorization
 - ✅ Portfolio management (saham) dengan perhitungan P/L, avg price, drawdown, dividen
-- ✅ Daily report untuk tracking equity curve
-- ✅ ChatGPT-powered mentor dengan function calling
+- ✅ Mentor keuangan lokal berbasis ringkasan data akun
 - ✅ Deep Learning untuk expense categorization & anomaly detection
 - ✅ JWT authentication dengan role-based access
 - ✅ Audit logging untuk semua transaksi
@@ -57,9 +56,8 @@
 - **Baseline**: Scikit-learn (TF-IDF + Logistic Regression)
 - **Evaluation**: accuracy, macro F1, confusion matrix
 
-### AI Integration
-- **LLM**: OpenAI GPT-4 (via API)
-- **Function Calling**: OpenAI function calling untuk tool integration
+### Analisis Lokal
+- **Mentor keuangan**: ringkasan deterministik dari data akun tanpa layanan eksternal
 
 ---
 
@@ -79,7 +77,6 @@ fintrack-mentor/
 │   │   │   ├── Dashboard.tsx
 │   │   │   ├── Expenses.tsx
 │   │   │   ├── Portfolio.tsx
-│   │   │   ├── DailyReport.tsx
 │   │   │   ├── ChatMentor.tsx
 │   │   │   └── Settings.tsx
 │   │   ├── components/         # Reusable components
@@ -119,7 +116,7 @@ fintrack-mentor/
 │   │   │   ├── portfolio.py    # Portfolio CRUD
 │   │   │   ├── daily_reports.py
 │   │   │   ├── ml.py           # ML endpoints
-│   │   │   └── chat.py         # ChatGPT endpoints
+│   │   │   └── chat.py         # Local finance mentor endpoint
 │   │   │
 │   │   ├── services/           # Business logic
 │   │   │   ├── __init__.py
@@ -866,7 +863,6 @@ services:
     environment:
       DATABASE_URL: postgresql://fintrack_user:${DB_PASSWORD}@postgres:5432/fintrack_db
       JWT_SECRET: ${JWT_SECRET}
-      OPENAI_API_KEY: ${OPENAI_API_KEY}
     depends_on:
       - postgres
     ports:
@@ -912,9 +908,6 @@ JWT_ALGORITHM=HS256
 ACCESS_TOKEN_EXPIRE_MINUTES=30
 REFRESH_TOKEN_EXPIRE_DAYS=7
 
-# OpenAI
-OPENAI_API_KEY=sk-...
-
 # Rate Limiting
 RATE_LIMIT_CHAT=10/minute
 RATE_LIMIT_ML=20/minute
@@ -956,10 +949,9 @@ See separate file: **THESIS_PLAN.md** for complete thesis outline including:
 🔨 Train anomaly detection model
 🔨 ML inference API endpoints
 
-### Phase 3: ChatGPT Integration (Week 5)
-🔨 OpenAI API integration
-🔨 Function calling implementation
-🔨 Tool definitions for portfolio/expenses
+### Phase 3: Mentor Keuangan (Week 5)
+🔨 Ringkasan lokal untuk data portofolio dan arus kas
+🔨 Rekomendasi deterministik tanpa layanan eksternal
 
 ### Phase 4: Testing & Documentation (Week 6)
 🔨 Unit tests for all calculations

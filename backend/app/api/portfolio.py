@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from ..core.db import get_db
 from ..schemas.portfolio import (
-    StockTransactionCreate, StockTransactionOut,
+    StockTransactionCreate, StockTransactionOut, StockTransactionUpdate,
     DividendCreate, DividendOut,
     PortfolioSummaryOut
 )
@@ -23,6 +23,48 @@ def add_transaction(payload: StockTransactionCreate, db: Session = Depends(get_d
     t = StockTransaction(user_id=user.id, **payload.model_dump())
     db.add(t); db.commit(); db.refresh(t)
     return StockTransactionOut(id=t.id, **payload.model_dump())
+
+@router.patch("/transactions/{transaction_id}", response_model=StockTransactionOut)
+def update_transaction(
+    transaction_id: int,
+    payload: StockTransactionUpdate,
+    db: Session = Depends(get_db),
+    user=Depends(get_current_user),
+):
+    transaction = db.query(StockTransaction).filter(
+        StockTransaction.id == transaction_id,
+        StockTransaction.user_id == user.id,
+    ).first()
+    if not transaction:
+        raise HTTPException(404, "Stock transaction not found")
+    for field, value in payload.model_dump(exclude_unset=True).items():
+        setattr(transaction, field, value)
+    db.commit()
+    db.refresh(transaction)
+    return StockTransactionOut(
+        id=transaction.id,
+        ticker=transaction.ticker,
+        type=transaction.type,
+        shares=transaction.shares,
+        price=transaction.price,
+        date=transaction.date,
+    )
+
+@router.delete("/transactions/{transaction_id}")
+def delete_transaction(
+    transaction_id: int,
+    db: Session = Depends(get_db),
+    user=Depends(get_current_user),
+):
+    transaction = db.query(StockTransaction).filter(
+        StockTransaction.id == transaction_id,
+        StockTransaction.user_id == user.id,
+    ).first()
+    if not transaction:
+        raise HTTPException(404, "Stock transaction not found")
+    db.delete(transaction)
+    db.commit()
+    return {"ok": True}
 
 @router.get("/dividends", response_model=list[DividendOut])
 def list_dividends(db: Session = Depends(get_db), user=Depends(get_current_user)):

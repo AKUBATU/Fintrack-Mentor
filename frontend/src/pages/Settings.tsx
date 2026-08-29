@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useData } from '../contexts/DataContext';
 import { useAuth } from '../contexts/AuthContext';
-import { Save, User as UserIcon } from 'lucide-react';
+import { Save } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function Settings() {
@@ -155,52 +155,6 @@ export default function Settings() {
         </div>
       </div>
 
-      {/* Calculation Methods Info */}
-      <div className="bg-blue-50 border border-blue-200 rounded-xl p-6">
-        <h3 className="text-lg font-semibold text-blue-900 mb-3">📊 Metode Perhitungan</h3>
-        <div className="space-y-2 text-sm text-blue-800">
-          <p><strong>1 lot = 100 lembar saham</strong></p>
-          <p><strong>Avg Price:</strong> Total biaya beli (termasuk fee) ÷ Total lembar</p>
-          <p><strong>Realized P/L:</strong> Dihitung saat sell dengan metode FIFO (First In First Out)</p>
-          <p><strong>Unrealized P/L:</strong> (Current Price - Avg Price) × Total Shares</p>
-          <p><strong>Drawdown:</strong> (Peak Portfolio Value - Current Value) ÷ Peak Value × 100%</p>
-          <p><strong>Dividen Total:</strong> Dividend per Share × Shares on Record Date</p>
-        </div>
-      </div>
-
-      {/* AI & ML Features Info */}
-      <div className="bg-green-50 border border-green-200 rounded-xl p-6">
-        <h3 className="text-lg font-semibold text-green-900 mb-3">🤖 Fitur AI/ML (Demo)</h3>
-        <div className="space-y-2 text-sm text-green-800">
-          <p><strong>Expense Categorization:</strong> Model deep learning (IndoBERT) memprediksi kategori transaksi berdasarkan deskripsi merchant. Akurasi ~85%.</p>
-          <p><strong>Anomaly Detection:</strong> Autoencoder mendeteksi pengeluaran yang tidak biasa berdasarkan pola historis Anda.</p>
-          <p><strong>Chatbot Tool Calling:</strong> ChatGPT terintegrasi dengan function calling untuk mengakses data real-time portofolio & pengeluaran.</p>
-          <p className="pt-2 border-t border-green-300 mt-3">
-            <strong>Note:</strong> Dalam production, backend FastAPI akan menjalankan model ML/DL untuk inference. Frontend ini menggunakan mock predictions.
-          </p>
-        </div>
-      </div>
-
-      {/* Backend Integration Info */}
-      <div className="bg-purple-50 border border-purple-200 rounded-xl p-6">
-        <h3 className="text-lg font-semibold text-purple-900 mb-3">⚙️ Backend Integration (FastAPI)</h3>
-        <div className="space-y-2 text-sm text-purple-800">
-          <p><strong>API Endpoints:</strong></p>
-          <ul className="list-disc list-inside space-y-1 ml-2">
-            <li><code>POST /api/auth/login</code> - JWT authentication</li>
-            <li><code>POST /api/auth/register</code> - User registration</li>
-            <li><code>GET/POST /api/expenses</code> - CRUD expenses</li>
-            <li><code>GET/POST /api/portfolio/transactions</code> - Stock transactions</li>
-            <li><code>POST /api/ml/predict-category</code> - ML prediction</li>
-            <li><code>GET /api/ml/anomalies</code> - Anomaly detection</li>
-            <li><code>POST /api/chat/completions</code> - ChatGPT integration</li>
-          </ul>
-          <p className="pt-2 border-t border-purple-300 mt-3">
-            <strong>Database:</strong> PostgreSQL dengan Alembic migration. Tabel: users, expenses, stock_transactions, holdings, dividends, daily_reports, audit_logs.
-          </p>
-        </div>
-      </div>
-
       {/* Save Button */}
       <div className="flex justify-end">
         <button
@@ -212,37 +166,6 @@ export default function Settings() {
         </button>
       </div>
 
-      {/* Additional Info */}
-      <div className="bg-gray-50 border border-gray-200 rounded-xl p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-3">📚 Dokumentasi & Source Code</h3>
-        <div className="space-y-2 text-sm text-gray-700">
-          <p>
-            Aplikasi FinTrack Mentor ini adalah full-stack web app dengan React + TypeScript + TailwindCSS di frontend, 
-            dan Python FastAPI + PostgreSQL + Deep Learning di backend.
-          </p>
-          <p className="font-medium mt-3">Fitur yang sudah diimplementasikan (Frontend Demo):</p>
-          <ul className="list-disc list-inside space-y-1 ml-2">
-            <li>✅ Authentication (JWT Mock)</li>
-            <li>✅ Expense tracking dengan budget alerts</li>
-            <li>✅ Portfolio management (saham) dengan perhitungan P/L, avg price, drawdown</li>
-            <li>✅ Daily report & equity curve visualization</li>
-            <li>✅ ChatGPT-powered mentor dengan tool calling (mock responses)</li>
-            <li>✅ User profile & DCA strategy settings</li>
-            <li>✅ Responsive UI dengan Recharts</li>
-          </ul>
-          <p className="font-medium mt-3">Yang perlu diimplementasikan di Backend:</p>
-          <ul className="list-disc list-inside space-y-1 ml-2">
-            <li>🔨 FastAPI REST API dengan Pydantic models</li>
-            <li>🔨 PostgreSQL database schema + Alembic migrations</li>
-            <li>🔨 JWT authentication dengan bcrypt/argon2</li>
-            <li>🔨 Deep Learning models (IndoBERT untuk categorization, Autoencoder untuk anomaly)</li>
-            <li>🔨 Training pipeline + evaluation metrics</li>
-            <li>🔨 ChatGPT API integration dengan function calling</li>
-            <li>🔨 Unit tests untuk financial calculations</li>
-            <li>🔨 Rate limiting & CORS configuration</li>
-          </ul>
-        </div>
-      </div>
     </div>
   );
 }

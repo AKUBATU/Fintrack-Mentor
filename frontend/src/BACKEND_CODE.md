@@ -24,7 +24,7 @@ limiter = Limiter(key_func=get_remote_address)
 # Create FastAPI app
 app = FastAPI(
     title="FinTrack Mentor API",
-    description="Financial management API with ML categorization and ChatGPT integration",
+    description="Financial management API with ML categorization and local financial summaries",
     version="1.0.0"
 )
 
@@ -79,9 +79,6 @@ class Settings(BaseSettings):
     JWT_ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
-    
-    # OpenAI
-    OPENAI_API_KEY: str = ""
     
     # CORS
     CORS_ORIGINS: List[str] = ["http://localhost:5173", "http://localhost:3000"]
@@ -661,214 +658,12 @@ anomaly_service = AnomalyDetectorService("ml/saved_models/anomaly.pth")
 
 ---
 
-### 11. Chat Service with OpenAI (app/services/chat_service.py)
+### 11. Local Finance Mentor
 
-\`\`\`python
-import openai
-from typing import List, Dict
-from app.config import settings
-from app.utils.calculations import calculate_avg_price, calculate_unrealized_pl
-
-openai.api_key = settings.OPENAI_API_KEY
-
-# Define tools for function calling
-tools = [
-    {
-        "type": "function",
-        "function": {
-            "name": "get_portfolio_summary",
-            "description": "Get user's portfolio summary including holdings, P/L, and performance metrics",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "date_range": {
-                        "type": "string",
-                        "description": "Optional date range filter (e.g., '30d', 'ytd')"
-                    }
-                }
-            }
-        }
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "get_expense_summary",
-            "description": "Get user's expense summary including total, by category, and recent transactions",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "date_range": {
-                        "type": "string",
-                        "description": "Date range filter (e.g., 'this_month', 'last_month', '30d')"
-                    }
-                }
-            }
-        }
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "get_daily_reports",
-            "description": "Get user's daily portfolio reports and equity curve",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "days": {
-                        "type": "integer",
-                        "description": "Number of recent days to fetch (default: 7)"
-                    }
-                }
-            }
-        }
-    }
-]
-
-class ChatService:
-    def __init__(self, user_id: str, db_session):
-        self.user_id = user_id
-        self.db = db_session
-    
-    async def chat_completion(self, messages: List[Dict]) -> Dict:
-        # Add system prompt with user context
-        system_prompt = self._build_system_prompt()
-        
-        full_messages = [
-            {"role": "system", "content": system_prompt},
-            *messages
-        ]
-        
-        # Call OpenAI with function calling
-        response = openai.ChatCompletion.create(
-            model="gpt-4",
-            messages=full_messages,
-            tools=tools,
-            tool_choice="auto"
-        )
-        
-        message = response.choices[0].message
-        
-        # Check if function call is needed
-        if message.get("tool_calls"):
-            # Execute function calls
-            tool_results = []
-            for tool_call in message.tool_calls:
-                function_name = tool_call.function.name
-                arguments = eval(tool_call.function.arguments)
-                
-                result = await self._execute_tool(function_name, arguments)
-                tool_results.append({
-                    "name": function_name,
-                    "result": result
-                })
-            
-            # Call OpenAI again with tool results
-            full_messages.append(message)
-            for tool_result in tool_results:
-                full_messages.append({
-                    "role": "tool",
-                    "content": str(tool_result["result"]),
-                    "tool_call_id": tool_call.id
-                })
-            
-            final_response = openai.ChatCompletion.create(
-                model="gpt-4",
-                messages=full_messages
-            )
-            
-            return {
-                "message": final_response.choices[0].message.content,
-                "tool_calls": tool_results
-            }
-        
-        return {
-            "message": message.content,
-            "tool_calls": None
-        }
-    
-    def _build_system_prompt(self) -> str:
-        # Get user profile from database
-        profile = self._get_user_profile()
-        
-        return f"""You are FinTrack Mentor, an AI financial advisor assistant.
-
-User Profile:
-- DCA Strategy: {profile['dca_strategy']}
-- DCA Amount: Rp {profile['dca_amount']:,.0f}/{profile['dca_frequency']}
-- Focus Stocks: {', '.join(profile['focus_stocks'])}
-- Compounding Dividends: {'Yes' if profile['compounding_dividends'] else 'No'}
-- Special Notes: {profile['bonus_week_rule']}
-
-Your response MUST follow this structure:
-1. **Analisis Masalah** - Understand the user's situation
-2. **Asumsi Tersembunyi** - Hidden assumptions and factors to consider
-3. **Alternatif/Kontra-argumen** - Alternative viewpoints or strategies
-4. **Kesimpulan** - Your recommendation
-5. **Next Step** - Concrete actionable steps
-
-Be concise, data-driven, and supportive. Use Indonesian language.
-"""
-    
-    def _get_user_profile(self) -> Dict:
-        # Query database for user profile
-        # Simplified for example
-        return {
-            'dca_strategy': 'Weekly investment to bluechip stocks',
-            'dca_amount': 500000,
-            'dca_frequency': 'weekly',
-            'focus_stocks': ['BBCA', 'BBRI', 'TLKM'],
-            'compounding_dividends': True,
-            'bonus_week_rule': 'Sometimes skip due to unexpected expenses'
-        }
-    
-    async def _execute_tool(self, function_name: str, arguments: Dict) -> Dict:
-        if function_name == "get_portfolio_summary":
-            return self._get_portfolio_summary()
-        elif function_name == "get_expense_summary":
-            return self._get_expense_summary(arguments.get('date_range', 'this_month'))
-        elif function_name == "get_daily_reports":
-            return self._get_daily_reports(arguments.get('days', 7))
-        else:
-            return {"error": "Unknown function"}
-    
-    def _get_portfolio_summary(self) -> Dict:
-        # Query portfolio data from database
-        # Simplified example
-        return {
-            "total_value": 1500000,
-            "total_cost": 1350000,
-            "unrealized_pl": 150000,
-            "unrealized_pl_percent": 11.11,
-            "holdings": [
-                {"ticker": "BBCA", "lots": 1, "unrealized_pl": 50000},
-                {"ticker": "BBRI", "lots": 2, "unrealized_pl": 100000}
-            ]
-        }
-    
-    def _get_expense_summary(self, date_range: str) -> Dict:
-        # Query expense data from database
-        return {
-            "total": 2500000,
-            "count": 45,
-            "by_category": {
-                "Makan": 800000,
-                "Transport": 500000,
-                "Belanja": 600000,
-                "Tagihan": 600000
-            }
-        }
-    
-    def _get_daily_reports(self, days: int) -> Dict:
-        # Query daily reports from database
-        return {
-            "reports": [
-                {"date": "2026-01-20", "value": 1500000},
-                {"date": "2026-01-19", "value": 1480000},
-                {"date": "2026-01-18", "value": 1470000}
-            ]
-        }
-\`\`\`
+The active implementation summarizes authenticated user data locally without sending it to an external service.
 
 ---
+
 
 ### 12. Requirements.txt
 
@@ -903,8 +698,6 @@ scikit-learn==1.3.0
 numpy==1.24.3
 pandas==2.0.3
 
-# OpenAI
-openai==0.27.8
 
 # Utils
 python-dotenv==1.0.0

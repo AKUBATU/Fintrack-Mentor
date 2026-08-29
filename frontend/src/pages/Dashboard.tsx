@@ -27,10 +27,16 @@ export default function Dashboard() {
 
     const monthlyExpenses = (expenses ?? []).filter((e) => {
       const date = new Date(e.date)
-      return date.getMonth() === currentMonth && date.getFullYear() === currentYear
+      return e.transactionType !== 'income' && date.getMonth() === currentMonth && date.getFullYear() === currentYear
     })
 
     const totalExpenses = monthlyExpenses.reduce((sum, e) => sum + e.amount, 0)
+    const totalIncome = (expenses ?? [])
+      .filter((e) => {
+        const date = new Date(e.date)
+        return e.transactionType === 'income' && date.getMonth() === currentMonth && date.getFullYear() === currentYear
+      })
+      .reduce((sum, e) => sum + e.amount, 0)
 
     const portfolioValue = (holdings ?? []).reduce((sum, h) => sum + (h.marketValue ?? 0), 0)
     const totalCost = (holdings ?? []).reduce((sum, h) => sum + (h.costBasis ?? 0), 0)
@@ -43,6 +49,8 @@ export default function Dashboard() {
 
     return {
       totalExpenses,
+      totalIncome,
+      cashFlowBalance: totalIncome - totalExpenses,
       portfolioValue,
       unrealizedPL,
       unrealizedPLPercent,
@@ -58,7 +66,7 @@ export default function Dashboard() {
 
     ;(expenses ?? []).forEach((e) => {
       const date = new Date(e.date)
-      if (date.getMonth() === currentMonth) {
+      if (e.transactionType !== 'income' && date.getMonth() === currentMonth) {
         categoryMap.set(e.category, (categoryMap.get(e.category) || 0) + e.amount)
       }
     })
@@ -90,7 +98,7 @@ export default function Dashboard() {
 
     return last7Days.map((date) => {
       const dateStr = date.toISOString().split('T')[0]
-      const dayExpenses = (expenses ?? []).filter((e) => e.date === dateStr)
+      const dayExpenses = (expenses ?? []).filter((e) => e.transactionType !== 'income' && e.date === dateStr)
       const total = dayExpenses.reduce((sum, e) => sum + e.amount, 0)
 
       return {
@@ -119,7 +127,7 @@ export default function Dashboard() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
           <div className="flex items-center justify-between mb-4">
             <div className="p-2 bg-red-100 rounded-lg">
@@ -139,6 +147,22 @@ export default function Dashboard() {
               />
             </div>
           </div>
+        </div>
+
+        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+          <div className="p-2 bg-green-100 rounded-lg w-fit mb-4">
+            <TrendingUp className="w-6 h-6 text-green-600" />
+          </div>
+          <p className="text-sm text-gray-600 mb-1">Pemasukan Bulan Ini</p>
+          <p className="text-2xl font-bold text-green-600">{formatCurrency(metrics.totalIncome)}</p>
+        </div>
+
+        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+          <div className={`p-2 rounded-lg w-fit mb-4 ${metrics.cashFlowBalance >= 0 ? 'bg-green-100' : 'bg-red-100'}`}>
+            <Wallet className={`w-6 h-6 ${metrics.cashFlowBalance >= 0 ? 'text-green-600' : 'text-red-600'}`} />
+          </div>
+          <p className="text-sm text-gray-600 mb-1">Saldo Arus Kas Bulan Ini</p>
+          <p className={`text-2xl font-bold ${metrics.cashFlowBalance >= 0 ? 'text-green-600' : 'text-red-600'}`}>{formatCurrency(metrics.cashFlowBalance)}</p>
         </div>
 
         <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">

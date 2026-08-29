@@ -16,6 +16,4 @@ pandas==2.2.3
 torch==2.5.1
 transformers==4.46.2
 tqdm==4.66.5
-openai==1.58.1
 email-validator
-

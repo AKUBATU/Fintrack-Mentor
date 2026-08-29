@@ -1,24 +1,48 @@
-from pydantic import BaseModel, Field
-from datetime import date
+from pydantic import BaseModel, Field, field_validator
+from typing import Literal, Optional
+from datetime import date as dt_date
 
 class StockTransactionBase(BaseModel):
     ticker: str
-    type: str  # BUY/SELL
+    type: Literal["BUY", "SELL"]
     shares: int = Field(gt=0)
     price: float = Field(gt=0)
-    date: date
+    date: dt_date
 
 class StockTransactionCreate(StockTransactionBase):
-    pass
+    @field_validator("ticker")
+    @classmethod
+    def normalize_ticker(cls, value: str):
+        value = value.strip().upper()
+        if not value:
+            raise ValueError("Ticker wajib diisi")
+        return value
 
 class StockTransactionOut(StockTransactionBase):
     id: int
 
+class StockTransactionUpdate(BaseModel):
+    ticker: Optional[str] = None
+    type: Optional[Literal["BUY", "SELL"]] = None
+    shares: Optional[int] = Field(default=None, gt=0)
+    price: Optional[float] = Field(default=None, gt=0)
+    date: Optional[dt_date] = None
+
+    @field_validator("ticker")
+    @classmethod
+    def normalize_optional_ticker(cls, value: str | None):
+        if value is None:
+            return value
+        value = value.strip().upper()
+        if not value:
+            raise ValueError("Ticker wajib diisi")
+        return value
+
 class DividendBase(BaseModel):
     ticker: str
     amount: float = Field(gt=0)
-    record_date: date
-    payment_date: date
+    record_date: dt_date
+    payment_date: dt_date
 
 class DividendCreate(DividendBase):
     pass

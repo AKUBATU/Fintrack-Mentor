@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useData } from '../contexts/DataContext';
 import { Send, Bot, User, Loader } from 'lucide-react';
 import { toast } from 'sonner';
+import { api } from '../services/api';
 
 interface Message {
   id: string;
@@ -326,7 +327,14 @@ Contoh pertanyaan:
     setLoading(true);
 
     try {
-      const response = await generateAIResponse(input);
+      let response: { content: string; toolCalls?: ToolCall[] };
+      try {
+        const result = await api.chat(input);
+        response = { content: result.reply };
+      } catch {
+        response = await generateAIResponse(input);
+        toast.warning('Backend AI tidak tersedia, menggunakan respons lokal.');
+      }
 
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
@@ -369,12 +377,12 @@ Contoh pertanyaan:
         <div className="flex items-start gap-3">
           <Bot className="w-6 h-6 text-blue-600 mt-0.5" />
           <div>
-            <h3 className="font-semibold text-blue-900">ChatGPT-Powered Mentor</h3>
+            <h3 className="font-semibold text-blue-900">Mentor Keuangan FinTrack</h3>
             <p className="text-sm text-blue-700 mt-1">
-              AI ini terintegrasi dengan data portofolio & pengeluaran Anda. Semua analisis berdasarkan data real-time.
+              Mentor lokal ini merangkum portofolio dan pengeluaran berdasarkan data akun Anda.
               <br />
               <span className="text-xs">
-                🔒 Data Anda aman dan tidak dibagikan. Ini adalah demo dengan mock responses.
+                🔒 Analisis berjalan di server FinTrack tanpa mengirim data ke layanan kecerdasan buatan eksternal.
               </span>
             </p>
           </div>

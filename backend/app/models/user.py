@@ -17,3 +17,4 @@ class User(Base):
     stock_transactions = relationship("StockTransaction", back_populates="user", cascade="all, delete-orphan")
     dividends = relationship("Dividend", back_populates="user", cascade="all, delete-orphan")
     daily_reports = relationship("DailyReport", back_populates="user", cascade="all, delete-orphan")
+    investment_assets = relationship("InvestmentAsset", back_populates="user", cascade="all, delete-orphan")

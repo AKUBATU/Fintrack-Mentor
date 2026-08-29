@@ -3,12 +3,13 @@ import {
   LayoutDashboard, 
   Wallet, 
   TrendingUp, 
-  FileText, 
   MessageSquare, 
   Settings, 
+  Info,
   LogOut,
   Menu,
-  X
+  X,
+  WalletCards
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useState } from 'react';
@@ -20,38 +21,41 @@ export default function Layout() {
 
   const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-    { name: 'Pengeluaran', href: '/expenses', icon: Wallet },
+    { name: 'Keuangan', href: '/expenses', icon: Wallet },
     { name: 'Portofolio', href: '/portfolio', icon: TrendingUp },
-    { name: 'Daily Report', href: '/daily-report', icon: FileText },
     { name: 'Chat Mentor', href: '/chat', icon: MessageSquare },
     { name: 'Pengaturan', href: '/settings', icon: Settings },
+    { name: 'Tentang', href: '/about', icon: Info },
   ];
 
   const isActive = (path: string) => location.pathname === path;
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="app-shell min-h-screen bg-gray-50">
       {/* Mobile sidebar backdrop */}
       {sidebarOpen && (
-        <div 
-          className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
+        <div
+          className="app-sidebar-backdrop fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
           onClick={() => setSidebarOpen(false)}
         />
       )}
 
       {/* Sidebar */}
       <aside className={`
-        fixed top-0 left-0 h-full w-64 bg-white border-r border-gray-200 z-50
+        app-sidebar fixed top-0 left-0 h-full w-64 bg-white border-r border-gray-200 z-50
         transform transition-transform duration-300 ease-in-out
         ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
         lg:translate-x-0
       `}>
         <div className="flex flex-col h-full">
           {/* Logo */}
-          <div className="flex items-center justify-between px-6 py-5 border-b border-gray-200">
-            <div>
-              <h1 className="text-xl font-bold text-blue-600">FinTrack Mentor</h1>
-              <p className="text-xs text-gray-500">AI-Powered Finance</p>
+          <div className="app-brand flex items-center justify-between px-6 py-5 border-b border-gray-200">
+            <div className="flex items-center gap-3">
+              <div className="app-brand-mark"><WalletCards className="w-5 h-5" /></div>
+              <div>
+                <h1 className="text-lg font-bold text-gray-900">FinTrack</h1>
+                <p className="text-xs text-gray-500">Personal wealth manager</p>
+              </div>
             </div>
             <button 
               onClick={() => setSidebarOpen(false)}
@@ -62,7 +66,7 @@ export default function Layout() {
           </div>
 
           {/* Navigation */}
-          <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto">
+          <nav className="app-navigation flex-1 px-4 py-6 space-y-1 overflow-y-auto">
             {navigation.map((item) => {
               const Icon = item.icon;
               const active = isActive(item.href);
@@ -72,9 +76,9 @@ export default function Layout() {
                   to={item.href}
                   onClick={() => setSidebarOpen(false)}
                   className={`
-                    flex items-center px-4 py-3 rounded-lg transition-colors
+                    app-nav-link flex items-center px-4 py-3 rounded-lg transition-colors
                     ${active 
-                      ? 'bg-blue-50 text-blue-600 font-medium' 
+                      ? 'app-nav-active bg-blue-50 text-blue-600 font-medium'
                       : 'text-gray-700 hover:bg-gray-100'
                     }
                   `}
@@ -87,9 +91,9 @@ export default function Layout() {
           </nav>
 
           {/* User info & logout */}
-          <div className="p-4 border-t border-gray-200">
+          <div className="app-user-panel p-4 border-t border-gray-200">
             <div className="flex items-center mb-3">
-              <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center text-white font-semibold">
+              <div className="app-user-avatar w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center text-white font-semibold">
                 {user?.name?.[0]?.toUpperCase() || 'U'}
               </div>
               <div className="ml-3 flex-1">
@@ -109,9 +113,9 @@ export default function Layout() {
       </aside>
 
       {/* Main content */}
-      <div className="lg:pl-64">
+      <div className="app-content lg:pl-64">
         {/* Top bar */}
-        <header className="bg-white border-b border-gray-200 sticky top-0 z-30">
+        <header className="app-topbar bg-white border-b border-gray-200 sticky top-0 z-30">
           <div className="flex items-center justify-between px-6 py-4">
             <button
               onClick={() => setSidebarOpen(true)}
@@ -119,16 +123,20 @@ export default function Layout() {
             >
               <Menu className="w-6 h-6 text-gray-600" />
             </button>
-            <div className="flex-1 lg:flex-none">
+            <div className="flex-1 lg:flex-none ml-3">
               <h2 className="text-lg font-semibold text-gray-900">
                 {navigation.find(item => isActive(item.href))?.name || 'FinTrack Mentor'}
               </h2>
+              <p className="app-topbar-subtitle text-xs text-gray-500">Kelola finansial Anda dengan lebih terarah</p>
+            </div>
+            <div className="app-topbar-meta">
+              <div className="app-date-pill">{new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }).format(new Date())}</div>
             </div>
           </div>
         </header>
 
         {/* Page content */}
-        <main className="p-6">
+        <main className="app-main p-6">
           <Outlet />
         </main>
       </div>

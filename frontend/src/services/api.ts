@@ -19,7 +19,12 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     headers['Content-Type'] = headers['Content-Type'] || 'application/json';
   }
 
-  const res = await fetch(url, { ...options, headers });
+  let res: Response;
+  try {
+    res = await fetch(url, { ...options, headers });
+  } catch {
+    throw new Error(`Backend tidak dapat dihubungi di ${API_BASE_URL}. Pastikan server FastAPI sudah berjalan.`);
+  }
 
   const contentType = res.headers.get('content-type') || '';
   const isJson = contentType.includes('application/json');
@@ -33,6 +38,10 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 
   if (!res.ok) {
     const detail = data?.detail ?? data ?? 'Request failed';
+    if (res.status === 401 && getToken()) {
+      localStorage.removeItem('access_token');
+      window.dispatchEvent(new Event('auth:unauthorized'));
+    }
     throw new Error(typeof detail === 'string' ? detail : JSON.stringify(detail));
   }
 
@@ -49,20 +58,17 @@ function normalizeExpensePayload(payload: any) {
   const merchant = payload?.merchant ?? '';
   const notes = payload?.notes ?? '';
 
-  const fromPayloadDesc =
-    payload && payload.description != null ? String(payload.description) : '';
-
-  const combined = [merchant, notes].filter(Boolean).join(' - ');
-  const description = fromPayloadDesc || combined || 'Expense';
-
   return {
     date: payload.date,
     amount: payload.amount,
+    transaction_type: payload.transactionType ?? payload.transaction_type ?? 'expense',
     category: payload.category,
     payment_method: payload.paymentMethod ?? payload.payment_method ?? '',
     merchant,
     notes,
-    description,
+    predicted_category: payload.predictedCategory ?? payload.predicted_category,
+    confidence: payload.confidence,
+    model_used: payload.modelUsed ?? payload.model_used,
   };
 }
 
@@ -122,6 +128,20 @@ export const api = {
     );
   },
 
+  async forgotPassword(email: string) {
+    return request<{ message: string; reset_url?: string | null }>(`/api/auth/forgot-password`, {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    });
+  },
+
+  async resetPassword(token: string, password: string) {
+    return request<{ message: string }>(`/api/auth/reset-password`, {
+      method: 'POST',
+      body: JSON.stringify({ token, password }),
+    });
+  },
+
   async me() {
     return request<{ id: number; email: string; name: string }>(`/api/auth/me`);
   },
@@ -140,6 +160,39 @@ export const api = {
   },
   async deleteExpense(id: number) {
     return request<{ ok: boolean }>(`/api/expenses/${id}`, { method: 'DELETE' });
+  },
+  async uploadReceipt(id: number, receipt: File) {
+    const body = new FormData();
+    body.append('receipt', receipt);
+    return request<{ has_receipt: boolean }>(`/api/expenses/${id}/receipt`, {
+      method: 'POST',
+      body,
+    });
+  },
+  async scanReceipt(receipts: File[]) {
+    const body = new FormData();
+    receipts.forEach((receipt) => body.append('receipts', receipt));
+    return request<{
+      merchant: string;
+      date: string | null;
+      amount: number | null;
+      payment_method: string;
+      category: string;
+      notes: string;
+      receipt_number: string;
+      tax: number | null;
+      discount: number | null;
+      line_items: Array<{ name?: string; quantity?: number; unit_price?: number; total?: number }>;
+      raw_text: string;
+    }>(`/api/expenses/scan-receipt`, { method: 'POST', body });
+  },
+  async getReceiptBlob(id: number) {
+    const token = getToken();
+    const res = await fetch(`${API_BASE_URL}/api/expenses/${id}/receipt`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (!res.ok) throw new Error('Foto struk tidak dapat dimuat');
+    return res.blob();
   },
 
   // Budgets
@@ -166,6 +219,15 @@ export const api = {
     // transaksi kamu sudah cocok (ticker/type/shares/price/date)
     return request<any>(`/api/portfolio/transactions`, { method: 'POST', body: JSON.stringify(payload) });
   },
+  async updateTransaction(id: number, payload: any) {
+    return request<any>(`/api/portfolio/transactions/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    });
+  },
+  async deleteTransaction(id: number) {
+    return request<{ ok: boolean }>(`/api/portfolio/transactions/${id}`, { method: 'DELETE' });
+  },
   async listDividends() {
     return request<any[]>(`/api/portfolio/dividends`);
   },
@@ -175,6 +237,23 @@ export const api = {
   },
   async portfolioSummary() {
     return request<any>(`/api/portfolio/summary`);
+  },
+
+  // Generic investment assets
+  async listInvestmentAssets() {
+    return request<any[]>(`/api/investment-assets`);
+  },
+  async createInvestmentAsset(payload: any) {
+    return request<any>(`/api/investment-assets`, { method: 'POST', body: JSON.stringify(payload) });
+  },
+  async updateInvestmentAsset(id: number, payload: any) {
+    return request<any>(`/api/investment-assets/${id}`, { method: 'PATCH', body: JSON.stringify(payload) });
+  },
+  async deleteInvestmentAsset(id: number) {
+    return request<{ ok: boolean }>(`/api/investment-assets/${id}`, { method: 'DELETE' });
+  },
+  async portfolioHealth() {
+    return request<any>(`/api/investment-assets/health/summary`);
   },
 
   // Reports
@@ -196,7 +275,7 @@ export const api = {
   async feedbackCategory(text: string, amount: number, category: string) {
     return request<any>(`/api/ml/feedback`, {
       method: 'POST',
-      body: JSON.stringify({ text, amount, category }),
+      body: JSON.stringify({ text, amount, correct_category: category }),
     });
   },
   async anomalies() {

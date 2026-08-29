@@ -34,7 +34,7 @@ Investor pemula sering menghadapi kesulitan dalam:
 1. Bagaimana merancang sistem web yang dapat **mengotomasi kategorisasi transaksi pengeluaran** menggunakan deep learning?
 2. Seberapa akurat model **IndoBERT fine-tuned** dalam mengklasifikasikan kategori pengeluaran berbahasa Indonesia?
 3. Bagaimana **autoencoder** dapat mendeteksi anomali pengeluaran berdasarkan pola historis user?
-4. Bagaimana integrasi **ChatGPT dengan function calling** dapat memberikan analisis finansial yang relevan dan actionable?
+4. Bagaimana ringkasan lokal berbasis aturan dapat memberikan analisis finansial yang relevan dan actionable?
 5. Bagaimana sistem dapat menghitung **portfolio metrics** (avg price, unrealized/realized P/L, drawdown) secara real-time?
 
 ---
@@ -48,7 +48,7 @@ Membangun sistem manajemen keuangan personal berbasis web yang dapat membantu in
 1. **Mengimplementasikan model deep learning** (IndoBERT) untuk kategorisasi transaksi pengeluaran dengan akurasi minimal 80%
 2. **Mengembangkan sistem deteksi anomali** menggunakan autoencoder untuk mendeteksi pengeluaran tidak biasa
 3. **Membangun API RESTful** dengan FastAPI untuk manajemen data keuangan
-4. **Mengintegrasikan ChatGPT** dengan function calling untuk analisis keuangan interaktif
+4. **Mengembangkan mentor keuangan lokal** untuk analisis keuangan interaktif
 5. **Mengimplementasikan perhitungan finansial** yang akurat (avg price, P/L, drawdown, dividen)
 6. **Mengevaluasi performa sistem** dari segi akurasi model, response time, dan user experience
 
@@ -66,7 +66,7 @@ Membangun sistem manajemen keuangan personal berbasis web yang dapat membantu in
 ### Batasan Teknis
 1. **Dataset training terbatas** pada synthetic + user-generated data
 2. **Model deployment** di single server (belum distributed)
-3. **Rate limiting** untuk ChatGPT API calls
+3. **Personalisasi respons mentor** masih berbasis aturan deterministik
 4. **Tidak termasuk PII encryption** (hanya hashing password)
 
 ### Batasan Non-Fungsional
@@ -149,9 +149,9 @@ Membangun sistem manajemen keuangan personal berbasis web yang dapat membantu in
 **Output**: 
 - Responsive web application
 
-#### Phase 5: ChatGPT Integration (Week 11)
-- [ ] Setup OpenAI API
-- [ ] Implement function calling (tools)
+#### Phase 5: Mentor Keuangan Lokal (Week 11)
+- [ ] Implementasi ringkasan data akun
+- [ ] Implementasi aturan rekomendasi
 - [ ] Design chatbot conversation flow
 - [ ] Integrate with frontend chat UI
 - [ ] Test chatbot responses
@@ -338,8 +338,8 @@ Membangun sistem manajemen keuangan personal berbasis web yang dapat membantu in
 
 **Pass Criteria**: All calculations within ±0.1% tolerance
 
-### Skenario 4: ChatGPT Tool Calling
-**Objective**: Test AI chatbot integration
+### Skenario 4: Mentor Keuangan Lokal
+**Objective**: Menguji ringkasan dan rekomendasi berbasis data akun
 
 **Test Queries**:
 1. "Bagaimana portofolio saya?"
@@ -472,9 +472,8 @@ Membangun sistem manajemen keuangan personal berbasis web yang dapat membantu in
 - **Visualization**: Matplotlib, Seaborn
 - **Baseline ML**: Scikit-learn
 
-### AI/LLM
-- **Provider**: OpenAI GPT-4
-- **Library**: openai-python
+### Mentor Keuangan
+- **Engine**: aturan deterministik pada server aplikasi
 
 ### DevOps
 - **Containerization**: Docker + Docker Compose
@@ -492,7 +491,7 @@ Membangun sistem manajemen keuangan personal berbasis web yang dapat membantu in
 | 3-5 | Backend Development | REST API, Auth, CRUD, Tests |
 | 6-8 | ML/DL Development | Trained models, Evaluation report |
 | 9-10 | Frontend Development | React app, UI components |
-| 11 | ChatGPT Integration | AI chatbot with tools |
+| 11 | Mentor Keuangan | Ringkasan dan rekomendasi lokal |
 | 12-13 | Testing & Evaluation | Test reports, Performance metrics |
 | 14-15 | Deployment | Docker, Cloud deployment, Docs |
 | 16-18 | Thesis Writing | Complete thesis document, Defense slides |
@@ -548,7 +547,7 @@ Membangun sistem manajemen keuangan personal berbasis web yang dapat membantu in
 ### Target Outcomes
 ✅ MVP + Enhanced features:
 - Anomaly detection with alerts
-- ChatGPT tool calling integration
+- Mentor keuangan lokal berbasis data akun
 - Comprehensive testing (>80% coverage)
 - Production deployment
 - Complete documentation
@@ -569,7 +568,7 @@ Membangun sistem manajemen keuangan personal berbasis web yang dapat membantu in
 |------|------------|--------|---------------------|
 | Dataset terlalu kecil | Medium | High | Generate synthetic data, crowdsource labels |
 | Model accuracy < target | Medium | High | Try different architectures, ensemble methods |
-| API rate limits (ChatGPT) | High | Medium | Implement caching, fallback responses |
+| Respons mentor kurang personal | Medium | Medium | Tambah aturan berbasis profil dan histori |
 | Cloud hosting cost | Low | Medium | Use free tier, optimize resources |
 | Scope creep | High | High | Strict MVP definition, backlog prioritization |
 | Technical debt | Medium | Medium | Code reviews, refactoring sprints |

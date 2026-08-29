@@ -8,6 +8,7 @@ import React, {
 } from 'react'
 import { api } from '../services/api'
 import { useAuth } from './AuthContext'
+import { toast } from 'sonner'
 
 /* =====================================================
    Helpers
@@ -43,6 +44,7 @@ function storageSet(key: string, val: any) {
 ===================================================== */
 export interface ExpenseTransaction {
   id: string
+  transactionType: 'income' | 'expense'
   date: string
   amount: number
   category: string
@@ -51,7 +53,10 @@ export interface ExpenseTransaction {
   notes: string
   predictedCategory?: string
   confidence?: number
+  hasReceipt: boolean
 }
+
+type ExpenseInput = Omit<ExpenseTransaction, 'id' | 'hasReceipt'> & { receiptFile?: File }
 
 export interface Budget {
   id: string
@@ -119,6 +124,15 @@ export interface UserProfile {
   bonusWeekRule: string
 }
 
+const defaultUserProfile: UserProfile = {
+  dcaStrategy: 'Balanced',
+  dcaAmount: 500000,
+  dcaFrequency: 'weekly',
+  focusStocks: ['BBRI', 'BMRI'],
+  compoundingDividends: true,
+  bonusWeekRule: 'Jika ada bonus, tambah 1x DCA',
+}
+
 interface DataContextType {
   expenses: ExpenseTransaction[]
   budgets: Budget[]
@@ -129,16 +143,24 @@ interface DataContextType {
   dailyReports: DailyReportEntry[]
   userProfile: UserProfile
 
-  addExpense(expense: Omit<ExpenseTransaction, 'id'>): Promise<void>
+  addExpense(expense: ExpenseInput): Promise<void>
+  updateExpense(id: string, expense: ExpenseInput): Promise<void>
+  deleteExpense(id: string): Promise<void>
   addBudget(budget: Omit<Budget, 'id'>): Promise<void>
   addStockTransaction(
     transaction: Omit<StockTransaction, 'id' | 'shares'> & { lots: number }
   ): Promise<void>
+  updateStockTransaction(
+    id: string,
+    transaction: Omit<StockTransaction, 'id' | 'shares'> & { lots: number }
+  ): Promise<void>
+  deleteStockTransaction(id: string): Promise<void>
   addDividend(dividend: Omit<Dividend, 'id'>): Promise<void>
   addDailyReport(report: Omit<DailyReportEntry, 'id'>): Promise<void>
 
   updateHoldingPrice(ticker: string, price: number): void
   refreshCalculations(): void
+  updateUserProfile(profile: UserProfile): void
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined)
@@ -163,6 +185,7 @@ function buildHoldingsFromTransactions(
 
   // inventory per ticker: shares & avg cost
   const inv = new Map<string, { shares: number; avg: number; realized: number }>()
+  const latestPrice = new Map<string, number>()
 
   for (const t of sorted) {
     const ticker = String(t.ticker || '').toUpperCase()
@@ -171,6 +194,8 @@ function buildHoldingsFromTransactions(
     const price = Number(t.price) || 0
 
     if (!ticker || shares <= 0 || price <= 0) continue
+
+    latestPrice.set(ticker, price)
 
     const cur = inv.get(ticker) || { shares: 0, avg: 0, realized: 0 }
 
@@ -196,7 +221,9 @@ function buildHoldingsFromTransactions(
     // hanya tampilkan yang masih ada shares (kalau kamu mau tetap tampil walau 0 shares, tinggal hapus if ini)
     if (v.shares <= 0 && Math.abs(v.realized) < 1e-9) continue
 
-    const currentPrice = prevPriceMap.get(ticker) ?? 0
+    // Harga yang pernah diubah di sesi aktif dipertahankan. Setelah login/reload,
+    // gunakan harga transaksi terakhir agar nilai aset tidak kembali menjadi Rp0.
+    const currentPrice = prevPriceMap.get(ticker) || latestPrice.get(ticker) || v.avg
     const lots = Math.floor(v.shares / 100)
     const costBasis = v.shares * v.avg
     const marketValue = v.shares * currentPrice
@@ -223,44 +250,97 @@ function buildHoldingsFromTransactions(
    Provider
 ===================================================== */
 export function DataProvider({ children }: { children: ReactNode }) {
-  const { isAuthenticated } = useAuth()
+  const { isAuthenticated, user } = useAuth()
 
-  const [expenses, setExpenses] = useState<ExpenseTransaction[]>(() =>
-    storageGet('expenses', [])
-  )
-  const [budgets, setBudgets] = useState<Budget[]>(() =>
-    storageGet('budgets', [])
-  )
+  const [expenses, setExpenses] = useState<ExpenseTransaction[]>([])
+  const [budgets, setBudgets] = useState<Budget[]>([])
   const [stockTransactions, setStockTransactions] =
-    useState<StockTransaction[]>(() => storageGet('stockTransactions', []))
-  const [stockHoldings, setStockHoldings] = useState<StockHolding[]>(() =>
-    storageGet('stockHoldings', [])
-  )
-  const [dividends, setDividends] = useState<Dividend[]>(() =>
-    storageGet('dividends', [])
-  )
-  const [dailyReports, setDailyReports] = useState<DailyReportEntry[]>(() =>
-    storageGet('dailyReports', [])
-  )
-  const [userProfile, setUserProfile] = useState<UserProfile>(() =>
-    storageGet('userProfile', {
-      dcaStrategy: 'Balanced',
-      dcaAmount: 500000,
-      dcaFrequency: 'weekly',
-      focusStocks: ['BBRI', 'BMRI'],
-      compoundingDividends: true,
-      bonusWeekRule: 'Jika ada bonus, tambah 1x DCA',
-    })
-  )
+    useState<StockTransaction[]>([])
+  const [stockHoldings, setStockHoldings] = useState<StockHolding[]>([])
+  const [dividends, setDividends] = useState<Dividend[]>([])
+  const [dailyReports, setDailyReports] = useState<DailyReportEntry[]>([])
+  const [userProfile, setUserProfile] = useState<UserProfile>(defaultUserProfile)
 
-  /* ================= Persist to localStorage ================= */
-  useEffect(() => storageSet('expenses', expenses), [expenses])
-  useEffect(() => storageSet('budgets', budgets), [budgets])
-  useEffect(() => storageSet('stockTransactions', stockTransactions), [stockTransactions])
-  useEffect(() => storageSet('stockHoldings', stockHoldings), [stockHoldings])
-  useEffect(() => storageSet('dividends', dividends), [dividends])
-  useEffect(() => storageSet('dailyReports', dailyReports), [dailyReports])
-  useEffect(() => storageSet('userProfile', userProfile), [userProfile])
+  /* ================= Load account data from backend ================= */
+  useEffect(() => {
+    if (!isAuthenticated || !user) {
+      setExpenses([])
+      setBudgets([])
+      setStockTransactions([])
+      setStockHoldings([])
+      setDividends([])
+      setDailyReports([])
+      return
+    }
+
+    const load = async () => {
+      const results = await Promise.allSettled([
+        api.listExpenses(),
+        api.listBudgets(),
+        api.listTransactions(),
+        api.listDividends(),
+        api.listReports(),
+      ])
+
+      const [expenseResult, budgetResult, transactionResult, dividendResult, reportResult] = results
+
+      if (expenseResult.status === 'fulfilled') setExpenses(expenseResult.value.map((row) => ({
+        id: String(row.id),
+        date: row.date,
+        amount: Number(row.amount),
+        transactionType: row.transaction_type === 'income' ? 'income' : 'expense',
+        category: row.category,
+        paymentMethod: row.payment_method,
+        merchant: row.merchant || '',
+        notes: row.notes || '',
+        predictedCategory: row.predicted_category || undefined,
+        confidence: row.confidence ?? undefined,
+        hasReceipt: Boolean(row.has_receipt),
+      })))
+      if (budgetResult.status === 'fulfilled') setBudgets(budgetResult.value.map((row) => ({
+        id: String(row.id),
+        category: row.category,
+        amount: Number(row.amount),
+        period: row.period,
+      })))
+      if (transactionResult.status === 'fulfilled') setStockTransactions(transactionResult.value.map((row) => ({
+        id: String(row.id),
+        ticker: row.ticker,
+        type: row.type,
+        shares: Number(row.shares),
+        lots: Number(row.shares) / 100,
+        price: Number(row.price),
+        date: row.date,
+      })))
+      if (dividendResult.status === 'fulfilled') setDividends(dividendResult.value.map((row) => ({
+        id: String(row.id),
+        ticker: row.ticker,
+        amount: Number(row.amount),
+        recordDate: row.record_date,
+        paymentDate: row.payment_date,
+      })))
+      if (reportResult.status === 'fulfilled') setDailyReports(reportResult.value.map((row) => ({
+        id: String(row.id),
+        date: row.date,
+        portfolioValue: Number(row.portfolio_value),
+        notes: row.notes || '',
+        screenshotUrl: row.screenshot_url || undefined,
+      })))
+
+      const failures = results.filter((result) => result.status === 'rejected')
+      if (failures.length > 0) {
+        console.error('Failed account data requests:', failures)
+        toast.error(`${failures.length} bagian data gagal dimuat. Silakan coba login kembali.`)
+      }
+    }
+
+    load().catch((error) => console.error('Failed to load account data:', error))
+  }, [isAuthenticated, user?.id])
+
+  useEffect(() => {
+    if (!user) return
+    setUserProfile(storageGet(`userProfile:${user.id}`, defaultUserProfile))
+  }, [user?.id])
 
   /* ================= Auto rebuild holdings when transactions change ================= */
   useEffect(() => {
@@ -334,6 +414,35 @@ export function DataProvider({ children }: { children: ReactNode }) {
     ])
   }
 
+  const updateStockTransaction = async (
+    id: string,
+    transaction: Omit<StockTransaction, 'id' | 'shares'> & { lots: number }
+  ) => {
+    const lots = toNumber(transaction.lots)
+    const price = toNumber(transaction.price)
+    if (!transaction.ticker?.trim()) throw new Error('Ticker wajib diisi')
+    if (!Number.isFinite(lots) || lots <= 0) throw new Error('Lots harus > 0')
+    if (!Number.isFinite(price) || price <= 0) throw new Error('Price harus > 0')
+    const shares = Math.round(lots * 100)
+    const updated = await api.updateTransaction(Number(id), {
+      ticker: transaction.ticker.toUpperCase(),
+      type: transaction.type,
+      shares,
+      price,
+      date: transaction.date,
+    })
+    setStockTransactions((items) => items.map((item) => item.id === id ? {
+      id: String(updated.id), ticker: updated.ticker, type: updated.type,
+      shares: Number(updated.shares), lots: Number(updated.shares) / 100,
+      price: Number(updated.price), date: updated.date,
+    } : item))
+  }
+
+  const deleteStockTransaction = async (id: string) => {
+    await api.deleteTransaction(Number(id))
+    setStockTransactions((items) => items.filter((item) => item.id !== id))
+  }
+
   /* ================= Update Holding Price (INI FIX UTAMANYA) ================= */
   const updateHoldingPrice = (ticker: string, price: number) => {
     const p = Number(price)
@@ -361,17 +470,62 @@ export function DataProvider({ children }: { children: ReactNode }) {
   }
 
   /* ================= Others ================= */
-  const addExpense = async (e: Omit<ExpenseTransaction, 'id'>) =>
-    setExpenses((p) => [{ ...e, id: Date.now().toString() }, ...p])
+  const addExpense = async (e: ExpenseInput) => {
+    const { receiptFile, ...payload } = e
+    const created = await api.createExpense(payload)
+    let hasReceipt = false
+    if (receiptFile) {
+      try {
+        await api.uploadReceipt(Number(created.id), receiptFile)
+        hasReceipt = true
+      } catch {
+        setExpenses((p) => [{ ...payload, hasReceipt: false, id: String(created.id) }, ...p])
+        throw new Error('Transaksi tersimpan, tetapi foto struk gagal diunggah')
+      }
+    }
+    setExpenses((p) => [{ ...payload, hasReceipt, id: String(created.id) }, ...p])
+  }
 
-  const addBudget = async (b: Omit<Budget, 'id'>) =>
-    setBudgets((p) => [{ ...b, id: Date.now().toString() }, ...p])
+  const updateExpense = async (id: string, e: ExpenseInput) => {
+    const { receiptFile, ...payload } = e
+    await api.updateExpense(Number(id), payload)
+    if (receiptFile) {
+      try {
+        await api.uploadReceipt(Number(id), receiptFile)
+      } catch {
+        setExpenses((items) => items.map((item) => item.id === id ? { ...payload, id, hasReceipt: item.hasReceipt } : item))
+        throw new Error('Transaksi diperbarui, tetapi foto struk gagal diunggah')
+      }
+    }
+    setExpenses((items) => items.map((item) => item.id === id
+      ? { ...payload, id, hasReceipt: receiptFile ? true : item.hasReceipt }
+      : item))
+  }
 
-  const addDividend = async (d: Omit<Dividend, 'id'>) =>
-    setDividends((p) => [{ ...d, id: Date.now().toString() }, ...p])
+  const deleteExpense = async (id: string) => {
+    await api.deleteExpense(Number(id))
+    setExpenses((items) => items.filter((item) => item.id !== id))
+  }
 
-  const addDailyReport = async (r: Omit<DailyReportEntry, 'id'>) =>
-    setDailyReports((p) => [{ ...r, id: Date.now().toString() }, ...p])
+  const addBudget = async (b: Omit<Budget, 'id'>) => {
+    const created = await api.createBudget(b)
+    setBudgets((p) => [{ ...b, id: String(created.id) }, ...p])
+  }
+
+  const addDividend = async (d: Omit<Dividend, 'id'>) => {
+    const created = await api.addDividend(d)
+    setDividends((p) => [{ ...d, id: String(created.id) }, ...p])
+  }
+
+  const addDailyReport = async (r: Omit<DailyReportEntry, 'id'>) => {
+    const created = await api.addReport(r)
+    setDailyReports((p) => [{ ...r, id: String(created.id) }, ...p])
+  }
+
+  const updateUserProfile = (profile: UserProfile) => {
+    setUserProfile(profile)
+    if (user) storageSet(`userProfile:${user.id}`, profile)
+  }
 
   const refreshCalculations = () => {
     setStockHoldings((prev) => buildHoldingsFromTransactions(stockTransactions, prev))
@@ -389,12 +543,17 @@ export function DataProvider({ children }: { children: ReactNode }) {
         dailyReports,
         userProfile,
         addExpense,
+        updateExpense,
+        deleteExpense,
         addBudget,
         addStockTransaction,
+        updateStockTransaction,
+        deleteStockTransaction,
         addDividend,
         addDailyReport,
         updateHoldingPrice,
         refreshCalculations,
+        updateUserProfile,
       }}
     >
       {children}
