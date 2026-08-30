@@ -2153,9 +2153,6 @@ button:disabled { cursor: not-allowed; }
   .portfolio-history-row { align-items: flex-start; }
   .portfolio-history-row > * { min-width: 0; }
   .portfolio-history-row > :last-child { flex-shrink: 0; }
-  .portfolio-mobile-list .grid > div { min-width: 0; }
-  .portfolio-mobile-list .tabular-nums { overflow-wrap: anywhere; }
-  .portfolio-mobile-list > div { padding: 1rem; }
   .chat-page { height: calc(100dvh - 7.25rem); min-height: 32rem; }
   .chat-messages { padding: 1rem; }
   .chat-input-area { padding: .75rem; }
