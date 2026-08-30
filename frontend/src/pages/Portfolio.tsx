@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { Fragment, useState, useMemo, useEffect } from 'react';
 import { useData } from '../contexts/DataContext';
 import { Plus, TrendingUp, DollarSign, X, Pencil, Trash2, Activity, Layers3 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -98,6 +98,12 @@ export default function Portfolio() {
   previewAssetCount += Math.min(investmentAssets.length - previewAssetCount, 6 - previewHoldingCount - previewAssetCount);
   const visibleHoldings = showAllPortfolioAssets ? holdings : holdings.slice(0, previewHoldingCount);
   const visibleInvestmentAssets = showAllPortfolioAssets ? investmentAssets : investmentAssets.slice(0, previewAssetCount);
+  const visibleAssetSections = Object.entries(
+    visibleInvestmentAssets.reduce((sections: Record<string, any[]>, asset: any) => {
+      (sections[asset.asset_type] ||= []).push(asset);
+      return sections;
+    }, {})
+  ) as [string, any[]][];
 
   const [transactionForm, setTransactionForm] = useState({
     ticker: '',
@@ -578,15 +584,19 @@ export default function Portfolio() {
           <span className="px-2 py-1 bg-blue-50 text-blue-700 text-xs rounded-full">{portfolioAssetCount} aset</span>
         </div>
         <div className="space-y-3 md:hidden">
+          {visibleHoldings.length > 0 && <div className="flex items-center justify-between pt-1"><p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Saham</p><span className="text-xs text-gray-400">{visibleHoldings.length} aset</span></div>}
           {visibleHoldings.map((holding: any) => <div key={`mobile-stock-${holding.ticker}`} className="rounded-xl border border-gray-200 p-4">
             <div className="flex items-start justify-between gap-3"><div><p className="font-semibold text-gray-900">{holding.ticker}</p><p className="text-xs text-gray-500 mt-0.5">{holding.totalLots} lot · {holding.totalShares} lembar</p></div><span className="px-2 py-1 bg-blue-50 text-blue-700 text-xs rounded-full">Saham</span></div>
             <div className="grid grid-cols-2 gap-3 mt-4"><div><p className="text-xs text-gray-500">Modal</p><p className="text-sm font-medium mt-1">{formatCurrency(num(holding.costBasis) || 0)}</p></div><div className="text-right"><p className="text-xs text-gray-500">Nilai kini</p><p className="text-sm font-semibold mt-1">{formatCurrency(num(holding.marketValue) || 0)}</p></div></div>
             <div className="flex items-end justify-between gap-3 mt-4 pt-3 border-t border-gray-100"><div><p className="text-xs text-gray-500">P/L</p><p className={`text-sm font-semibold mt-1 ${num(holding.unrealizedPL) >= 0 ? 'text-green-600' : 'text-red-600'}`}>{num(holding.unrealizedPL) >= 0 ? '+' : ''}{formatCurrency(num(holding.unrealizedPL) || 0)} <span className="text-xs">({(num(holding.unrealizedPLPercent) || 0).toFixed(2)}%)</span></p></div><button onClick={() => { setSelectedTicker(holding.ticker); setPriceForm({ ticker: holding.ticker, price: String(holding.currentPrice || '') }); setShowUpdatePrice(true); }} className="p-2.5 text-blue-600 bg-blue-50 rounded-lg" aria-label={`Update harga ${holding.ticker}`}><Pencil className="w-4 h-4" /></button></div>
           </div>)}
-          {visibleInvestmentAssets.map((asset) => <div key={`mobile-asset-${asset.id}`} className="rounded-xl border border-gray-200 p-4">
+          {visibleAssetSections.map(([assetType, assets]) => <div key={`mobile-section-${assetType}`} className="space-y-3 pt-1">
+            <div className="flex items-center justify-between"><p className="text-xs font-semibold uppercase tracking-wide text-gray-500">{assetTypeLabel(assetType)}</p><span className="text-xs text-gray-400">{assets.length} aset</span></div>
+            {assets.map((asset) => <div key={`mobile-asset-${asset.id}`} className="rounded-xl border border-gray-200 p-4">
             <div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="font-semibold text-gray-900 truncate">{asset.name}</p><p className="text-xs text-gray-500 mt-0.5">{asset.symbol || 'Tanpa simbol'} · {assetQuantitySummary(asset)}</p></div><span className="shrink-0 px-2 py-1 bg-violet-50 text-violet-700 text-xs rounded-full">{assetTypeLabel(asset.asset_type)}</span></div>
             <div className="grid grid-cols-2 gap-3 mt-4"><div><p className="text-xs text-gray-500">Modal</p><p className="text-sm font-medium mt-1">{asset.currency === 'IDR' ? formatCurrency(asset.cost_basis) : formatAssetCurrency(asset.quantity * asset.average_price, asset.currency)}</p>{asset.currency !== 'IDR' && <p className="text-xs text-gray-500">≈ {formatCurrency(asset.cost_basis)}</p>}</div><div className="text-right"><p className="text-xs text-gray-500">Nilai kini</p><p className="text-sm font-semibold mt-1">{asset.currency === 'IDR' ? formatCurrency(asset.market_value) : formatAssetCurrency(asset.quantity * asset.current_price, asset.currency)}</p>{asset.currency !== 'IDR' && <p className="text-xs text-gray-500">≈ {formatCurrency(asset.market_value)}</p>}</div></div>
             <div className="flex items-end justify-between gap-3 mt-4 pt-3 border-t border-gray-100"><div><p className="text-xs text-gray-500">P/L</p><p className={`text-sm font-semibold mt-1 ${asset.unrealized_pl >= 0 ? 'text-green-600' : 'text-red-600'}`}>{asset.unrealized_pl >= 0 ? '+' : ''}{formatCurrency(asset.unrealized_pl)}</p></div><div className="flex gap-1"><button onClick={() => openEditAsset(asset)} className="p-2.5 text-blue-600 bg-blue-50 rounded-lg" aria-label={`Edit ${asset.name}`}><Pencil className="w-4 h-4" /></button><button onClick={() => deleteAsset(asset)} className="p-2.5 text-red-600 bg-red-50 rounded-lg" aria-label={`Hapus ${asset.name}`}><Trash2 className="w-4 h-4" /></button></div></div>
+            </div>)}
           </div>)}
         </div>
         <div className="hidden md:block overflow-x-auto">
@@ -600,6 +610,7 @@ export default function Portfolio() {
               <th className="text-right py-3 px-3 text-sm font-medium text-gray-700">Aksi</th>
             </tr></thead>
             <tbody>
+              {visibleHoldings.length > 0 && <tr className="bg-gray-50"><td colSpan={6} className="px-3 py-2 text-xs font-semibold uppercase tracking-wide text-gray-500">Saham · {visibleHoldings.length} aset</td></tr>}
               {visibleHoldings.map((holding: any) => <tr key={`stock-${holding.ticker}`} className="border-b border-gray-100 hover:bg-gray-50">
                 <td className="py-2.5 px-3"><p className="font-medium text-gray-900">{holding.ticker}</p><p className="text-xs text-gray-500">{holding.totalLots} lot · {holding.totalShares} lembar</p></td>
                 <td className="py-2.5 px-3 text-sm text-gray-700">Saham</td>
@@ -608,7 +619,9 @@ export default function Portfolio() {
                 <td className={`py-2.5 px-3 text-right text-sm font-medium ${num(holding.unrealizedPL) >= 0 ? 'text-green-600' : 'text-red-600'}`}><p>{num(holding.unrealizedPL) >= 0 ? '+' : ''}{formatCurrency(num(holding.unrealizedPL) || 0)}</p><p className="text-xs">({num(holding.unrealizedPLPercent) >= 0 ? '+' : ''}{(num(holding.unrealizedPLPercent) || 0).toFixed(2)}%)</p></td>
                 <td className="py-2.5 px-3 text-right"><button onClick={() => { setSelectedTicker(holding.ticker); setPriceForm({ ticker: holding.ticker, price: String(holding.currentPrice || '') }); setShowUpdatePrice(true); }} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg" aria-label={`Update harga ${holding.ticker}`}><Pencil className="w-4 h-4" /></button></td>
               </tr>)}
-              {visibleInvestmentAssets.map((asset) => <tr key={`asset-${asset.id}`} className="border-b border-gray-100 hover:bg-gray-50">
+              {visibleAssetSections.map(([assetType, assets]) => <Fragment key={`section-${assetType}`}>
+              <tr className="bg-gray-50"><td colSpan={6} className="px-3 py-2 text-xs font-semibold uppercase tracking-wide text-gray-500">{assetTypeLabel(assetType)} · {assets.length} aset</td></tr>
+              {assets.map((asset) => <tr key={`asset-${asset.id}`} className="border-b border-gray-100 hover:bg-gray-50">
               <td className="py-2.5 px-3"><p className="font-medium text-gray-900">{asset.name}</p><p className="text-xs text-gray-500">{asset.symbol || 'Tanpa simbol'} · {assetQuantitySummary(asset)}</p></td>
               <td className="py-2.5 px-3 text-sm text-gray-700">{assetTypeLabel(asset.asset_type)}</td>
               <td className="py-2.5 px-3 text-right text-sm"><p>{asset.currency === 'IDR' ? formatCurrency(asset.cost_basis) : formatAssetCurrency(asset.quantity * asset.average_price, asset.currency)}</p>{asset.currency !== 'IDR' && <p className="text-xs text-gray-500 mt-0.5">≈ {formatCurrency(asset.cost_basis)}</p>}</td>
@@ -616,6 +629,7 @@ export default function Portfolio() {
               <td className={`py-2.5 px-3 text-right text-sm font-medium ${asset.unrealized_pl >= 0 ? 'text-green-600' : 'text-red-600'}`}><p>{asset.unrealized_pl >= 0 ? '+' : ''}{asset.currency === 'IDR' ? formatCurrency(asset.unrealized_pl) : formatAssetCurrency(asset.quantity * (asset.current_price - asset.average_price), asset.currency)}</p>{asset.currency !== 'IDR' && <p className="text-xs font-normal text-gray-500 mt-0.5">≈ {formatCurrency(asset.unrealized_pl)}</p>}</td>
               <td className="py-2.5 px-3"><div className="flex justify-end gap-2"><button onClick={() => openEditAsset(asset)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"><Pencil className="w-4 h-4" /></button><button onClick={() => deleteAsset(asset)} className="p-2 text-red-600 hover:bg-red-50 rounded-lg"><Trash2 className="w-4 h-4" /></button></div></td>
               </tr>)}
+              </Fragment>)}
             </tbody>
           </table>
         </div>
