@@ -17,6 +17,17 @@ const assetTypeLabel = (type: string) => ASSET_TYPES.find(([value]) => value ===
 
 const CURRENCY_CODES = ['IDR', 'USD', 'EUR'] as const;
 
+const parseAssetAmount = (value: string, currency: string) => {
+  if (currency === 'IDR') return Number(value.replace(/[^\d]/g, ''));
+  return Number(value.replace(',', '.'));
+};
+
+const formatAssetAmount = (value: string, currency: string) => {
+  if (currency !== 'IDR') return value;
+  const digits = value.replace(/[^\d]/g, '');
+  return digits ? new Intl.NumberFormat('id-ID').format(Number(digits)) : '';
+};
+
 export default function Portfolio() {
   // ✅ ambil context apa adanya (tetap), tapi kita bikin aman kalau ada field yang belum disediakan
   const data: any = useData();
@@ -303,11 +314,12 @@ export default function Portfolio() {
   };
 
   const openEditAsset = (asset: any) => {
+    const currency = asset.currency || 'IDR';
     setEditingAssetId(Number(asset.id));
     setAssetForm({
       name: asset.name, symbol: asset.symbol || '', asset_type: asset.asset_type,
-      quantity: String(asset.quantity), average_price: String(asset.average_price),
-      current_price: String(asset.current_price), currency: asset.currency || 'IDR',
+      quantity: String(asset.quantity), average_price: formatAssetAmount(String(asset.average_price), currency),
+      current_price: formatAssetAmount(String(asset.current_price), currency), currency,
       exchange_rate_to_idr: String(asset.exchange_rate_to_idr || 1),
       acquired_date: asset.acquired_date || '', notes: asset.notes || '',
     });
@@ -322,8 +334,8 @@ export default function Portfolio() {
     const payload = {
       ...assetForm, name: assetForm.name.trim(), symbol: assetForm.symbol.trim().toUpperCase(),
       currency, notes: assetForm.notes.trim(),
-      quantity: Number(assetForm.quantity), average_price: Number(assetForm.average_price),
-      current_price: Number(assetForm.current_price), exchange_rate_to_idr: Number(assetForm.exchange_rate_to_idr),
+      quantity: Number(assetForm.quantity), average_price: parseAssetAmount(assetForm.average_price, currency),
+      current_price: parseAssetAmount(assetForm.current_price, currency), exchange_rate_to_idr: Number(assetForm.exchange_rate_to_idr),
       acquired_date: assetForm.acquired_date || null,
     };
     const numbersAreValid = [payload.quantity, payload.average_price, payload.current_price, payload.exchange_rate_to_idr]
@@ -718,20 +730,20 @@ export default function Portfolio() {
               <div><label className="block text-sm font-medium text-gray-700 mb-1">Jenis Instrumen</label><select value={assetForm.asset_type} onChange={(e) => setAssetForm({ ...assetForm, asset_type: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg">{ASSET_TYPES.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></div>
               <div><label className="block text-sm font-medium text-gray-700 mb-1">Nama Aset</label><input value={assetForm.name} onChange={(e) => setAssetForm({ ...assetForm, name: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="Contoh: Bitcoin, Emas Antam, Rumah Jakarta" /></div>
               <div><label className="block text-sm font-medium text-gray-700 mb-1">Simbol / Kode <span className="text-gray-400">(opsional)</span></label><input value={assetForm.symbol} onChange={(e) => setAssetForm({ ...assetForm, symbol: e.target.value.toUpperCase() })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="BTC, XAU, FR0096" /></div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3"><div><label className="block text-sm font-medium text-gray-700 mb-1">Jumlah Unit</label><input type="number" inputMode="decimal" step="any" min="0" value={assetForm.quantity} onChange={(e) => setAssetForm({ ...assetForm, quantity: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="Contoh: 1" /><p className="text-xs text-gray-500 mt-1">Isi 1 jika aset dicatat langsung berdasarkan total nominal.</p></div><div><label className="block text-sm font-medium text-gray-700 mb-1">Mata Uang</label><select value={assetForm.currency} onChange={(e) => setAssetForm({ ...assetForm, currency: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg">{CURRENCY_CODES.map((code) => <option key={code} value={code}>{code}</option>)}</select><p className="text-xs text-gray-500 mt-1">Pilihan mata uang terpisah dari input angka.</p></div></div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3"><div><label className="block text-sm font-medium text-gray-700 mb-1">Jumlah Unit</label><input type="number" inputMode="decimal" step="any" min="0" value={assetForm.quantity} onChange={(e) => setAssetForm({ ...assetForm, quantity: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="Contoh: 1" /><p className="text-xs text-gray-500 mt-1">Isi 1 jika aset dicatat langsung berdasarkan total nominal.</p></div><div><label className="block text-sm font-medium text-gray-700 mb-1">Mata Uang</label><select value={assetForm.currency} onChange={(e) => { const currency = e.target.value; const averagePrice = parseAssetAmount(assetForm.average_price, assetForm.currency); const currentPrice = parseAssetAmount(assetForm.current_price, assetForm.currency); setAssetForm({ ...assetForm, currency, average_price: averagePrice ? String(averagePrice) : '', current_price: currentPrice ? String(currentPrice) : '' }); }} className="w-full px-3 py-2 border border-gray-300 rounded-lg">{CURRENCY_CODES.map((code) => <option key={code} value={code}>{code}</option>)}</select><p className="text-xs text-gray-500 mt-1">Pilihan mata uang terpisah dari input angka.</p></div></div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Nilai Beli / Unit</label>
                   <div className="flex">
                     <span className="flex items-center px-3 border border-r-0 border-gray-300 rounded-l-lg bg-gray-100 text-sm font-medium text-gray-600">{assetForm.currency}</span>
-                    <input type="number" inputMode="decimal" step="any" min="0" value={assetForm.average_price} onChange={(e) => setAssetForm({ ...assetForm, average_price: e.target.value })} className="flex-1 min-w-0 px-3 py-2 border border-gray-300 rounded-r-lg" placeholder="10000000" />
+                    <input type="text" inputMode="numeric" value={assetForm.average_price} onChange={(e) => setAssetForm({ ...assetForm, average_price: formatAssetAmount(e.target.value, assetForm.currency) })} className="flex-1 min-w-0 px-3 py-2 border border-gray-300 rounded-r-lg" placeholder="16.000.000" />
                   </div>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Nilai Saat Ini / Unit</label>
                   <div className="flex">
                     <span className="flex items-center px-3 border border-r-0 border-gray-300 rounded-l-lg bg-gray-100 text-sm font-medium text-gray-600">{assetForm.currency}</span>
-                    <input type="number" inputMode="decimal" step="any" min="0" value={assetForm.current_price} onChange={(e) => setAssetForm({ ...assetForm, current_price: e.target.value })} className="flex-1 min-w-0 px-3 py-2 border border-gray-300 rounded-r-lg" placeholder="10000000" />
+                    <input type="text" inputMode="numeric" value={assetForm.current_price} onChange={(e) => setAssetForm({ ...assetForm, current_price: formatAssetAmount(e.target.value, assetForm.currency) })} className="flex-1 min-w-0 px-3 py-2 border border-gray-300 rounded-r-lg" placeholder="16.000.000" />
                   </div>
                 </div>
               </div>
