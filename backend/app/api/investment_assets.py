@@ -1,7 +1,4 @@
 from collections import defaultdict
-import json
-from urllib.error import URLError
-from urllib.request import urlopen
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
@@ -46,24 +43,6 @@ def create_asset(payload: InvestmentAssetCreate, db: Session = Depends(get_db), 
     db.commit()
     db.refresh(asset)
     return asset_out(asset)
-
-
-@router.get("/exchange-rate")
-def exchange_rate(currency: str, user=Depends(get_current_user)):
-    code = currency.strip().upper()
-    if code == "IDR":
-        return {"currency": "IDR", "rate": 1, "date": None}
-    if code not in {"USD", "EUR"}:
-        raise HTTPException(422, "Mata uang tidak didukung")
-    try:
-        with urlopen(f"https://api.frankfurter.dev/v2/rate/{code}/IDR", timeout=8) as response:
-            result = json.load(response)
-        rate = float(result["rate"])
-        if rate <= 0:
-            raise ValueError("Invalid exchange rate")
-        return {"currency": code, "rate": rate, "date": result.get("date")}
-    except (URLError, OSError, ValueError, KeyError, json.JSONDecodeError) as exc:
-        raise HTTPException(503, "Kurs otomatis sedang tidak tersedia; masukkan kurs secara manual") from exc
 
 
 @router.patch("/{asset_id}", response_model=InvestmentAssetOut)

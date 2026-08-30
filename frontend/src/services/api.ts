@@ -253,9 +253,6 @@ export const api = {
   async createInvestmentAsset(payload: any) {
     return request<any>(`/api/investment-assets`, { method: 'POST', body: JSON.stringify(payload) });
   },
-  async investmentExchangeRate(currency: string) {
-    return request<{ currency: string; rate: number; date: string | null }>(`/api/investment-assets/exchange-rate?currency=${encodeURIComponent(currency)}`);
-  },
   async updateInvestmentAsset(id: number, payload: any) {
     return request<any>(`/api/investment-assets/${id}`, { method: 'PATCH', body: JSON.stringify(payload) });
   },

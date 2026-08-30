@@ -83,7 +83,6 @@ export default function Portfolio() {
   const [showAssetModal, setShowAssetModal] = useState(false);
   const [editingAssetId, setEditingAssetId] = useState<number | null>(null);
   const [savingAsset, setSavingAsset] = useState(false);
-  const [loadingExchangeRate, setLoadingExchangeRate] = useState(false);
   const emptyAssetForm = {
     name: '', symbol: '', asset_type: 'mutual_fund', quantity: '1', average_price: '',
     current_price: '', currency: 'IDR', exchange_rate_to_idr: '1', acquired_date: '', notes: '',
@@ -346,21 +345,6 @@ export default function Portfolio() {
     setShowAssetModal(true);
   };
 
-  const refreshExchangeRate = async (currency: string) => {
-    if (currency === 'IDR') return;
-    try {
-      setLoadingExchangeRate(true);
-      const result = await api.investmentExchangeRate(currency);
-      setAssetForm((current) => current.currency === currency
-        ? { ...current, exchange_rate_to_idr: String(result.rate) }
-        : current);
-    } catch (error: any) {
-      toast.error(error?.message || 'Kurs otomatis gagal dimuat');
-    } finally {
-      setLoadingExchangeRate(false);
-    }
-  };
-
   const openEditAsset = (asset: any) => {
     const currency = asset.currency || 'IDR';
     const directValue = DIRECT_VALUE_ASSETS.has(asset.asset_type);
@@ -376,10 +360,9 @@ export default function Portfolio() {
       acquired_date: asset.acquired_date || '', notes: asset.notes || '',
     });
     setShowAssetModal(true);
-    void refreshExchangeRate(currency);
   };
 
-  const changeAssetCurrency = async (currency: string) => {
+  const changeAssetCurrency = (currency: string) => {
     const averagePrice = parseAssetAmount(assetForm.average_price, assetForm.currency);
     const currentPrice = parseAssetAmount(assetForm.current_price, assetForm.currency);
     setAssetForm((current) => ({
@@ -388,8 +371,6 @@ export default function Portfolio() {
       current_price: currentPrice ? formatAssetAmount(String(currentPrice), currency) : '',
       exchange_rate_to_idr: currency === 'IDR' ? '1' : '',
     }));
-    if (currency === 'IDR') return;
-    await refreshExchangeRate(currency);
   };
 
   const saveAsset = async () => {
@@ -816,11 +797,11 @@ export default function Portfolio() {
                   </div>
                 </div>
               </div>
-              <div><label className="block text-sm font-medium text-gray-700 mb-1">Kurs 1 {assetForm.currency} ke IDR</label><input type="number" step="any" value={assetForm.exchange_rate_to_idr} onChange={(e) => setAssetForm({ ...assetForm, exchange_rate_to_idr: e.target.value })} disabled={loadingExchangeRate} className="w-full px-3 py-2 border border-gray-300 rounded-lg disabled:bg-gray-100" placeholder={loadingExchangeRate ? 'Mengambil kurs terbaru…' : 'Masukkan kurs'} /><p className="text-xs text-gray-500 mt-1">{assetForm.currency === 'IDR' ? 'Kurs Rupiah otomatis bernilai 1.' : loadingExchangeRate ? 'Mengambil kurs terbaru ke Rupiah…' : `Otomatis: 1 ${assetForm.currency} = ${formatCurrency(Number(assetForm.exchange_rate_to_idr) || 0)}`}</p></div>
+              <div><label className="block text-sm font-medium text-gray-700 mb-1">Kurs 1 {assetForm.currency} ke IDR</label><input type="number" step="any" value={assetForm.exchange_rate_to_idr} onChange={(e) => setAssetForm({ ...assetForm, exchange_rate_to_idr: e.target.value })} disabled={assetForm.currency === 'IDR'} className="w-full px-3 py-2 border border-gray-300 rounded-lg disabled:bg-gray-100" placeholder={assetForm.currency === 'IDR' ? '1' : 'Masukkan kurs manual'} /><p className="text-xs text-gray-500 mt-1">{assetForm.currency === 'IDR' ? 'Kurs Rupiah tetap bernilai 1.' : `Isi manual. Contoh: jika 1 ${assetForm.currency} = Rp17.000, masukkan 17000.`}</p></div>
               <div><label className="block text-sm font-medium text-gray-700 mb-1">Tanggal Perolehan</label><input type="date" value={assetForm.acquired_date} onChange={(e) => setAssetForm({ ...assetForm, acquired_date: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div>
               <div><label className="block text-sm font-medium text-gray-700 mb-1">Catatan</label><textarea value={assetForm.notes} onChange={(e) => setAssetForm({ ...assetForm, notes: e.target.value })} rows={2} className="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div>
             </div>
-            <div className="flex gap-2 mt-6"><button disabled={savingAsset} onClick={() => setShowAssetModal(false)} className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg">Batal</button><button disabled={savingAsset || loadingExchangeRate} onClick={saveAsset} className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg disabled:opacity-50">{loadingExchangeRate ? 'Mengambil kurs…' : savingAsset ? 'Menyimpan…' : editingAssetId ? 'Simpan Perubahan' : 'Simpan Aset'}</button></div>
+            <div className="flex gap-2 mt-6"><button disabled={savingAsset} onClick={() => setShowAssetModal(false)} className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg">Batal</button><button disabled={savingAsset} onClick={saveAsset} className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg disabled:opacity-50">{savingAsset ? 'Menyimpan…' : editingAssetId ? 'Simpan Perubahan' : 'Simpan Aset'}</button></div>
           </div>
         </div>
       )}
