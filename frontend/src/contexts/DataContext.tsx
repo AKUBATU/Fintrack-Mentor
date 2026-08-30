@@ -219,8 +219,9 @@ function buildHoldingsFromTransactions(
 
   const result: StockHolding[] = []
   for (const [ticker, v] of inv.entries()) {
-    // hanya tampilkan yang masih ada shares (kalau kamu mau tetap tampil walau 0 shares, tinggal hapus if ini)
-    if (v.shares <= 0 && Math.abs(v.realized) < 1e-9) continue
+    // Holdings hanya berisi posisi aktif. Profit/loss dari posisi yang sudah ditutup
+    // tetap dihitung dari riwayat transaksi, bukan dipertahankan sebagai holding nol.
+    if (v.shares <= 0) continue
 
     // Harga yang pernah diubah di sesi aktif dipertahankan. Setelah login/reload,
     // gunakan harga transaksi terakhir agar nilai aset tidak kembali menjadi Rp0.
