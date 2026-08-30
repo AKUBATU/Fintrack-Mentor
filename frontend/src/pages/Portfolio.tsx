@@ -1,8 +1,9 @@
-import { Fragment, useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useData } from '../contexts/DataContext';
-import { Plus, TrendingUp, DollarSign, X, Pencil, Trash2, Activity, Layers3 } from 'lucide-react';
+import { Plus, TrendingUp, TrendingDown, DollarSign, X, Pencil, Trash2, Activity, Layers3, Wallet, PieChart as PieChartIcon, BarChart3 } from 'lucide-react';
 import { toast } from 'sonner';
 import { api } from '../services/api';
+import { Area, AreaChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 
 const ASSET_TYPES = [
   ['stock', 'Saham'], ['etf', 'ETF'], ['money_market_fund', 'Reksa Dana Pasar Uang (RDPU)'], ['mutual_fund', 'Reksa Dana Lainnya'], ['bond', 'Obligasi'],
@@ -14,6 +15,10 @@ const ASSET_TYPES = [
 ] as const;
 
 const assetTypeLabel = (type: string) => ASSET_TYPES.find(([value]) => value === type)?.[1] || type;
+
+const compactAssetTypeLabel = (type: string) => type === 'money_market_fund' ? 'RDPU' : type === 'mutual_fund' ? 'Reksa Dana' : assetTypeLabel(type);
+
+const ALLOCATION_COLORS = ['#2563eb', '#0f766e', '#7c3aed', '#d97706', '#dc2626', '#0891b2', '#4f46e5', '#64748b'];
 
 const CURRENCY_CODES = ['IDR', 'USD', 'EUR'] as const;
 
@@ -61,6 +66,7 @@ export default function Portfolio() {
   const stockTransactions = (data?.stockTransactions ?? []) as any[];
   const holdings = (data?.holdings ?? []) as any[];
   const dividends = (data?.dividends ?? []) as any[];
+  const dailyReports = (data?.dailyReports ?? []) as any[];
 
   const addStockTransaction = data?.addStockTransaction as undefined | ((payload: any) => Promise<void>);
   const updateStockTransaction = data?.updateStockTransaction as undefined | ((id: string, payload: any) => Promise<void>);
@@ -83,7 +89,6 @@ export default function Portfolio() {
   const [showAssetModal, setShowAssetModal] = useState(false);
   const [editingAssetId, setEditingAssetId] = useState<number | null>(null);
   const [savingAsset, setSavingAsset] = useState(false);
-  const [showAllPortfolioAssets, setShowAllPortfolioAssets] = useState(false);
   const emptyAssetForm = {
     name: '', symbol: '', asset_type: 'mutual_fund', quantity: '1', average_price: '',
     current_price: '', currency: 'IDR', exchange_rate_to_idr: '1', acquired_date: '', notes: '',
@@ -92,18 +97,6 @@ export default function Portfolio() {
   const assetFields = ASSET_FIELD_LABELS[assetForm.asset_type] || DEFAULT_ASSET_FIELDS;
   const usesDirectValue = DIRECT_VALUE_ASSETS.has(assetForm.asset_type);
   const portfolioAssetCount = holdings.length + investmentAssets.length;
-  let previewHoldingCount = Math.min(holdings.length, investmentAssets.length > 0 ? 3 : 6);
-  let previewAssetCount = Math.min(investmentAssets.length, 6 - previewHoldingCount);
-  previewHoldingCount += Math.min(holdings.length - previewHoldingCount, 6 - previewHoldingCount - previewAssetCount);
-  previewAssetCount += Math.min(investmentAssets.length - previewAssetCount, 6 - previewHoldingCount - previewAssetCount);
-  const visibleHoldings = showAllPortfolioAssets ? holdings : holdings.slice(0, previewHoldingCount);
-  const visibleInvestmentAssets = showAllPortfolioAssets ? investmentAssets : investmentAssets.slice(0, previewAssetCount);
-  const visibleAssetSections = Object.entries(
-    visibleInvestmentAssets.reduce((sections: Record<string, any[]>, asset: any) => {
-      (sections[asset.asset_type] ||= []).push(asset);
-      return sections;
-    }, {})
-  ) as [string, any[]][];
 
   const [transactionForm, setTransactionForm] = useState({
     ticker: '',
@@ -260,6 +253,22 @@ export default function Portfolio() {
       drawdown
     };
   }, [holdings, investmentAssets, dividends, stockTransactions]);
+
+  const portfolioHistory = useMemo(() => [...dailyReports]
+    .filter((report: any) => report?.date && Number.isFinite(Number(report?.portfolioValue)))
+    .sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime())
+    .map((report: any) => ({
+      date: new Date(report.date).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' }),
+      value: Number(report.portfolioValue),
+    })), [dailyReports]);
+
+  const allocationData = useMemo(() => ((portfolioHealth?.allocations || []) as any[])
+    .filter((item: any) => Number(item?.value) > 0)
+    .map((item: any) => ({
+      name: compactAssetTypeLabel(String(item.asset_type || 'other')),
+      value: Number(item.value),
+      percentage: Number(item.percentage) || 0,
+    })), [portfolioHealth]);
 
   const transactionHistory = useMemo(
     () => [...stockTransactions].sort((a: any, b: any) =>
@@ -504,263 +513,102 @@ export default function Portfolio() {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="portfolio-page-header flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+    <div className="space-y-7">
+      <header className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Portofolio Investasi</h1>
-          <p className="text-gray-600">Kelola seluruh instrumen investasi dan pantau kesehatan portofolio</p>
+          <h1 className="text-2xl font-semibold tracking-tight text-gray-950">Portfolio</h1>
+          <p className="mt-1 text-sm text-gray-500">Pantau seluruh investasi dan performa portofolio Anda.</p>
         </div>
-        <div className="portfolio-header-actions flex flex-wrap gap-2">
-          <button onClick={openAddAsset} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-            <Layers3 className="w-4 h-4" /> Tambah Instrumen
+        <div className="flex w-full gap-2 sm:w-auto">
+          <button onClick={() => setShowUpdatePrice(true)} className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50 sm:flex-none">
+            <TrendingUp className="h-4 w-4" /> Update Harga
           </button>
-          <button
-            onClick={() => setShowUpdatePrice(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
-          >
-            <TrendingUp className="w-4 h-4" />
-            Update Harga
-          </button>
-          <button
-            onClick={() => setShowAddDividend(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-          >
-            <DollarSign className="w-4 h-4" />
-            Dividen
-          </button>
-          <button
-            onClick={() => {
-              setEditingTransactionId(null);
-              setShowAddTransaction(true);
-            }}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-            Catat Saham
+          <button onClick={openAddAsset} className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-blue-700 sm:flex-none">
+            <Plus className="h-4 w-4" /> Tambah Instrumen
           </button>
         </div>
-      </div>
+      </header>
 
-      {/* Portfolio health */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 border border-gray-200">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <p className="text-sm text-gray-500">Kesehatan Portofolio</p>
-              <div className="flex items-end gap-3 mt-1">
-                <p className="text-4xl font-bold text-gray-900">{portfolioHealth?.score ?? 0}</p>
-                <p className="text-sm text-gray-500 mb-1">/ 100</p>
-              </div>
-            </div>
-            <div className="p-3 bg-blue-50 text-blue-600 rounded-xl"><Activity className="w-6 h-6" /></div>
+      <section className="grid grid-cols-1 overflow-hidden rounded-xl border border-gray-200 bg-white md:grid-cols-3">
+        <div className="p-5 sm:p-6 md:border-r md:border-gray-100">
+          <div className="flex items-center gap-2 text-sm font-medium text-gray-500"><Wallet className="h-4 w-4 text-blue-600" /> Total Portofolio</div>
+          <p className="mt-3 text-3xl font-semibold tracking-tight text-gray-950 tabular-nums">{formatCurrency(portfolioMetrics.totalValue)}</p>
+          <p className="mt-2 text-xs text-gray-400">{portfolioAssetCount} aset aktif</p>
+        </div>
+        <div className="border-t border-gray-100 p-5 sm:p-6 md:border-r md:border-t-0">
+          <div className="flex items-center gap-2 text-sm font-medium text-gray-500"><Layers3 className="h-4 w-4" /> Total Modal</div>
+          <p className="mt-3 text-2xl font-semibold text-gray-900 tabular-nums">{formatCurrency(portfolioMetrics.totalCost)}</p>
+          <p className="mt-2 text-xs text-gray-400">Total cost basis seluruh posisi</p>
+        </div>
+        <div className="border-t border-gray-100 p-5 sm:p-6 md:border-t-0">
+          <div className="flex items-center gap-2 text-sm font-medium text-gray-500">{portfolioMetrics.unrealizedPL >= 0 ? <TrendingUp className="h-4 w-4 text-emerald-600" /> : <TrendingDown className="h-4 w-4 text-red-600" />} Total P/L</div>
+          <p className={`mt-3 text-2xl font-semibold tabular-nums ${portfolioMetrics.unrealizedPL > 0 ? 'text-emerald-600' : portfolioMetrics.unrealizedPL < 0 ? 'text-red-600' : 'text-gray-900'}`}>{portfolioMetrics.unrealizedPL > 0 ? '+' : ''}{formatCurrency(portfolioMetrics.unrealizedPL)}</p>
+          <p className={`mt-2 text-xs font-medium ${portfolioMetrics.unrealizedPL > 0 ? 'text-emerald-600' : portfolioMetrics.unrealizedPL < 0 ? 'text-red-600' : 'text-gray-400'}`}>{portfolioMetrics.unrealizedPLPercent > 0 ? '+' : ''}{portfolioMetrics.unrealizedPLPercent.toFixed(2)}%</p>
+        </div>
+      </section>
+
+      <section className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1.85fr)_minmax(300px,1fr)]">
+        <div className="rounded-xl border border-gray-200 bg-white p-5 sm:p-6">
+          <div className="mb-5 flex items-center justify-between gap-4"><div><h2 className="font-semibold text-gray-900">Portfolio Performance</h2><p className="mt-1 text-xs text-gray-500">Perkembangan nilai dari data laporan yang tersedia.</p></div><BarChart3 className="h-5 w-5 text-gray-400" /></div>
+          {portfolioHistory.length > 0 ? <div className="h-64 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={portfolioHistory} margin={{ top: 8, right: 4, left: 4, bottom: 0 }}>
+                <defs><linearGradient id="portfolioArea" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#2563eb" stopOpacity={0.18}/><stop offset="95%" stopColor="#2563eb" stopOpacity={0}/></linearGradient></defs>
+                <CartesianGrid vertical={false} stroke="#eef2f7" />
+                <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: '#9ca3af', fontSize: 11 }} />
+                <YAxis hide domain={['dataMin', 'dataMax']} />
+                <Tooltip formatter={(value: any) => formatCurrency(Number(value))} contentStyle={{ borderRadius: 10, borderColor: '#e5e7eb', boxShadow: '0 8px 24px rgba(15,23,42,.08)' }} />
+                <Area type="monotone" dataKey="value" stroke="#2563eb" strokeWidth={2.25} fill="url(#portfolioArea)" name="Nilai Portofolio" />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div> : <div className="flex h-64 flex-col items-center justify-center text-center"><BarChart3 className="h-8 w-8 text-gray-300"/><p className="mt-3 text-sm font-medium text-gray-700">Belum ada histori performa</p><p className="mt-1 max-w-xs text-xs text-gray-400">Grafik akan menggunakan data laporan portofolio yang memang tersimpan, tanpa membuat data estimasi.</p></div>}
+        </div>
+        <div className="rounded-xl border border-gray-200 bg-white p-5 sm:p-6">
+          <div className="mb-3 flex items-center justify-between"><div><h2 className="font-semibold text-gray-900">Asset Allocation</h2><p className="mt-1 text-xs text-gray-500">Komposisi berdasarkan nilai kini.</p></div><PieChartIcon className="h-5 w-5 text-gray-400" /></div>
+          {allocationData.length > 0 ? <>
+            <div className="mx-auto h-44 max-w-[240px]"><ResponsiveContainer width="100%" height="100%"><PieChart><Pie data={allocationData} dataKey="value" nameKey="name" innerRadius={52} outerRadius={74} paddingAngle={2} stroke="none">{allocationData.map((entry, index) => <Cell key={entry.name} fill={ALLOCATION_COLORS[index % ALLOCATION_COLORS.length]} />)}</Pie><Tooltip formatter={(value: any) => formatCurrency(Number(value))} /></PieChart></ResponsiveContainer></div>
+            <div className="space-y-2">{allocationData.slice(0, 6).map((entry, index) => <div key={entry.name} className="flex items-center justify-between gap-3 text-xs"><div className="flex min-w-0 items-center gap-2"><span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: ALLOCATION_COLORS[index % ALLOCATION_COLORS.length] }} /><span className="truncate text-gray-600">{entry.name}</span></div><span className="font-medium tabular-nums text-gray-800">{entry.percentage.toFixed(1)}%</span></div>)}</div>
+          </> : <div className="flex h-64 flex-col items-center justify-center text-center"><PieChartIcon className="h-8 w-8 text-gray-300"/><p className="mt-3 text-sm font-medium text-gray-700">Belum ada alokasi aset</p><p className="mt-1 text-xs text-gray-400">Tambahkan instrumen untuk melihat komposisi.</p></div>}
+        </div>
+      </section>
+
+      <section className="overflow-hidden rounded-xl border border-gray-200 bg-white">
+        <div className="flex flex-col gap-4 border-b border-gray-100 px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+          <div><div className="flex items-center gap-2"><h2 className="font-semibold text-gray-900">Portofolio Saya</h2><span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">{portfolioAssetCount} aset</span></div><p className="mt-1 text-sm text-gray-500">Seluruh saham dan instrumen investasi Anda dalam satu tempat.</p></div>
+          <button onClick={() => { setEditingTransactionId(null); setShowAddTransaction(true); }} className="inline-flex items-center justify-center gap-2 self-start rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 sm:self-auto"><Plus className="h-4 w-4" /> Catat Saham</button>
+        </div>
+        {assetLoading && portfolioAssetCount === 0 ? <div className="space-y-3 p-6">{[1,2,3].map((item) => <div key={item} className="h-14 animate-pulse rounded-lg bg-gray-100" />)}</div> : portfolioAssetCount === 0 ? <div className="px-6 py-14 text-center"><Layers3 className="mx-auto h-9 w-9 text-gray-300"/><p className="mt-3 text-sm font-medium text-gray-700">Portofolio masih kosong</p><p className="mt-1 text-xs text-gray-400">Tambahkan instrumen atau catat transaksi saham pertama Anda.</p><button onClick={openAddAsset} className="mt-4 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">Tambah Instrumen</button></div> : <>
+          <div className="hidden md:block overflow-x-auto">
+            <table className="w-full min-w-[900px]">
+              <thead className="bg-gray-50/70"><tr className="border-b border-gray-100 text-xs font-medium uppercase tracking-wide text-gray-400"><th className="px-6 py-3 text-left">Aset</th><th className="px-4 py-3 text-left">Kepemilikan</th><th className="px-4 py-3 text-right">Modal</th><th className="px-4 py-3 text-right">Nilai Kini</th><th className="px-4 py-3 text-right">P/L</th><th className="px-4 py-3 text-left">Jenis</th><th className="px-6 py-3 text-right">Aksi</th></tr></thead>
+              <tbody className="divide-y divide-gray-100">
+                {holdings.map((holding: any) => <tr key={`stock-${holding.ticker}`} className="transition hover:bg-gray-50/60"><td className="px-6 py-4"><p className="font-medium text-gray-900">{holding.ticker}</p></td><td className="px-4 py-4 text-sm text-gray-700"><p>{new Intl.NumberFormat('id-ID', { maximumFractionDigits: 4 }).format(holding.totalLots)} lot</p><p className="mt-0.5 text-xs text-gray-400">{Number(holding.totalShares).toLocaleString('id-ID')} lembar</p></td><td className="px-4 py-4 text-right text-sm font-medium tabular-nums text-gray-700">{formatCurrency(num(holding.costBasis) || 0)}</td><td className="px-4 py-4 text-right text-sm font-semibold tabular-nums text-gray-900">{formatCurrency(num(holding.marketValue) || 0)}</td><td className={`px-4 py-4 text-right text-sm font-semibold tabular-nums ${num(holding.unrealizedPL) > 0 ? 'text-emerald-600' : num(holding.unrealizedPL) < 0 ? 'text-red-600' : 'text-gray-700'}`}><p>{num(holding.unrealizedPL) > 0 ? '+' : ''}{formatCurrency(num(holding.unrealizedPL) || 0)}</p><p className="mt-0.5 text-xs font-medium">{num(holding.unrealizedPLPercent) > 0 ? '+' : ''}{(num(holding.unrealizedPLPercent) || 0).toFixed(2)}%</p></td><td className="px-4 py-4"><span className="rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700">Saham</span></td><td className="px-6 py-4 text-right"><button onClick={() => { setSelectedTicker(holding.ticker); setPriceForm({ ticker: holding.ticker, price: String(holding.currentPrice || '') }); setShowUpdatePrice(true); }} className="rounded-md p-2 text-gray-400 hover:bg-gray-100 hover:text-blue-600" title="Update harga"><Pencil className="h-4 w-4" /></button></td></tr>)}
+                {investmentAssets.map((asset) => <tr key={`asset-${asset.id}`} className="transition hover:bg-gray-50/60"><td className="px-6 py-4"><p className="font-medium text-gray-900">{asset.name}</p>{asset.symbol && <p className="mt-0.5 text-xs text-gray-400">{asset.symbol}</p>}</td><td className="px-4 py-4 text-sm text-gray-700">{assetQuantitySummary(asset)}</td><td className="px-4 py-4 text-right text-sm font-medium tabular-nums text-gray-700"><p>{formatCurrency(asset.cost_basis)}</p>{asset.currency !== 'IDR' && <p className="mt-0.5 text-xs font-normal text-gray-400">{formatAssetCurrency(asset.quantity * asset.average_price, asset.currency)}</p>}</td><td className="px-4 py-4 text-right text-sm font-semibold tabular-nums text-gray-900"><p>{formatCurrency(asset.market_value)}</p>{asset.currency !== 'IDR' && <p className="mt-0.5 text-xs font-normal text-gray-400">{formatAssetCurrency(asset.quantity * asset.current_price, asset.currency)}</p>}</td><td className={`px-4 py-4 text-right text-sm font-semibold tabular-nums ${asset.unrealized_pl > 0 ? 'text-emerald-600' : asset.unrealized_pl < 0 ? 'text-red-600' : 'text-gray-700'}`}><p>{asset.unrealized_pl > 0 ? '+' : ''}{formatCurrency(asset.unrealized_pl)}</p><p className="mt-0.5 text-xs font-medium">{asset.unrealized_pl_percent > 0 ? '+' : ''}{Number(asset.unrealized_pl_percent || 0).toFixed(2)}%</p></td><td className="px-4 py-4"><span className="rounded-md bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600">{compactAssetTypeLabel(asset.asset_type)}</span></td><td className="px-6 py-4"><div className="flex justify-end gap-1"><button onClick={() => openEditAsset(asset)} className="rounded-md p-2 text-gray-400 hover:bg-gray-100 hover:text-blue-600" title="Edit aset"><Pencil className="h-4 w-4" /></button><button onClick={() => deleteAsset(asset)} className="rounded-md p-2 text-gray-400 hover:bg-red-50 hover:text-red-600" title="Hapus aset"><Trash2 className="h-4 w-4" /></button></div></td></tr>)}
+              </tbody>
+            </table>
           </div>
-          <div className="w-full bg-gray-200 rounded-full h-2 mt-4">
-            <div className="h-2 rounded-full" style={{ width: `${portfolioHealth?.score || 0}%`, backgroundColor: (portfolioHealth?.score || 0) >= 75 ? '#22c55e' : (portfolioHealth?.score || 0) >= 55 ? '#3b82f6' : (portfolioHealth?.score || 0) >= 35 ? '#eab308' : '#ef4444' }} />
+          <div className="divide-y divide-gray-100 md:hidden">
+            {holdings.map((holding: any) => <div key={`mobile-stock-${holding.ticker}`} className="p-5"><div className="flex items-start justify-between gap-3"><div><p className="font-medium text-gray-900">{holding.ticker}</p><p className="mt-1 text-xs text-gray-400">{holding.totalLots} lot · {Number(holding.totalShares).toLocaleString('id-ID')} lembar</p></div><span className="rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700">Saham</span></div><div className="mt-4 grid grid-cols-2 gap-4"><div><p className="text-xs text-gray-400">Modal</p><p className="mt-1 text-sm font-medium tabular-nums text-gray-700">{formatCurrency(num(holding.costBasis) || 0)}</p></div><div className="text-right"><p className="text-xs text-gray-400">Nilai Kini</p><p className="mt-1 text-sm font-semibold tabular-nums text-gray-900">{formatCurrency(num(holding.marketValue) || 0)}</p></div></div><div className="mt-4 flex items-end justify-between border-t border-gray-100 pt-3"><div><p className="text-xs text-gray-400">P/L</p><p className={`mt-1 text-sm font-semibold tabular-nums ${num(holding.unrealizedPL) > 0 ? 'text-emerald-600' : num(holding.unrealizedPL) < 0 ? 'text-red-600' : 'text-gray-700'}`}>{num(holding.unrealizedPL) > 0 ? '+' : ''}{formatCurrency(num(holding.unrealizedPL) || 0)} <span className="text-xs">({(num(holding.unrealizedPLPercent) || 0).toFixed(2)}%)</span></p></div><button onClick={() => { setSelectedTicker(holding.ticker); setPriceForm({ ticker: holding.ticker, price: String(holding.currentPrice || '') }); setShowUpdatePrice(true); }} className="rounded-md border border-gray-200 p-2 text-gray-500"><Pencil className="h-4 w-4" /></button></div></div>)}
+            {investmentAssets.map((asset) => <div key={`mobile-asset-${asset.id}`} className="p-5"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="truncate font-medium text-gray-900">{asset.name}</p>{asset.symbol && <p className="mt-1 text-xs text-gray-400">{asset.symbol} · {assetQuantitySummary(asset)}</p>}{!asset.symbol && <p className="mt-1 text-xs text-gray-400">{assetQuantitySummary(asset)}</p>}</div><span className="shrink-0 rounded-md bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600">{compactAssetTypeLabel(asset.asset_type)}</span></div><div className="mt-4 grid grid-cols-2 gap-4"><div><p className="text-xs text-gray-400">Modal</p><p className="mt-1 text-sm font-medium tabular-nums text-gray-700">{formatCurrency(asset.cost_basis)}</p>{asset.currency !== 'IDR' && <p className="mt-0.5 text-xs text-gray-400">{formatAssetCurrency(asset.quantity * asset.average_price, asset.currency)}</p>}</div><div className="text-right"><p className="text-xs text-gray-400">Nilai Kini</p><p className="mt-1 text-sm font-semibold tabular-nums text-gray-900">{formatCurrency(asset.market_value)}</p>{asset.currency !== 'IDR' && <p className="mt-0.5 text-xs text-gray-400">{formatAssetCurrency(asset.quantity * asset.current_price, asset.currency)}</p>}</div></div><div className="mt-4 flex items-end justify-between border-t border-gray-100 pt-3"><div><p className="text-xs text-gray-400">P/L</p><p className={`mt-1 text-sm font-semibold tabular-nums ${asset.unrealized_pl > 0 ? 'text-emerald-600' : asset.unrealized_pl < 0 ? 'text-red-600' : 'text-gray-700'}`}>{asset.unrealized_pl > 0 ? '+' : ''}{formatCurrency(asset.unrealized_pl)} <span className="text-xs">({Number(asset.unrealized_pl_percent || 0).toFixed(2)}%)</span></p></div><div className="flex gap-1"><button onClick={() => openEditAsset(asset)} className="rounded-md border border-gray-200 p-2 text-gray-500"><Pencil className="h-4 w-4" /></button><button onClick={() => deleteAsset(asset)} className="rounded-md border border-gray-200 p-2 text-red-500"><Trash2 className="h-4 w-4" /></button></div></div></div>)}
           </div>
-          <p className="font-semibold text-gray-900 mt-3">{portfolioHealth?.status || (assetLoading ? 'Menghitung…' : 'Belum dapat dinilai')}</p>
-          <div className="grid grid-cols-2 gap-3 mt-4 text-sm">
-            <div className="p-3 bg-gray-50 rounded-lg"><p className="text-gray-500">Diversifikasi</p><p className="font-semibold">{portfolioHealth?.diversification_score ?? 0}/100</p></div>
-            <div className="p-3 bg-gray-50 rounded-lg"><p className="text-gray-500">Konsentrasi</p><p className="font-semibold">{portfolioHealth?.concentration_score ?? 0}/100</p></div>
-            <div className="p-3 bg-gray-50 rounded-lg"><p className="text-gray-500">Likuiditas</p><p className="font-semibold">{portfolioHealth?.liquidity_score ?? 0}/100</p></div>
-            <div className="p-3 bg-gray-50 rounded-lg"><p className="text-gray-500">Keseimbangan risiko</p><p className="font-semibold">{portfolioHealth?.risk_score ?? 0}/100</p></div>
-          </div>
-        </div>
-        <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 border border-gray-200">
-          <h3 className="font-semibold text-gray-900 mb-3">Analisis Singkat</h3>
-          <div className="space-y-3">
-            {(portfolioHealth?.insights || ['Tambahkan aset untuk memulai analisis.']).map((insight: string, index: number) => (
-              <div key={index} className="flex gap-3 p-3 bg-gray-50 rounded-lg"><span className="text-blue-600">•</span><p className="text-sm text-gray-700">{insight}</p></div>
-            ))}
-          </div>
-          <p className="text-xs text-gray-400 mt-4">Indikator edukatif berdasarkan komposisi aset, bukan rekomendasi investasi.</p>
-        </div>
-      </div>
+        </>}
+      </section>
 
-      {/* Unified portfolio */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
-        <div className="flex items-start sm:items-center justify-between gap-4 mb-4">
-          <div><h3 className="font-semibold text-gray-900">Portofolio Saya</h3><p className="text-sm text-gray-500">Seluruh saham dan instrumen investasi Anda dalam satu tempat.</p></div>
-          <span className="px-2 py-1 bg-blue-50 text-blue-700 text-xs rounded-full">{portfolioAssetCount} aset</span>
-        </div>
-        <div className="space-y-3 md:hidden">
-          {visibleHoldings.length > 0 && <div className="flex items-center justify-between pt-1"><p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Saham</p><span className="text-xs text-gray-400">{visibleHoldings.length} aset</span></div>}
-          {visibleHoldings.map((holding: any) => <div key={`mobile-stock-${holding.ticker}`} className="rounded-xl border border-gray-200 p-4">
-            <div className="flex items-start justify-between gap-3"><div><p className="font-semibold text-gray-900">{holding.ticker}</p><p className="text-xs text-gray-500 mt-0.5">{holding.totalLots} lot · {holding.totalShares} lembar</p></div><span className="px-2 py-1 bg-blue-50 text-blue-700 text-xs rounded-full">Saham</span></div>
-            <div className="grid grid-cols-2 gap-3 mt-4"><div><p className="text-xs text-gray-500">Modal</p><p className="text-sm font-medium mt-1">{formatCurrency(num(holding.costBasis) || 0)}</p></div><div className="text-right"><p className="text-xs text-gray-500">Nilai kini</p><p className="text-sm font-semibold mt-1">{formatCurrency(num(holding.marketValue) || 0)}</p></div></div>
-            <div className="flex items-end justify-between gap-3 mt-4 pt-3 border-t border-gray-100"><div><p className="text-xs text-gray-500">P/L</p><p className={`text-sm font-semibold mt-1 ${num(holding.unrealizedPL) >= 0 ? 'text-green-600' : 'text-red-600'}`}>{num(holding.unrealizedPL) >= 0 ? '+' : ''}{formatCurrency(num(holding.unrealizedPL) || 0)} <span className="text-xs">({(num(holding.unrealizedPLPercent) || 0).toFixed(2)}%)</span></p></div><button onClick={() => { setSelectedTicker(holding.ticker); setPriceForm({ ticker: holding.ticker, price: String(holding.currentPrice || '') }); setShowUpdatePrice(true); }} className="p-2.5 text-blue-600 bg-blue-50 rounded-lg" aria-label={`Update harga ${holding.ticker}`}><Pencil className="w-4 h-4" /></button></div>
-          </div>)}
-          {visibleAssetSections.map(([assetType, assets]) => <div key={`mobile-section-${assetType}`} className="space-y-3 pt-1">
-            <div className="flex items-center justify-between"><p className="text-xs font-semibold uppercase tracking-wide text-gray-500">{assetTypeLabel(assetType)}</p><span className="text-xs text-gray-400">{assets.length} aset</span></div>
-            {assets.map((asset) => <div key={`mobile-asset-${asset.id}`} className="rounded-xl border border-gray-200 p-4">
-            <div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="font-semibold text-gray-900 truncate">{asset.name}</p><p className="text-xs text-gray-500 mt-0.5">{asset.symbol || 'Tanpa simbol'} · {assetQuantitySummary(asset)}</p></div><span className="shrink-0 px-2 py-1 bg-violet-50 text-violet-700 text-xs rounded-full">{assetTypeLabel(asset.asset_type)}</span></div>
-            <div className="grid grid-cols-2 gap-3 mt-4"><div><p className="text-xs text-gray-500">Modal</p><p className="text-sm font-medium mt-1">{asset.currency === 'IDR' ? formatCurrency(asset.cost_basis) : formatAssetCurrency(asset.quantity * asset.average_price, asset.currency)}</p>{asset.currency !== 'IDR' && <p className="text-xs text-gray-500">≈ {formatCurrency(asset.cost_basis)}</p>}</div><div className="text-right"><p className="text-xs text-gray-500">Nilai kini</p><p className="text-sm font-semibold mt-1">{asset.currency === 'IDR' ? formatCurrency(asset.market_value) : formatAssetCurrency(asset.quantity * asset.current_price, asset.currency)}</p>{asset.currency !== 'IDR' && <p className="text-xs text-gray-500">≈ {formatCurrency(asset.market_value)}</p>}</div></div>
-            <div className="flex items-end justify-between gap-3 mt-4 pt-3 border-t border-gray-100"><div><p className="text-xs text-gray-500">P/L</p><p className={`text-sm font-semibold mt-1 ${asset.unrealized_pl >= 0 ? 'text-green-600' : 'text-red-600'}`}>{asset.unrealized_pl >= 0 ? '+' : ''}{formatCurrency(asset.unrealized_pl)}</p></div><div className="flex gap-1"><button onClick={() => openEditAsset(asset)} className="p-2.5 text-blue-600 bg-blue-50 rounded-lg" aria-label={`Edit ${asset.name}`}><Pencil className="w-4 h-4" /></button><button onClick={() => deleteAsset(asset)} className="p-2.5 text-red-600 bg-red-50 rounded-lg" aria-label={`Hapus ${asset.name}`}><Trash2 className="w-4 h-4" /></button></div></div>
-            </div>)}
-          </div>)}
-        </div>
-        <div className="hidden md:block overflow-x-auto">
-          <table className="w-full">
-            <thead><tr className="border-b border-gray-200">
-              <th className="text-left py-3 px-3 text-sm font-medium text-gray-700">Aset</th>
-              <th className="text-left py-3 px-3 text-sm font-medium text-gray-700">Jenis</th>
-              <th className="text-right py-3 px-3 text-sm font-medium text-gray-700">Modal</th>
-              <th className="text-right py-3 px-3 text-sm font-medium text-gray-700">Nilai Kini</th>
-              <th className="text-right py-3 px-3 text-sm font-medium text-gray-700">P/L</th>
-              <th className="text-right py-3 px-3 text-sm font-medium text-gray-700">Aksi</th>
-            </tr></thead>
-            <tbody>
-              {visibleHoldings.length > 0 && <tr className="bg-gray-50"><td colSpan={6} className="px-3 py-2 text-xs font-semibold uppercase tracking-wide text-gray-500">Saham · {visibleHoldings.length} aset</td></tr>}
-              {visibleHoldings.map((holding: any) => <tr key={`stock-${holding.ticker}`} className="border-b border-gray-100 hover:bg-gray-50">
-                <td className="py-2.5 px-3"><p className="font-medium text-gray-900">{holding.ticker}</p><p className="text-xs text-gray-500">{holding.totalLots} lot · {holding.totalShares} lembar</p></td>
-                <td className="py-2.5 px-3 text-sm text-gray-700">Saham</td>
-                <td className="py-2.5 px-3 text-right text-sm">{formatCurrency(num(holding.costBasis) || 0)}</td>
-                <td className="py-2.5 px-3 text-right font-medium">{formatCurrency(num(holding.marketValue) || 0)}</td>
-                <td className={`py-2.5 px-3 text-right text-sm font-medium ${num(holding.unrealizedPL) >= 0 ? 'text-green-600' : 'text-red-600'}`}><p>{num(holding.unrealizedPL) >= 0 ? '+' : ''}{formatCurrency(num(holding.unrealizedPL) || 0)}</p><p className="text-xs">({num(holding.unrealizedPLPercent) >= 0 ? '+' : ''}{(num(holding.unrealizedPLPercent) || 0).toFixed(2)}%)</p></td>
-                <td className="py-2.5 px-3 text-right"><button onClick={() => { setSelectedTicker(holding.ticker); setPriceForm({ ticker: holding.ticker, price: String(holding.currentPrice || '') }); setShowUpdatePrice(true); }} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg" aria-label={`Update harga ${holding.ticker}`}><Pencil className="w-4 h-4" /></button></td>
-              </tr>)}
-              {visibleAssetSections.map(([assetType, assets]) => <Fragment key={`section-${assetType}`}>
-              <tr className="bg-gray-50"><td colSpan={6} className="px-3 py-2 text-xs font-semibold uppercase tracking-wide text-gray-500">{assetTypeLabel(assetType)} · {assets.length} aset</td></tr>
-              {assets.map((asset) => <tr key={`asset-${asset.id}`} className="border-b border-gray-100 hover:bg-gray-50">
-              <td className="py-2.5 px-3"><p className="font-medium text-gray-900">{asset.name}</p><p className="text-xs text-gray-500">{asset.symbol || 'Tanpa simbol'} · {assetQuantitySummary(asset)}</p></td>
-              <td className="py-2.5 px-3 text-sm text-gray-700">{assetTypeLabel(asset.asset_type)}</td>
-              <td className="py-2.5 px-3 text-right text-sm"><p>{asset.currency === 'IDR' ? formatCurrency(asset.cost_basis) : formatAssetCurrency(asset.quantity * asset.average_price, asset.currency)}</p>{asset.currency !== 'IDR' && <p className="text-xs text-gray-500 mt-0.5">≈ {formatCurrency(asset.cost_basis)}</p>}</td>
-              <td className="py-2.5 px-3 text-right font-medium"><p>{asset.currency === 'IDR' ? formatCurrency(asset.market_value) : formatAssetCurrency(asset.quantity * asset.current_price, asset.currency)}</p>{asset.currency !== 'IDR' && <p className="text-xs font-normal text-gray-500 mt-0.5">≈ {formatCurrency(asset.market_value)}</p>}</td>
-              <td className={`py-2.5 px-3 text-right text-sm font-medium ${asset.unrealized_pl >= 0 ? 'text-green-600' : 'text-red-600'}`}><p>{asset.unrealized_pl >= 0 ? '+' : ''}{asset.currency === 'IDR' ? formatCurrency(asset.unrealized_pl) : formatAssetCurrency(asset.quantity * (asset.current_price - asset.average_price), asset.currency)}</p>{asset.currency !== 'IDR' && <p className="text-xs font-normal text-gray-500 mt-0.5">≈ {formatCurrency(asset.unrealized_pl)}</p>}</td>
-              <td className="py-2.5 px-3"><div className="flex justify-end gap-2"><button onClick={() => openEditAsset(asset)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"><Pencil className="w-4 h-4" /></button><button onClick={() => deleteAsset(asset)} className="p-2 text-red-600 hover:bg-red-50 rounded-lg"><Trash2 className="w-4 h-4" /></button></div></td>
-              </tr>)}
-              </Fragment>)}
-            </tbody>
-          </table>
-        </div>
-        {!assetLoading && portfolioAssetCount === 0 && <div className="text-center py-8"><p className="font-medium text-gray-700">Portofolio masih kosong</p><p className="text-sm text-gray-500 mt-1">Catat saham atau tambahkan instrumen investasi pertama Anda.</p></div>}
-        {portfolioAssetCount > 6 && <div className="flex justify-center pt-4 mt-2 border-t border-gray-100"><button onClick={() => setShowAllPortfolioAssets((current) => !current)} className="px-4 py-2 text-sm font-medium text-blue-600 hover:bg-blue-50 rounded-lg">{showAllPortfolioAssets ? 'Tampilkan lebih sedikit' : `Lihat semua ${portfolioAssetCount} aset`}</button></div>}
-      </div>
+      <section className="rounded-xl border border-gray-200 bg-white px-5 py-5 sm:px-6">
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-center"><div className="flex min-w-[190px] items-center gap-3"><div className="rounded-lg bg-blue-50 p-2.5 text-blue-600"><Activity className="h-5 w-5" /></div><div><p className="text-xs text-gray-400">Kesehatan Portfolio</p><div className="mt-1 flex items-baseline gap-2"><span className="text-2xl font-semibold text-gray-900">{portfolioHealth?.score ?? 0}</span><span className="text-xs text-gray-400">/ 100</span></div><p className="text-xs font-medium text-gray-600">{portfolioHealth?.status || (assetLoading ? 'Menghitung…' : 'Belum dapat dinilai')}</p></div></div><div className="grid flex-1 grid-cols-2 gap-x-5 gap-y-3 sm:grid-cols-4">{[['Diversifikasi', portfolioHealth?.diversification_score], ['Konsentrasi', portfolioHealth?.concentration_score], ['Likuiditas', portfolioHealth?.liquidity_score], ['Risiko', portfolioHealth?.risk_score]].map(([label, value]) => <div key={String(label)}><div className="flex items-center justify-between text-xs"><span className="text-gray-500">{label}</span><span className="font-medium text-gray-700">{Number(value) || 0}</span></div><div className="mt-2 h-1.5 overflow-hidden rounded-full bg-gray-100"><div className="h-full rounded-full bg-blue-600" style={{ width: `${Math.max(0, Math.min(100, Number(value) || 0))}%` }} /></div></div>)}</div></div>
+        {(portfolioHealth?.insights || []).length > 0 && <div className="mt-5 border-t border-gray-100 pt-4"><div className="flex flex-wrap gap-x-6 gap-y-2">{portfolioHealth.insights.slice(0, 3).map((insight: string, index: number) => <p key={index} className="flex max-w-xl gap-2 text-xs leading-relaxed text-gray-500"><span className="text-blue-500">•</span>{insight}</p>)}</div><p className="mt-3 text-[11px] text-gray-400">Indikator edukatif, bukan rekomendasi investasi.</p></div>}
+      </section>
 
-      {/* Portfolio Summary Cards */}
-      <div className="grid grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-6">
-        <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 border border-gray-200 min-w-0">
-          <p className="text-sm text-gray-600 mb-1">Nilai Portofolio</p>
-          <p className="text-lg sm:text-2xl font-bold text-gray-900 break-words">{formatCurrency(portfolioMetrics.totalValue)}</p>
-          <p className="text-xs text-gray-500 mt-1">Modal: {formatCurrency(portfolioMetrics.totalCost)}</p>
+      <section className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+        <div className="rounded-xl border border-gray-200 bg-white">
+          <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4"><div><h2 className="font-semibold text-gray-900">Aktivitas Saham</h2><p className="mt-1 text-xs text-gray-500">Transaksi terbaru Anda.</p></div><button onClick={() => { setEditingTransactionId(null); setShowAddTransaction(true); }} className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50"><Plus className="h-3.5 w-3.5" /> Catat</button></div>
+          <div className="max-h-[360px] divide-y divide-gray-100 overflow-y-auto">{transactionHistory.map((tx: any) => { const uiType = getTxUIType(tx); const lots = getTxLots(tx); const shares = getTxShares(tx); const price = getTxPricePerShare(tx); return <div key={tx.id} className="flex items-center justify-between gap-4 px-5 py-3.5"><div className="min-w-0"><div className="flex items-center gap-2"><p className="font-medium text-gray-900">{tx.ticker}</p><span className={`text-[10px] font-semibold ${uiType === 'buy' ? 'text-emerald-600' : 'text-red-600'}`}>{uiType === 'buy' ? 'BELI' : 'JUAL'}</span></div><p className="mt-1 text-xs text-gray-400">{lots} lot · {new Date(tx.date).toLocaleDateString('id-ID')}</p></div><div className="text-right"><p className="text-sm font-medium tabular-nums text-gray-800">{formatCurrency(shares * price)}</p><div className="mt-1 flex justify-end gap-2"><button onClick={() => openEditTransaction(tx)} className="text-gray-400 hover:text-blue-600"><Pencil className="h-3.5 w-3.5" /></button><button onClick={() => handleDeleteTransaction(tx)} className="text-gray-400 hover:text-red-600"><Trash2 className="h-3.5 w-3.5" /></button></div></div></div>})}{transactionHistory.length === 0 && <div className="px-5 py-12 text-center"><p className="text-sm font-medium text-gray-700">Belum ada transaksi saham</p><p className="mt-1 text-xs text-gray-400">Catat transaksi beli atau jual pertama Anda.</p></div>}</div>
         </div>
-
-        <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 border border-gray-200 min-w-0">
-          <p className="text-sm text-gray-600 mb-1">Unrealized P/L</p>
-          <p className={`text-lg sm:text-2xl font-bold break-words ${portfolioMetrics.unrealizedPL >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-            {portfolioMetrics.unrealizedPL >= 0 ? '+' : ''}
-            {formatCurrency(portfolioMetrics.unrealizedPL)}
-          </p>
-          <p className={`text-xs mt-1 ${portfolioMetrics.unrealizedPL >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-            {portfolioMetrics.unrealizedPLPercent >= 0 ? '+' : ''}
-            {portfolioMetrics.unrealizedPLPercent.toFixed(2)}%
-          </p>
+        <div className="rounded-xl border border-gray-200 bg-white">
+          <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4"><div><h2 className="font-semibold text-gray-900">Investment Income</h2><p className="mt-1 text-xs text-gray-500">Total dividen <span className="font-semibold text-emerald-600">{formatCurrency(portfolioMetrics.totalDividends)}</span></p></div><button onClick={() => setShowAddDividend(true)} className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50"><DollarSign className="h-3.5 w-3.5" /> Catat Dividen</button></div>
+          <div className="max-h-[360px] divide-y divide-gray-100 overflow-y-auto">{dividendHistory.map((div: any) => { const payment = getDividendPaymentDate(div); return <div key={div.id} className="flex items-center justify-between gap-4 px-5 py-4"><div><p className="font-medium text-gray-900">{div.ticker}</p><p className="mt-1 text-xs text-gray-400">{payment ? new Date(payment).toLocaleDateString('id-ID') : 'Tanggal belum tersedia'}</p></div><p className="text-sm font-semibold tabular-nums text-emerald-600">+{formatCurrency(getDividendTotal(div))}</p></div>})}{dividendHistory.length === 0 && <div className="px-5 py-12 text-center"><p className="text-sm font-medium text-gray-700">Belum ada pendapatan dividen</p><p className="mt-1 text-xs text-gray-400">Catat dividen ketika pembayaran diterima.</p></div>}</div>
         </div>
-
-        <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 border border-gray-200 min-w-0">
-          <p className="text-sm text-gray-600 mb-1">Realized P/L</p>
-          <p className={`text-lg sm:text-2xl font-bold break-words ${portfolioMetrics.realizedPL >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-            {portfolioMetrics.realizedPL >= 0 ? '+' : ''}
-            {formatCurrency(portfolioMetrics.realizedPL)}
-          </p>
-          <p className="text-xs text-gray-500 mt-1">Dari transaksi jual</p>
-        </div>
-
-        <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 border border-gray-200 min-w-0">
-          <p className="text-sm text-gray-600 mb-1">Total Dividen</p>
-          <p className="text-lg sm:text-2xl font-bold text-green-600 break-words">{formatCurrency(portfolioMetrics.totalDividends)}</p>
-          <p className="text-xs text-gray-500 mt-1">{dividends.length} pembayaran</p>
-        </div>
-      </div>
-
-      {/* Recent Transactions & Dividends */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Transactions */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <div className="flex items-start justify-between mb-4">
-            <div>
-              <h3 className="font-semibold text-gray-900">Riwayat Transaksi Saham</h3>
-              <p className="text-sm text-gray-500">Urutan transaksi terbaru</p>
-            </div>
-            <span className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-full">{transactionHistory.length} transaksi</span>
-          </div>
-          <div className="space-y-3 overflow-y-auto" style={{ maxHeight: 420 }}>
-            {transactionHistory.map((tx: any) => {
-                const uiType = getTxUIType(tx);
-                const lots = getTxLots(tx);
-                const shares = getTxShares(tx);
-                const pricePerShare = getTxPricePerShare(tx);
-                const fee = getTxFee(tx);
-
-                return (
-                  <div key={tx.id} className="portfolio-history-row flex items-center justify-between gap-3 p-3 bg-gray-50 rounded-lg">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium text-gray-900">{tx.ticker}</span>
-                        <span
-                          className={`px-2 py-0.5 text-xs rounded-full ${
-                            uiType === 'buy' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-                          }`}
-                        >
-                          {uiType === 'buy' ? 'BELI' : 'JUAL'}
-                        </span>
-                      </div>
-                      <p className="text-sm text-gray-600 mt-1">
-                        {lots} lot @ {formatCurrency(pricePerShare)}
-                      </p>
-                      <p className="text-xs text-gray-500">Tanggal: {new Date(tx.date).toLocaleDateString('id-ID')}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-medium text-gray-900">{formatCurrency(shares * pricePerShare + fee)}</p>
-                      <p className="text-xs text-gray-500">{shares.toLocaleString('id-ID')} lembar</p>
-                      <div className="mt-2 flex items-center justify-end gap-3">
-                        <button type="button" onClick={() => openEditTransaction(tx)} className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800" title="Edit transaksi">
-                          <Pencil className="w-3 h-3" /> Edit
-                        </button>
-                        <button type="button" onClick={() => handleDeleteTransaction(tx)} className="inline-flex items-center gap-1 text-xs text-red-600 hover:text-red-800" title="Hapus transaksi">
-                          <Trash2 className="w-3 h-3" /> Hapus
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            {stockTransactions.length === 0 && <p className="text-center text-gray-500 py-4">Belum ada transaksi</p>}
-          </div>
-        </div>
-
-        {/* Dividends */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <div className="flex items-start justify-between mb-4">
-            <div>
-              <h3 className="font-semibold text-gray-900">Riwayat Dividen</h3>
-              <p className="text-sm text-gray-500">Seluruh pendapatan dividen</p>
-            </div>
-            <span className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">{dividendHistory.length} pembayaran</span>
-          </div>
-          <div className="space-y-3 overflow-y-auto" style={{ maxHeight: 420 }}>
-            {dividendHistory.map((div: any) => {
-                const total = getDividendTotal(div);
-                const payment = getDividendPaymentDate(div);
-
-                return (
-                <div key={div.id} className="portfolio-history-row flex items-center justify-between gap-3 p-3 bg-gray-50 rounded-lg">
-                    <div>
-                      <p className="font-medium text-gray-900">{div.ticker}</p>
-                      <p className="text-xs text-gray-500">
-                        Dibayar: {payment ? new Date(payment).toLocaleDateString('id-ID') : '-'}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-semibold text-green-600">{formatCurrency(total)}</p>
-                    </div>
-                  </div>
-                );
-              })}
-            {dividends.length === 0 && <p className="text-center text-gray-500 py-4">Belum ada dividen</p>}
-          </div>
-        </div>
-      </div>
+      </section>
 
       {/* Generic asset modal */}
       {showAssetModal && (
