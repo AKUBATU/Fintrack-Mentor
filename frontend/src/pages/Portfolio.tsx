@@ -492,7 +492,7 @@ export default function Portfolio() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="portfolio-page-header flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="portfolio-page-header flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Portofolio Investasi</h1>
           <p className="text-gray-600">Kelola seluruh instrumen investasi dan pantau kesehatan portofolio</p>
@@ -523,14 +523,14 @@ export default function Portfolio() {
             className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
           >
             <Plus className="w-4 h-4" />
-            Catat Aset
+            Catat Saham
           </button>
         </div>
       </div>
 
       {/* Portfolio health */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+        <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 border border-gray-200">
           <div className="flex items-start justify-between gap-4">
             <div>
               <p className="text-sm text-gray-500">Kesehatan Portofolio</p>
@@ -552,7 +552,7 @@ export default function Portfolio() {
             <div className="p-3 bg-gray-50 rounded-lg"><p className="text-gray-500">Keseimbangan risiko</p><p className="font-semibold">{portfolioHealth?.risk_score ?? 0}/100</p></div>
           </div>
         </div>
-        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+        <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 border border-gray-200">
           <h3 className="font-semibold text-gray-900 mb-3">Analisis Singkat</h3>
           <div className="space-y-3">
             {(portfolioHealth?.insights || ['Tambahkan aset untuk memulai analisis.']).map((insight: string, index: number) => (
@@ -564,12 +564,24 @@ export default function Portfolio() {
       </div>
 
       {/* Unified portfolio */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <div className="flex items-center justify-between gap-4 mb-4">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
+        <div className="flex items-start sm:items-center justify-between gap-4 mb-4">
           <div><h3 className="font-semibold text-gray-900">Portofolio Saya</h3><p className="text-sm text-gray-500">Seluruh saham dan instrumen investasi Anda dalam satu tempat.</p></div>
           <span className="px-2 py-1 bg-blue-50 text-blue-700 text-xs rounded-full">{holdings.length + investmentAssets.length} aset</span>
         </div>
-        <div className="overflow-x-auto">
+        <div className="space-y-3 md:hidden">
+          {holdings.map((holding: any) => <div key={`mobile-stock-${holding.ticker}`} className="rounded-xl border border-gray-200 p-4">
+            <div className="flex items-start justify-between gap-3"><div><p className="font-semibold text-gray-900">{holding.ticker}</p><p className="text-xs text-gray-500 mt-0.5">{holding.totalLots} lot · {holding.totalShares} lembar</p></div><span className="px-2 py-1 bg-blue-50 text-blue-700 text-xs rounded-full">Saham</span></div>
+            <div className="grid grid-cols-2 gap-3 mt-4"><div><p className="text-xs text-gray-500">Modal</p><p className="text-sm font-medium mt-1">{formatCurrency(num(holding.costBasis) || 0)}</p></div><div className="text-right"><p className="text-xs text-gray-500">Nilai kini</p><p className="text-sm font-semibold mt-1">{formatCurrency(num(holding.marketValue) || 0)}</p></div></div>
+            <div className="flex items-end justify-between gap-3 mt-4 pt-3 border-t border-gray-100"><div><p className="text-xs text-gray-500">P/L</p><p className={`text-sm font-semibold mt-1 ${num(holding.unrealizedPL) >= 0 ? 'text-green-600' : 'text-red-600'}`}>{num(holding.unrealizedPL) >= 0 ? '+' : ''}{formatCurrency(num(holding.unrealizedPL) || 0)} <span className="text-xs">({(num(holding.unrealizedPLPercent) || 0).toFixed(2)}%)</span></p></div><button onClick={() => { setSelectedTicker(holding.ticker); setPriceForm({ ticker: holding.ticker, price: String(holding.currentPrice || '') }); setShowUpdatePrice(true); }} className="p-2.5 text-blue-600 bg-blue-50 rounded-lg" aria-label={`Update harga ${holding.ticker}`}><Pencil className="w-4 h-4" /></button></div>
+          </div>)}
+          {investmentAssets.map((asset) => <div key={`mobile-asset-${asset.id}`} className="rounded-xl border border-gray-200 p-4">
+            <div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="font-semibold text-gray-900 truncate">{asset.name}</p><p className="text-xs text-gray-500 mt-0.5">{asset.symbol || 'Tanpa simbol'} · {assetQuantitySummary(asset)}</p></div><span className="shrink-0 px-2 py-1 bg-violet-50 text-violet-700 text-xs rounded-full">{assetTypeLabel(asset.asset_type)}</span></div>
+            <div className="grid grid-cols-2 gap-3 mt-4"><div><p className="text-xs text-gray-500">Modal</p><p className="text-sm font-medium mt-1">{asset.currency === 'IDR' ? formatCurrency(asset.cost_basis) : formatAssetCurrency(asset.quantity * asset.average_price, asset.currency)}</p>{asset.currency !== 'IDR' && <p className="text-xs text-gray-500">≈ {formatCurrency(asset.cost_basis)}</p>}</div><div className="text-right"><p className="text-xs text-gray-500">Nilai kini</p><p className="text-sm font-semibold mt-1">{asset.currency === 'IDR' ? formatCurrency(asset.market_value) : formatAssetCurrency(asset.quantity * asset.current_price, asset.currency)}</p>{asset.currency !== 'IDR' && <p className="text-xs text-gray-500">≈ {formatCurrency(asset.market_value)}</p>}</div></div>
+            <div className="flex items-end justify-between gap-3 mt-4 pt-3 border-t border-gray-100"><div><p className="text-xs text-gray-500">P/L</p><p className={`text-sm font-semibold mt-1 ${asset.unrealized_pl >= 0 ? 'text-green-600' : 'text-red-600'}`}>{asset.unrealized_pl >= 0 ? '+' : ''}{formatCurrency(asset.unrealized_pl)}</p></div><div className="flex gap-1"><button onClick={() => openEditAsset(asset)} className="p-2.5 text-blue-600 bg-blue-50 rounded-lg" aria-label={`Edit ${asset.name}`}><Pencil className="w-4 h-4" /></button><button onClick={() => deleteAsset(asset)} className="p-2.5 text-red-600 bg-red-50 rounded-lg" aria-label={`Hapus ${asset.name}`}><Trash2 className="w-4 h-4" /></button></div></div>
+          </div>)}
+        </div>
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full">
             <thead><tr className="border-b border-gray-200">
               <th className="text-left py-3 px-3 text-sm font-medium text-gray-700">Aset</th>
@@ -598,21 +610,21 @@ export default function Portfolio() {
               </tr>)}
             </tbody>
           </table>
-          {!assetLoading && holdings.length + investmentAssets.length === 0 && <div className="text-center py-8"><p className="font-medium text-gray-700">Portofolio masih kosong</p><p className="text-sm text-gray-500 mt-1">Catat saham atau tambahkan instrumen investasi pertama Anda.</p></div>}
         </div>
+        {!assetLoading && holdings.length + investmentAssets.length === 0 && <div className="text-center py-8"><p className="font-medium text-gray-700">Portofolio masih kosong</p><p className="text-sm text-gray-500 mt-1">Catat saham atau tambahkan instrumen investasi pertama Anda.</p></div>}
       </div>
 
       {/* Portfolio Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+      <div className="grid grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-6">
+        <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 border border-gray-200 min-w-0">
           <p className="text-sm text-gray-600 mb-1">Nilai Portofolio</p>
-          <p className="text-2xl font-bold text-gray-900">{formatCurrency(portfolioMetrics.totalValue)}</p>
+          <p className="text-lg sm:text-2xl font-bold text-gray-900 break-words">{formatCurrency(portfolioMetrics.totalValue)}</p>
           <p className="text-xs text-gray-500 mt-1">Modal: {formatCurrency(portfolioMetrics.totalCost)}</p>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+        <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 border border-gray-200 min-w-0">
           <p className="text-sm text-gray-600 mb-1">Unrealized P/L</p>
-          <p className={`text-2xl font-bold ${portfolioMetrics.unrealizedPL >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+          <p className={`text-lg sm:text-2xl font-bold break-words ${portfolioMetrics.unrealizedPL >= 0 ? 'text-green-600' : 'text-red-600'}`}>
             {portfolioMetrics.unrealizedPL >= 0 ? '+' : ''}
             {formatCurrency(portfolioMetrics.unrealizedPL)}
           </p>
@@ -622,18 +634,18 @@ export default function Portfolio() {
           </p>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+        <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 border border-gray-200 min-w-0">
           <p className="text-sm text-gray-600 mb-1">Realized P/L</p>
-          <p className={`text-2xl font-bold ${portfolioMetrics.realizedPL >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+          <p className={`text-lg sm:text-2xl font-bold break-words ${portfolioMetrics.realizedPL >= 0 ? 'text-green-600' : 'text-red-600'}`}>
             {portfolioMetrics.realizedPL >= 0 ? '+' : ''}
             {formatCurrency(portfolioMetrics.realizedPL)}
           </p>
           <p className="text-xs text-gray-500 mt-1">Dari transaksi jual</p>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+        <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 border border-gray-200 min-w-0">
           <p className="text-sm text-gray-600 mb-1">Total Dividen</p>
-          <p className="text-2xl font-bold text-green-600">{formatCurrency(portfolioMetrics.totalDividends)}</p>
+          <p className="text-lg sm:text-2xl font-bold text-green-600 break-words">{formatCurrency(portfolioMetrics.totalDividends)}</p>
           <p className="text-xs text-gray-500 mt-1">{dividends.length} pembayaran</p>
         </div>
       </div>
