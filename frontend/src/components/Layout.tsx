@@ -42,7 +42,7 @@ export default function Layout() {
 
       {/* Sidebar */}
       <aside className={`
-        app-sidebar fixed top-0 left-0 h-full w-64 bg-white border-r border-gray-200 z-50
+        app-sidebar fixed top-0 left-0 h-full w-64 max-w-[calc(100vw-3rem)] bg-white border-r border-gray-200 z-50
         transform transition-transform duration-300 ease-in-out
         ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
         lg:translate-x-0
@@ -116,7 +116,7 @@ export default function Layout() {
       <div className="app-content lg:pl-64">
         {/* Top bar */}
         <header className="app-topbar bg-white border-b border-gray-200 sticky top-0 z-30">
-          <div className="flex items-center justify-between px-6 py-4">
+          <div className="app-topbar-inner flex items-center justify-between px-6 py-4">
             <button
               onClick={() => setSidebarOpen(true)}
               className="lg:hidden"

@@ -1956,7 +1956,10 @@ body {
   background: #f4f7fb;
   color: #172033;
   -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
 }
+
+#root { min-width: 0; min-height: 100vh; }
 
 button, input, select, textarea { font: inherit; }
 button { cursor: pointer; }
@@ -2066,6 +2069,7 @@ button:disabled { cursor: not-allowed; }
 
 .app-main {
   width: 100%;
+  min-width: 0;
   max-width: 1500px;
   margin: 0 auto;
   animation: fintrack-page-enter .28s ease-out;
@@ -2119,9 +2123,35 @@ button:disabled { cursor: not-allowed; }
 
 @media (max-width: 767px) {
   .app-topbar { min-height: 66px; }
+  .app-topbar-inner { padding: .875rem 1rem; }
   .app-topbar-meta, .app-topbar-subtitle { display: none; }
   .app-main { padding: 1rem; }
   .app-main h1 { font-size: 1.45rem; }
+  .app-main > * { min-width: 0; }
+  .app-main .overflow-x-auto {
+    width: 100%;
+    max-width: calc(100vw - 2rem);
+    -webkit-overflow-scrolling: touch;
+  }
+  .app-main table { min-width: 640px; }
+  .app-main .bg-white.rounded-xl.p-6,
+  .app-main .bg-white.rounded-xl > .p-6 { padding: 1rem; }
+  .app-main > div.fixed { padding: .75rem; }
+  .app-main > div.fixed > div.bg-white {
+    padding: 1rem;
+    max-height: calc(100dvh - 1.5rem) !important;
+    border-radius: .875rem;
+  }
+  .portfolio-header-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); width: 100%; }
+  .portfolio-header-actions > button { min-width: 0; justify-content: center; padding-inline: .75rem; }
+  .portfolio-history-row { align-items: flex-start; }
+  .portfolio-history-row > * { min-width: 0; }
+  .portfolio-history-row > :last-child { flex-shrink: 0; }
+  .chat-page { height: calc(100dvh - 7.25rem); min-height: 32rem; }
+  .chat-messages { padding: 1rem; }
+  .chat-input-area { padding: .75rem; }
+  .chat-input-area input { min-width: 0; padding-inline: .75rem; }
+  .chat-input-area button { padding-inline: 1rem; flex-shrink: 0; }
 }
 
 .auth-shell {
@@ -2203,4 +2233,13 @@ button:disabled { cursor: not-allowed; }
 
 @media (max-width: 640px) {
   .about-hero { align-items: flex-start; flex-direction: column; padding: 1.5rem; }
+  .auth-shell { align-items: flex-start; padding: 1rem; overflow-y: auto; }
+  .auth-card { padding: 1.25rem; margin-block: auto; }
+  .auth-card .text-center.mb-8 { margin-bottom: 1.5rem; }
+  .auth-card form.space-y-6 { gap: 1rem; }
+  .finance-balance-card { padding: 1.125rem; }
+  .finance-balance-value { font-size: clamp(1.35rem, 7vw, 1.75rem); overflow-wrap: anywhere; }
+  .finance-balance-footer { align-items: flex-start; flex-direction: column; }
+  .finance-history-tools > * { width: 100%; }
+  .finance-history-tools select { width: 100%; }
 }

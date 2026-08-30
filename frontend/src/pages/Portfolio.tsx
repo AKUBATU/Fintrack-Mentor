@@ -420,12 +420,12 @@ export default function Portfolio() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="portfolio-page-header flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Portofolio Investasi</h1>
           <p className="text-gray-600">Kelola seluruh instrumen investasi dan pantau kesehatan portofolio</p>
         </div>
-        <div className="flex gap-2">
+        <div className="portfolio-header-actions flex flex-wrap gap-2">
           <button onClick={openAddAsset} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
             <Layers3 className="w-4 h-4" /> Tambah Instrumen
           </button>
@@ -629,7 +629,7 @@ export default function Portfolio() {
                 const fee = getTxFee(tx);
 
                 return (
-                  <div key={tx.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div key={tx.id} className="portfolio-history-row flex items-center justify-between gap-3 p-3 bg-gray-50 rounded-lg">
                     <div>
                       <div className="flex items-center gap-2">
                         <span className="font-medium text-gray-900">{tx.ticker}</span>
@@ -680,7 +680,7 @@ export default function Portfolio() {
                 const payment = getDividendPaymentDate(div);
 
                 return (
-                <div key={div.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <div key={div.id} className="portfolio-history-row flex items-center justify-between gap-3 p-3 bg-gray-50 rounded-lg">
                     <div>
                       <p className="font-medium text-gray-900">{div.ticker}</p>
                       <p className="text-xs text-gray-500">
@@ -709,8 +709,8 @@ export default function Portfolio() {
               <div><label className="block text-sm font-medium text-gray-700 mb-1">Jenis Instrumen</label><select value={assetForm.asset_type} onChange={(e) => setAssetForm({ ...assetForm, asset_type: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg">{ASSET_TYPES.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></div>
               <div><label className="block text-sm font-medium text-gray-700 mb-1">Nama Aset</label><input value={assetForm.name} onChange={(e) => setAssetForm({ ...assetForm, name: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="Contoh: Bitcoin, Emas Antam, Rumah Jakarta" /></div>
               <div><label className="block text-sm font-medium text-gray-700 mb-1">Simbol / Kode <span className="text-gray-400">(opsional)</span></label><input value={assetForm.symbol} onChange={(e) => setAssetForm({ ...assetForm, symbol: e.target.value.toUpperCase() })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="BTC, XAU, FR0096" /></div>
-              <div className="grid grid-cols-2 gap-3"><div><label className="block text-sm font-medium text-gray-700 mb-1">Jumlah Unit</label><input type="number" step="any" value={assetForm.quantity} onChange={(e) => setAssetForm({ ...assetForm, quantity: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div><div><label className="block text-sm font-medium text-gray-700 mb-1">Mata Uang</label><input value={assetForm.currency} onChange={(e) => setAssetForm({ ...assetForm, currency: e.target.value.toUpperCase() })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="IDR" /></div></div>
-              <div className="grid grid-cols-2 gap-3"><div><label className="block text-sm font-medium text-gray-700 mb-1">Harga Beli / Unit</label><input type="number" step="any" value={assetForm.average_price} onChange={(e) => setAssetForm({ ...assetForm, average_price: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div><div><label className="block text-sm font-medium text-gray-700 mb-1">Harga Kini / Unit</label><input type="number" step="any" value={assetForm.current_price} onChange={(e) => setAssetForm({ ...assetForm, current_price: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div></div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3"><div><label className="block text-sm font-medium text-gray-700 mb-1">Jumlah Unit</label><input type="number" step="any" value={assetForm.quantity} onChange={(e) => setAssetForm({ ...assetForm, quantity: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div><div><label className="block text-sm font-medium text-gray-700 mb-1">Mata Uang</label><input value={assetForm.currency} onChange={(e) => setAssetForm({ ...assetForm, currency: e.target.value.toUpperCase() })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="IDR" /></div></div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3"><div><label className="block text-sm font-medium text-gray-700 mb-1">Harga Beli / Unit</label><input type="number" step="any" value={assetForm.average_price} onChange={(e) => setAssetForm({ ...assetForm, average_price: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div><div><label className="block text-sm font-medium text-gray-700 mb-1">Harga Kini / Unit</label><input type="number" step="any" value={assetForm.current_price} onChange={(e) => setAssetForm({ ...assetForm, current_price: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div></div>
               <div><label className="block text-sm font-medium text-gray-700 mb-1">Kurs ke IDR</label><input type="number" step="any" value={assetForm.exchange_rate_to_idr} onChange={(e) => setAssetForm({ ...assetForm, exchange_rate_to_idr: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" /><p className="text-xs text-gray-500 mt-1">Gunakan 1 untuk aset berdenominasi Rupiah.</p></div>
               <div><label className="block text-sm font-medium text-gray-700 mb-1">Tanggal Perolehan</label><input type="date" value={assetForm.acquired_date} onChange={(e) => setAssetForm({ ...assetForm, acquired_date: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div>
               <div><label className="block text-sm font-medium text-gray-700 mb-1">Catatan</label><textarea value={assetForm.notes} onChange={(e) => setAssetForm({ ...assetForm, notes: e.target.value })} rows={2} className="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div>

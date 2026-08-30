@@ -371,7 +371,7 @@ Contoh pertanyaan:
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-12rem)]">
+    <div className="chat-page flex flex-col h-[calc(100vh-12rem)]">
       {/* Header Info */}
       <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-4">
         <div className="flex items-start gap-3">
@@ -391,7 +391,7 @@ Contoh pertanyaan:
 
       {/* Messages Area */}
       <div className="flex-1 bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden flex flex-col">
-        <div className="flex-1 overflow-y-auto p-6 space-y-4">
+        <div className="chat-messages flex-1 overflow-y-auto p-6 space-y-4">
           {messages.map((message) => (
             <div
               key={message.id}
@@ -437,7 +437,7 @@ Contoh pertanyaan:
         </div>
 
         {/* Input Area */}
-        <div className="border-t border-gray-200 p-4">
+        <div className="chat-input-area border-t border-gray-200 p-4">
           <div className="flex gap-2">
             <input
               type="text"
