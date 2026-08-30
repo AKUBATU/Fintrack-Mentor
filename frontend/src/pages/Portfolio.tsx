@@ -83,6 +83,7 @@ export default function Portfolio() {
   const [showAssetModal, setShowAssetModal] = useState(false);
   const [editingAssetId, setEditingAssetId] = useState<number | null>(null);
   const [savingAsset, setSavingAsset] = useState(false);
+  const [loadingExchangeRate, setLoadingExchangeRate] = useState(false);
   const emptyAssetForm = {
     name: '', symbol: '', asset_type: 'mutual_fund', quantity: '1', average_price: '',
     current_price: '', currency: 'IDR', exchange_rate_to_idr: '1', acquired_date: '', notes: '',
@@ -356,6 +357,29 @@ export default function Portfolio() {
       acquired_date: asset.acquired_date || '', notes: asset.notes || '',
     });
     setShowAssetModal(true);
+  };
+
+  const changeAssetCurrency = async (currency: string) => {
+    const averagePrice = parseAssetAmount(assetForm.average_price, assetForm.currency);
+    const currentPrice = parseAssetAmount(assetForm.current_price, assetForm.currency);
+    setAssetForm((current) => ({
+      ...current, currency,
+      average_price: averagePrice ? formatAssetAmount(String(averagePrice), currency) : '',
+      current_price: currentPrice ? formatAssetAmount(String(currentPrice), currency) : '',
+      exchange_rate_to_idr: currency === 'IDR' ? '1' : '',
+    }));
+    if (currency === 'IDR') return;
+    try {
+      setLoadingExchangeRate(true);
+      const result = await api.investmentExchangeRate(currency);
+      setAssetForm((current) => current.currency === currency
+        ? { ...current, exchange_rate_to_idr: String(result.rate) }
+        : current);
+    } catch (error: any) {
+      toast.error(error?.message || 'Kurs otomatis gagal dimuat');
+    } finally {
+      setLoadingExchangeRate(false);
+    }
   };
 
   const saveAsset = async () => {
@@ -764,7 +788,7 @@ export default function Portfolio() {
               <div><label className="block text-sm font-medium text-gray-700 mb-1">Simbol / Kode <span className="text-gray-400">(opsional)</span></label><input value={assetForm.symbol} onChange={(e) => setAssetForm({ ...assetForm, symbol: e.target.value.toUpperCase() })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="BTC, XAU, FR0096" /></div>
               <div className={`grid grid-cols-1 ${usesDirectValue ? '' : 'sm:grid-cols-2'} gap-3`}>
                 {!usesDirectValue && <div><label className="block text-sm font-medium text-gray-700 mb-1">{assetFields.quantity}</label><input type="number" inputMode="decimal" step="any" min="0" value={assetForm.quantity} onChange={(e) => setAssetForm({ ...assetForm, quantity: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="Contoh: 1" /><p className="text-xs text-gray-500 mt-1">{assetFields.hint}</p></div>}
-                <div><label className="block text-sm font-medium text-gray-700 mb-1">Mata Uang</label><select value={assetForm.currency} onChange={(e) => { const currency = e.target.value; const averagePrice = parseAssetAmount(assetForm.average_price, assetForm.currency); const currentPrice = parseAssetAmount(assetForm.current_price, assetForm.currency); setAssetForm({ ...assetForm, currency, average_price: averagePrice ? formatAssetAmount(String(averagePrice), currency) : '', current_price: currentPrice ? formatAssetAmount(String(currentPrice), currency) : '' }); }} className="w-full px-3 py-2 border border-gray-300 rounded-lg">{CURRENCY_CODES.map((code) => <option key={code} value={code}>{code}</option>)}</select><p className="text-xs text-gray-500 mt-1">{usesDirectValue ? assetFields.hint : 'Mata uang untuk nilai per unit.'}</p></div>
+                <div><label className="block text-sm font-medium text-gray-700 mb-1">Mata Uang</label><select value={assetForm.currency} onChange={(e) => void changeAssetCurrency(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg">{CURRENCY_CODES.map((code) => <option key={code} value={code}>{code}</option>)}</select><p className="text-xs text-gray-500 mt-1">{usesDirectValue ? assetFields.hint : 'Mata uang untuk nilai per unit.'}</p></div>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
@@ -782,7 +806,7 @@ export default function Portfolio() {
                   </div>
                 </div>
               </div>
-              <div><label className="block text-sm font-medium text-gray-700 mb-1">Kurs ke IDR</label><input type="number" step="any" value={assetForm.exchange_rate_to_idr} onChange={(e) => setAssetForm({ ...assetForm, exchange_rate_to_idr: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" /><p className="text-xs text-gray-500 mt-1">Gunakan 1 untuk aset berdenominasi Rupiah.</p></div>
+              <div><label className="block text-sm font-medium text-gray-700 mb-1">Kurs 1 {assetForm.currency} ke IDR</label><input type="number" step="any" value={assetForm.exchange_rate_to_idr} onChange={(e) => setAssetForm({ ...assetForm, exchange_rate_to_idr: e.target.value })} disabled={loadingExchangeRate} className="w-full px-3 py-2 border border-gray-300 rounded-lg disabled:bg-gray-100" placeholder={loadingExchangeRate ? 'Mengambil kurs terbaru…' : 'Masukkan kurs'} /><p className="text-xs text-gray-500 mt-1">{assetForm.currency === 'IDR' ? 'Kurs Rupiah otomatis bernilai 1.' : loadingExchangeRate ? 'Mengambil kurs terbaru ke Rupiah…' : `Otomatis: 1 ${assetForm.currency} = ${formatCurrency(Number(assetForm.exchange_rate_to_idr) || 0)}`}</p></div>
               <div><label className="block text-sm font-medium text-gray-700 mb-1">Tanggal Perolehan</label><input type="date" value={assetForm.acquired_date} onChange={(e) => setAssetForm({ ...assetForm, acquired_date: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div>
               <div><label className="block text-sm font-medium text-gray-700 mb-1">Catatan</label><textarea value={assetForm.notes} onChange={(e) => setAssetForm({ ...assetForm, notes: e.target.value })} rows={2} className="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div>
             </div>

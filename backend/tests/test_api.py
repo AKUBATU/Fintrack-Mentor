@@ -1,5 +1,5 @@
 import unittest
-from unittest.mock import patch
+from unittest.mock import mock_open, patch
 from urllib.parse import parse_qs, urlparse
 
 from fastapi.testclient import TestClient
@@ -242,6 +242,15 @@ class ApiIntegrationTest(unittest.TestCase):
         }, headers=second)
         self.assertEqual(rdpu.status_code, 200, rdpu.text)
         self.assertEqual(rdpu.json()["market_value"], 1600000)
+
+        with patch("app.api.investment_assets.urlopen", mock_open(read_data='{"date":"2026-08-30","rate":17696}')):
+            rate = self.client.get("/api/investment-assets/exchange-rate?currency=USD", headers=first)
+        self.assertEqual(rate.status_code, 200, rate.text)
+        self.assertEqual(rate.json()["rate"], 17696)
+        self.assertEqual(
+            self.client.get("/api/investment-assets/exchange-rate?currency=IDR", headers=first).json()["rate"],
+            1,
+        )
 
         health = self.client.get("/api/investment-assets/health/summary", headers=first)
         self.assertEqual(health.status_code, 200, health.text)
