@@ -186,6 +186,10 @@ export default function Portfolio() {
     }).format(Number.isFinite(value) ? value : 0);
   };
 
+  const formatAssetCurrency = (value: number, currency: string) => new Intl.NumberFormat('id-ID', {
+    style: 'currency', currency: currency || 'IDR', minimumFractionDigits: 0, maximumFractionDigits: 2,
+  }).format(Number.isFinite(value) ? value : 0);
+
   // ======================
   // Portfolio metrics (tetap layout sama)
   // ======================
@@ -587,9 +591,9 @@ export default function Portfolio() {
             <tbody>{investmentAssets.map((asset) => <tr key={asset.id} className="border-b border-gray-100 hover:bg-gray-50">
               <td className="py-3 px-3"><p className="font-medium text-gray-900">{asset.name}</p><p className="text-xs text-gray-500">{asset.symbol || 'Tanpa simbol'} · {assetQuantitySummary(asset)}</p></td>
               <td className="py-3 px-3 text-sm text-gray-700">{assetTypeLabel(asset.asset_type)}</td>
-              <td className="py-3 px-3 text-right text-sm">{formatCurrency(asset.cost_basis)}</td>
-              <td className="py-3 px-3 text-right font-medium">{formatCurrency(asset.market_value)}</td>
-              <td className={`py-3 px-3 text-right text-sm font-medium ${asset.unrealized_pl >= 0 ? 'text-green-600' : 'text-red-600'}`}>{asset.unrealized_pl >= 0 ? '+' : ''}{formatCurrency(asset.unrealized_pl)}</td>
+              <td className="py-3 px-3 text-right text-sm"><p>{asset.currency === 'IDR' ? formatCurrency(asset.cost_basis) : formatAssetCurrency(asset.quantity * asset.average_price, asset.currency)}</p>{asset.currency !== 'IDR' && <p className="text-xs text-gray-500 mt-0.5">≈ {formatCurrency(asset.cost_basis)}</p>}</td>
+              <td className="py-3 px-3 text-right font-medium"><p>{asset.currency === 'IDR' ? formatCurrency(asset.market_value) : formatAssetCurrency(asset.quantity * asset.current_price, asset.currency)}</p>{asset.currency !== 'IDR' && <p className="text-xs font-normal text-gray-500 mt-0.5">≈ {formatCurrency(asset.market_value)}</p>}</td>
+              <td className={`py-3 px-3 text-right text-sm font-medium ${asset.unrealized_pl >= 0 ? 'text-green-600' : 'text-red-600'}`}><p>{asset.unrealized_pl >= 0 ? '+' : ''}{asset.currency === 'IDR' ? formatCurrency(asset.unrealized_pl) : formatAssetCurrency(asset.quantity * (asset.current_price - asset.average_price), asset.currency)}</p>{asset.currency !== 'IDR' && <p className="text-xs font-normal text-gray-500 mt-0.5">≈ {formatCurrency(asset.unrealized_pl)}</p>}</td>
               <td className="py-3 px-3"><div className="flex justify-end gap-2"><button onClick={() => openEditAsset(asset)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"><Pencil className="w-4 h-4" /></button><button onClick={() => deleteAsset(asset)} className="p-2 text-red-600 hover:bg-red-50 rounded-lg"><Trash2 className="w-4 h-4" /></button></div></td>
             </tr>)}</tbody>
           </table>
