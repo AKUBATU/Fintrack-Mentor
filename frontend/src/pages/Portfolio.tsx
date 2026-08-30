@@ -551,7 +551,7 @@ export default function Portfolio() {
       </div>
 
       {/* Portfolio health */}
-      <div className="order-4 grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="order-4">
         <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 border border-gray-200">
           <div className="flex items-start justify-between gap-4">
             <div>
@@ -567,21 +567,12 @@ export default function Portfolio() {
             <div className="h-2 rounded-full" style={{ width: `${portfolioHealth?.score || 0}%`, backgroundColor: (portfolioHealth?.score || 0) >= 75 ? '#22c55e' : (portfolioHealth?.score || 0) >= 55 ? '#3b82f6' : (portfolioHealth?.score || 0) >= 35 ? '#eab308' : '#ef4444' }} />
           </div>
           <p className="font-semibold text-gray-900 mt-3">{portfolioHealth?.status || (assetLoading ? 'Menghitung…' : 'Belum dapat dinilai')}</p>
-          <div className="grid grid-cols-2 gap-3 mt-4 text-sm">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4 text-sm">
             <div className="p-3 bg-gray-50 rounded-lg"><p className="text-gray-500">Diversifikasi</p><p className="font-semibold">{portfolioHealth?.diversification_score ?? 0}/100</p></div>
             <div className="p-3 bg-gray-50 rounded-lg"><p className="text-gray-500">Konsentrasi</p><p className="font-semibold">{portfolioHealth?.concentration_score ?? 0}/100</p></div>
             <div className="p-3 bg-gray-50 rounded-lg"><p className="text-gray-500">Likuiditas</p><p className="font-semibold">{portfolioHealth?.liquidity_score ?? 0}/100</p></div>
             <div className="p-3 bg-gray-50 rounded-lg"><p className="text-gray-500">Keseimbangan risiko</p><p className="font-semibold">{portfolioHealth?.risk_score ?? 0}/100</p></div>
           </div>
-        </div>
-        <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 border border-gray-200">
-          <h3 className="font-semibold text-gray-900 mb-3">Analisis Singkat</h3>
-          <div className="space-y-3">
-            {(portfolioHealth?.insights || ['Tambahkan aset untuk memulai analisis.']).map((insight: string, index: number) => (
-              <div key={index} className="flex gap-3 p-3 bg-gray-50 rounded-lg"><span className="text-blue-600">•</span><p className="text-sm text-gray-700">{insight}</p></div>
-            ))}
-          </div>
-          <p className="text-xs text-gray-400 mt-4">Indikator edukatif berdasarkan komposisi aset, bukan rekomendasi investasi.</p>
         </div>
       </div>
 
