@@ -3,8 +3,6 @@ import { useData } from '../contexts/DataContext'
 import { api } from '../services/api'
 import { TrendingUp, TrendingDown, Wallet, PieChart, DollarSign, AlertCircle } from 'lucide-react'
 import {
-  LineChart,
-  Line,
   BarChart,
   Bar,
   PieChart as RechartsPie,
@@ -14,12 +12,11 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  Legend,
   ResponsiveContainer,
 } from 'recharts'
 
 export default function Dashboard() {
-  const { accountDataLoading, expenses, holdings, dailyReports, budgets } = useData()
+  const { accountDataLoading, expenses, holdings, budgets } = useData()
   const [investmentAssets, setInvestmentAssets] = useState<any[]>([])
   const [investmentAssetsLoading, setInvestmentAssetsLoading] = useState(true)
 
@@ -95,17 +92,6 @@ export default function Dashboard() {
       value,
     }))
   }, [expenses])
-
-  // Portfolio equity curve
-  const equityCurve = useMemo(() => {
-    return (dailyReports ?? [])
-      .slice(0, 30)
-      .reverse()
-      .map((report) => ({
-        date: new Date(report.date).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' }),
-        value: report.portfolioValue,
-      }))
-  }, [dailyReports])
 
   // Expense trend (last 7 days)
   const expenseTrend = useMemo(() => {
@@ -286,25 +272,6 @@ export default function Dashboard() {
             <div className="flex items-center justify-center h-[250px] text-gray-500">Belum ada data pengeluaran</div>
           )}
         </div>
-      </div>
-
-      {/* Portfolio Equity Curve */}
-      <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-        <h3 className="font-semibold text-gray-900 mb-4">Equity Curve Portofolio</h3>
-        {equityCurve.length > 0 ? (
-          <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={equityCurve}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="date" />
-              <YAxis />
-              <Tooltip formatter={(value) => formatCurrency(Number(value))} />
-              <Legend />
-              <Line type="monotone" dataKey="value" stroke="#3B82F6" strokeWidth={2} name="Nilai Portofolio" />
-            </LineChart>
-          </ResponsiveContainer>
-        ) : (
-          <div className="flex items-center justify-center h-[300px] text-gray-500">Belum ada data daily report</div>
-        )}
       </div>
 
       {/* Holdings Summary */}
