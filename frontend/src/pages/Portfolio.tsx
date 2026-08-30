@@ -592,7 +592,39 @@ export default function Portfolio() {
           </div>
           <div className="portfolio-mobile-list divide-y divide-gray-100 xl:hidden">
             {holdings.map((holding: any) => <div key={`mobile-stock-${holding.ticker}`} className="p-5 transition-colors hover:bg-gray-50/60"><div className="flex items-start justify-between gap-3"><div><p className="font-medium text-gray-900">{holding.ticker}</p><p className="mt-1 text-xs text-gray-400">{holding.totalLots} lot · {Number(holding.totalShares).toLocaleString('id-ID')} lembar</p></div><span className="rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700">Saham</span></div><div className="mt-4 grid grid-cols-2 gap-4"><div className="min-w-0"><p className="text-xs text-gray-400">Modal</p><p className="mt-1 break-words text-sm font-medium tabular-nums text-gray-700">{formatCurrency(num(holding.costBasis) || 0)}</p></div><div className="min-w-0 text-right"><p className="text-xs text-gray-400">Nilai Kini</p><p className="mt-1 break-words text-sm font-semibold tabular-nums text-gray-900">{formatCurrency(num(holding.marketValue) || 0)}</p></div></div><div className="mt-4 flex items-end justify-between gap-3 border-t border-gray-100 pt-3"><div className="min-w-0"><p className="text-xs text-gray-400">P/L</p><p className={`mt-1 break-words text-sm font-semibold tabular-nums ${num(holding.unrealizedPL) > 0 ? 'text-emerald-600' : num(holding.unrealizedPL) < 0 ? 'text-red-600' : 'text-gray-700'}`}>{num(holding.unrealizedPL) > 0 ? '+' : ''}{formatCurrency(num(holding.unrealizedPL) || 0)} <span className="text-xs">({(num(holding.unrealizedPLPercent) || 0).toFixed(2)}%)</span></p></div><button type="button" onClick={() => { setSelectedTicker(holding.ticker); setPriceForm({ ticker: holding.ticker, price: String(holding.currentPrice || '') }); setShowUpdatePrice(true); }} className="shrink-0 rounded-md border border-gray-200 p-2 text-gray-500 transition hover:border-gray-300 hover:bg-white hover:text-blue-600" aria-label={`Update harga ${holding.ticker}`} title="Update harga"><Pencil className="h-4 w-4" /></button></div></div>)}
-            {investmentAssets.map((asset) => <div key={`mobile-asset-${asset.id}`} className="p-5"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="truncate font-medium text-gray-900">{asset.name}</p>{asset.symbol && <p className="mt-1 text-xs text-gray-400">{asset.symbol} · {assetQuantitySummary(asset)}</p>}{!asset.symbol && <p className="mt-1 text-xs text-gray-400">{assetQuantitySummary(asset)}</p>}</div><span className="shrink-0 rounded-md bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600">{compactAssetTypeLabel(asset.asset_type)}</span></div><div className="mt-4 grid grid-cols-2 gap-4"><div><p className="text-xs text-gray-400">Modal</p><p className="mt-1 text-sm font-medium tabular-nums text-gray-700">{formatCurrency(asset.cost_basis)}</p>{asset.currency !== 'IDR' && <p className="mt-0.5 text-xs text-gray-400">{formatAssetCurrency(asset.quantity * asset.average_price, asset.currency)}</p>}</div><div className="text-right"><p className="text-xs text-gray-400">Nilai Kini</p><p className="mt-1 text-sm font-semibold tabular-nums text-gray-900">{formatCurrency(asset.market_value)}</p>{asset.currency !== 'IDR' && <p className="mt-0.5 text-xs text-gray-400">{formatAssetCurrency(asset.quantity * asset.current_price, asset.currency)}</p>}</div></div><div className="mt-4 flex items-end justify-between border-t border-gray-100 pt-3"><div><p className="text-xs text-gray-400">P/L</p><p className={`mt-1 text-sm font-semibold tabular-nums ${asset.unrealized_pl > 0 ? 'text-emerald-600' : asset.unrealized_pl < 0 ? 'text-red-600' : 'text-gray-700'}`}>{asset.unrealized_pl > 0 ? '+' : ''}{formatCurrency(asset.unrealized_pl)} <span className="text-xs">({Number(asset.unrealized_pl_percent || 0).toFixed(2)}%)</span></p></div><div className="flex gap-1"><button onClick={() => openEditAsset(asset)} className="rounded-md border border-gray-200 p-2 text-gray-500"><Pencil className="h-4 w-4" /></button><button onClick={() => deleteAsset(asset)} className="rounded-md border border-gray-200 p-2 text-red-500"><Trash2 className="h-4 w-4" /></button></div></div></div>)}
+            {investmentAssets.map((asset) => (
+              <div key={`mobile-asset-${asset.id}`} className="p-5 transition-colors hover:bg-gray-50/60">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="truncate font-medium text-gray-900">{asset.name}</p>
+                    <p className="mt-1 truncate text-xs text-gray-400">{asset.symbol ? `${asset.symbol} · ` : ''}{assetQuantitySummary(asset)}</p>
+                  </div>
+                  <span className="shrink-0 rounded-md bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600">{compactAssetTypeLabel(asset.asset_type)}</span>
+                </div>
+                <div className="mt-4 grid grid-cols-2 gap-4">
+                  <div className="min-w-0">
+                    <p className="text-xs text-gray-400">Modal</p>
+                    <p className="mt-1 break-words text-sm font-medium tabular-nums text-gray-700">{formatCurrency(asset.cost_basis)}</p>
+                    {asset.currency !== 'IDR' && <p className="mt-0.5 break-words text-xs tabular-nums text-gray-400">{formatAssetCurrency(asset.quantity * asset.average_price, asset.currency)}</p>}
+                  </div>
+                  <div className="min-w-0 text-right">
+                    <p className="text-xs text-gray-400">Nilai Kini</p>
+                    <p className="mt-1 break-words text-sm font-semibold tabular-nums text-gray-900">{formatCurrency(asset.market_value)}</p>
+                    {asset.currency !== 'IDR' && <p className="mt-0.5 break-words text-xs tabular-nums text-gray-400">{formatAssetCurrency(asset.quantity * asset.current_price, asset.currency)}</p>}
+                  </div>
+                </div>
+                <div className="mt-4 flex items-end justify-between gap-3 border-t border-gray-100 pt-3">
+                  <div className="min-w-0">
+                    <p className="text-xs text-gray-400">P/L</p>
+                    <p className={`mt-1 break-words text-sm font-semibold tabular-nums ${asset.unrealized_pl > 0 ? 'text-emerald-600' : asset.unrealized_pl < 0 ? 'text-red-600' : 'text-gray-700'}`}>{asset.unrealized_pl > 0 ? '+' : ''}{formatCurrency(asset.unrealized_pl)} <span className="text-xs">({Number(asset.unrealized_pl_percent || 0).toFixed(2)}%)</span></p>
+                  </div>
+                  <div className="flex shrink-0 gap-1">
+                    <button type="button" onClick={() => openEditAsset(asset)} className="rounded-md border border-gray-200 p-2 text-gray-500 transition hover:border-gray-300 hover:bg-white hover:text-blue-600" aria-label={`Edit ${asset.name}`} title="Edit aset"><Pencil className="h-4 w-4" /></button>
+                    <button type="button" onClick={() => deleteAsset(asset)} className="rounded-md border border-gray-200 p-2 text-red-500 transition hover:border-red-200 hover:bg-red-50" aria-label={`Hapus ${asset.name}`} title="Hapus aset"><Trash2 className="h-4 w-4" /></button>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         </>}
       </section>
