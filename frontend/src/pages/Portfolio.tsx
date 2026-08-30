@@ -513,7 +513,7 @@ export default function Portfolio() {
   };
 
   return (
-    <div className="space-y-6 pb-2 sm:space-y-7">
+    <div className="mx-auto max-w-[1600px] space-y-6 pb-2 sm:space-y-7">
       <header className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Portfolio</h1>
@@ -529,21 +529,37 @@ export default function Portfolio() {
         </div>
       </header>
 
-      <section className="grid grid-cols-1 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm md:grid-cols-3">
-        <div className="p-5 sm:p-6 md:border-r md:border-gray-100">
-          <div className="flex items-center gap-2 text-sm font-medium text-gray-500"><Wallet className="h-4 w-4 text-blue-600" /> Total Portofolio</div>
-          <p className="mt-3 break-words text-3xl font-semibold tracking-tight text-gray-950 tabular-nums">{formatCurrency(portfolioMetrics.totalValue)}</p>
-          <p className="mt-2 text-xs text-gray-400">{portfolioAssetCount} aset aktif</p>
+      <section className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-12">
+        <div className="relative overflow-hidden rounded-xl border border-blue-200 bg-white p-5 shadow-sm sm:p-6 md:col-span-2 xl:col-span-6">
+          <div className="absolute inset-y-0 left-0 w-1 bg-blue-600" />
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="text-sm font-medium text-gray-600">Total Portofolio</p>
+              <p className="mt-3 break-words text-3xl font-bold tracking-tight text-gray-900 tabular-nums sm:text-4xl">{formatCurrency(portfolioMetrics.totalValue)}</p>
+              <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500">
+                <span>{portfolioAssetCount} aset aktif</span>
+                <span className="hidden h-1 w-1 rounded-full bg-gray-300 sm:block" />
+                <span>Nilai pasar seluruh posisi</span>
+              </div>
+            </div>
+            <div className="rounded-xl bg-blue-50 p-3 text-blue-600"><Wallet className="h-5 w-5" /></div>
+          </div>
         </div>
-        <div className="border-t border-gray-100 p-5 sm:p-6 md:border-r md:border-t-0">
-          <div className="flex items-center gap-2 text-sm font-medium text-gray-500"><Layers3 className="h-4 w-4" /> Total Modal</div>
-          <p className="mt-3 break-words text-2xl font-semibold text-gray-900 tabular-nums">{formatCurrency(portfolioMetrics.totalCost)}</p>
-          <p className="mt-2 text-xs text-gray-400">Total cost basis seluruh posisi</p>
+        <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6 xl:col-span-3">
+          <div className="flex items-start justify-between gap-3">
+            <p className="text-sm font-medium text-gray-600">Total Modal</p>
+            <div className="rounded-lg bg-gray-100 p-2 text-gray-600"><Layers3 className="h-4 w-4" /></div>
+          </div>
+          <p className="mt-4 break-words text-2xl font-bold text-gray-900 tabular-nums">{formatCurrency(portfolioMetrics.totalCost)}</p>
+          <p className="mt-2 text-xs text-gray-500">Cost basis seluruh posisi</p>
         </div>
-        <div className="border-t border-gray-100 p-5 sm:p-6 md:border-t-0">
-          <div className="flex items-center gap-2 text-sm font-medium text-gray-500">{portfolioMetrics.unrealizedPL >= 0 ? <TrendingUp className="h-4 w-4 text-emerald-600" /> : <TrendingDown className="h-4 w-4 text-red-600" />} Total P/L</div>
-          <p className={`mt-3 break-words text-2xl font-semibold tabular-nums ${portfolioMetrics.unrealizedPL > 0 ? 'text-emerald-600' : portfolioMetrics.unrealizedPL < 0 ? 'text-red-600' : 'text-gray-900'}`}>{portfolioMetrics.unrealizedPL > 0 ? '+' : ''}{formatCurrency(portfolioMetrics.unrealizedPL)}</p>
-          <p className={`mt-2 text-xs font-medium ${portfolioMetrics.unrealizedPL > 0 ? 'text-emerald-600' : portfolioMetrics.unrealizedPL < 0 ? 'text-red-600' : 'text-gray-400'}`}>{portfolioMetrics.unrealizedPLPercent > 0 ? '+' : ''}{portfolioMetrics.unrealizedPLPercent.toFixed(2)}%</p>
+        <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6 xl:col-span-3">
+          <div className="flex items-start justify-between gap-3">
+            <p className="text-sm font-medium text-gray-600">Total Profit / Loss</p>
+            <div className={`rounded-lg p-2 ${portfolioMetrics.unrealizedPL >= 0 ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>{portfolioMetrics.unrealizedPL >= 0 ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}</div>
+          </div>
+          <p className={`mt-4 break-words text-2xl font-bold tabular-nums ${portfolioMetrics.unrealizedPL > 0 ? 'text-green-600' : portfolioMetrics.unrealizedPL < 0 ? 'text-red-600' : 'text-gray-900'}`}>{portfolioMetrics.unrealizedPL > 0 ? '+' : ''}{formatCurrency(portfolioMetrics.unrealizedPL)}</p>
+          <p className={`mt-2 text-xs font-medium ${portfolioMetrics.unrealizedPL > 0 ? 'text-green-600' : portfolioMetrics.unrealizedPL < 0 ? 'text-red-600' : 'text-gray-500'}`}>{portfolioMetrics.unrealizedPLPercent > 0 ? '+' : ''}{portfolioMetrics.unrealizedPLPercent.toFixed(2)}% dari modal</p>
         </div>
       </section>
 
