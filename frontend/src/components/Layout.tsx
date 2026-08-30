@@ -35,7 +35,7 @@ export default function Layout() {
       {/* Mobile sidebar backdrop */}
       {sidebarOpen && (
         <div
-          className="app-sidebar-backdrop fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
+          className="app-sidebar-backdrop fixed inset-0 z-40 lg:hidden"
           onClick={() => setSidebarOpen(false)}
         />
       )}
