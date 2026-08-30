@@ -313,14 +313,19 @@ export default function Portfolio() {
   };
 
   const saveAsset = async () => {
+    const currencyInput = assetForm.currency.trim().toUpperCase();
+    const currency = currencyInput === 'RP' || currencyInput === 'RUPIAH' ? 'IDR' : currencyInput;
     const payload = {
-      ...assetForm,
+      ...assetForm, name: assetForm.name.trim(), symbol: assetForm.symbol.trim().toUpperCase(),
+      currency, notes: assetForm.notes.trim(),
       quantity: Number(assetForm.quantity), average_price: Number(assetForm.average_price),
       current_price: Number(assetForm.current_price), exchange_rate_to_idr: Number(assetForm.exchange_rate_to_idr),
       acquired_date: assetForm.acquired_date || null,
     };
-    if (!payload.name.trim() || payload.quantity <= 0 || payload.average_price < 0 || payload.current_price < 0 || payload.exchange_rate_to_idr <= 0) {
-      return toast.error('Lengkapi nama, jumlah, harga, dan kurs dengan benar');
+    const numbersAreValid = [payload.quantity, payload.average_price, payload.current_price, payload.exchange_rate_to_idr]
+      .every(Number.isFinite);
+    if (!payload.name || !payload.currency || !numbersAreValid || payload.quantity <= 0 || payload.average_price < 0 || payload.current_price < 0 || payload.exchange_rate_to_idr <= 0) {
+      return toast.error('Lengkapi nama, jumlah, harga, mata uang, dan kurs dengan benar');
     }
     try {
       setSavingAsset(true);

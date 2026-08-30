@@ -42,6 +42,13 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
       localStorage.removeItem('access_token');
       window.dispatchEvent(new Event('auth:unauthorized'));
     }
+    if (Array.isArray(detail)) {
+      const message = detail.map((item) => {
+        const field = Array.isArray(item?.loc) ? item.loc[item.loc.length - 1] : null;
+        return `${field ? `${field}: ` : ''}${item?.msg || 'Data tidak valid'}`;
+      }).join(', ');
+      throw new Error(message || 'Data tidak valid');
+    }
     throw new Error(typeof detail === 'string' ? detail : JSON.stringify(detail));
   }
 

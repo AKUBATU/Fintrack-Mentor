@@ -18,7 +18,7 @@ class InvestmentAssetBase(BaseModel):
     quantity: float = Field(gt=0)
     average_price: float = Field(ge=0)
     current_price: float = Field(ge=0)
-    currency: str = Field(default="IDR", min_length=3, max_length=10)
+    currency: str = Field(default="IDR", min_length=1, max_length=10)
     exchange_rate_to_idr: float = Field(default=1, gt=0)
     acquired_date: Optional[date] = None
     notes: str = Field(default="", max_length=500)
@@ -31,10 +31,18 @@ class InvestmentAssetBase(BaseModel):
             raise ValueError("Jenis instrumen tidak didukung")
         return value
 
-    @field_validator("symbol", "currency")
+    @field_validator("symbol")
     @classmethod
     def uppercase_fields(cls, value: str):
         return value.strip().upper()
+
+    @field_validator("currency")
+    @classmethod
+    def normalize_currency(cls, value: str):
+        normalized = value.strip().upper()
+        if normalized in {"RP", "RUPIAH"}:
+            return "IDR"
+        return normalized
 
 
 class InvestmentAssetCreate(InvestmentAssetBase):
@@ -48,7 +56,7 @@ class InvestmentAssetUpdate(BaseModel):
     quantity: Optional[float] = Field(default=None, gt=0)
     average_price: Optional[float] = Field(default=None, ge=0)
     current_price: Optional[float] = Field(default=None, ge=0)
-    currency: Optional[str] = Field(default=None, min_length=3, max_length=10)
+    currency: Optional[str] = Field(default=None, min_length=1, max_length=10)
     exchange_rate_to_idr: Optional[float] = Field(default=None, gt=0)
     acquired_date: Optional[date] = None
     notes: Optional[str] = Field(default=None, max_length=500)
@@ -62,6 +70,16 @@ class InvestmentAssetUpdate(BaseModel):
         if value not in ASSET_TYPES:
             raise ValueError("Jenis instrumen tidak didukung")
         return value
+
+    @field_validator("symbol", "currency")
+    @classmethod
+    def normalize_optional_codes(cls, value: str | None):
+        if value is None:
+            return value
+        normalized = value.strip().upper()
+        if normalized in {"RP", "RUPIAH"}:
+            return "IDR"
+        return normalized
 
 
 class InvestmentAssetOut(InvestmentAssetBase):
