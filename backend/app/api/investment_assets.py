@@ -115,9 +115,9 @@ def portfolio_health(db: Session = Depends(get_db), user=Depends(get_current_use
     largest = max(position_values, default=0) / total_value * 100
     diversification = min(100, round(len(allocations_map) / 4 * 100))
     concentration = max(0, min(100, round((100 - largest) / 75 * 100)))
-    liquidity_weights = {"cash": 1, "deposit": .9, "stock": .8, "etf": .85, "mutual_fund": .8, "bond": .7, "gold": .7, "crypto": .65, "forex": .8}
+    liquidity_weights = {"cash": 1, "deposit": .9, "stock": .8, "etf": .85, "money_market_fund": .9, "mutual_fund": .8, "bond": .7, "gold": .7, "crypto": .65, "forex": .8}
     liquidity = round(sum(value * liquidity_weights.get(asset_type, .25) for asset_type, value in values) / total_value * 100)
-    risk_weights = {"cash": 5, "deposit": 10, "bond": 25, "gold": 40, "mutual_fund": 45, "etf": 55, "stock": 65, "property": 50, "pension": 35, "insurance_investment": 35, "p2p": 70, "crypto": 90, "forex": 90, "derivative": 100, "business": 80, "private_equity": 85, "collectible": 75, "commodity": 65, "other": 60}
+    risk_weights = {"cash": 5, "deposit": 10, "money_market_fund": 15, "bond": 25, "gold": 40, "mutual_fund": 45, "etf": 55, "stock": 65, "property": 50, "pension": 35, "insurance_investment": 35, "p2p": 70, "crypto": 90, "forex": 90, "derivative": 100, "business": 80, "private_equity": 85, "collectible": 75, "commodity": 65, "other": 60}
     risk_level = sum(value * risk_weights.get(asset_type, 60) for asset_type, value in values) / total_value
     risk_score = max(0, min(100, round(100 - abs(risk_level - 45) * 1.8)))
     score = round(diversification * .3 + concentration * .3 + liquidity * .2 + risk_score * .2)

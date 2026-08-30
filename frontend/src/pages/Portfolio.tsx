@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 import { api } from '../services/api';
 
 const ASSET_TYPES = [
-  ['stock', 'Saham'], ['etf', 'ETF'], ['mutual_fund', 'Reksa Dana'], ['bond', 'Obligasi'],
+  ['stock', 'Saham'], ['etf', 'ETF'], ['money_market_fund', 'Reksa Dana Pasar Uang (RDPU)'], ['mutual_fund', 'Reksa Dana Lainnya'], ['bond', 'Obligasi'],
   ['deposit', 'Deposito'], ['cash', 'Kas'], ['crypto', 'Kripto'], ['gold', 'Emas'],
   ['commodity', 'Komoditas'], ['property', 'Properti'], ['business', 'Bisnis'],
   ['private_equity', 'Private Equity'], ['p2p', 'P2P Lending'], ['pension', 'Dana Pensiun'],
@@ -16,6 +16,32 @@ const ASSET_TYPES = [
 const assetTypeLabel = (type: string) => ASSET_TYPES.find(([value]) => value === type)?.[1] || type;
 
 const CURRENCY_CODES = ['IDR', 'USD', 'EUR'] as const;
+
+const DIRECT_VALUE_ASSETS = new Set([
+  'deposit', 'cash', 'property', 'business', 'private_equity', 'p2p', 'pension',
+  'insurance_investment', 'collectible', 'other',
+]);
+
+const ASSET_FIELD_LABELS: Record<string, { quantity: string; buy: string; current: string; hint: string }> = {
+  stock: { quantity: 'Jumlah Lembar', buy: 'Harga Beli / Lembar', current: 'Harga Saat Ini / Lembar', hint: 'Masukkan jumlah lembar saham.' },
+  etf: { quantity: 'Jumlah Unit ETF', buy: 'Harga Beli / Unit', current: 'Harga Saat Ini / Unit', hint: 'Masukkan unit ETF yang dimiliki.' },
+  money_market_fund: { quantity: 'Unit Penyertaan', buy: 'NAB Beli / Unit', current: 'NAB Saat Ini / Unit', hint: 'Gunakan jumlah unit dan NAB yang tampil di aplikasi investasi.' },
+  mutual_fund: { quantity: 'Unit Penyertaan', buy: 'NAB Beli / Unit', current: 'NAB Saat Ini / Unit', hint: 'Gunakan jumlah unit penyertaan dan NAB per unit.' },
+  crypto: { quantity: 'Jumlah Koin / Token', buy: 'Harga Beli / Koin', current: 'Harga Saat Ini / Koin', hint: 'Jumlah boleh berupa pecahan, misalnya 0,025.' },
+  gold: { quantity: 'Berat (gram)', buy: 'Harga Beli / Gram', current: 'Harga Saat Ini / Gram', hint: 'Masukkan berat emas dalam gram.' },
+  bond: { quantity: 'Jumlah Unit Obligasi', buy: 'Harga Beli / Unit', current: 'Harga Saat Ini / Unit', hint: 'Masukkan unit obligasi yang dimiliki.' },
+  forex: { quantity: 'Jumlah Mata Uang', buy: 'Kurs Beli / Unit', current: 'Kurs Saat Ini / Unit', hint: 'Masukkan jumlah mata uang yang dimiliki.' },
+  commodity: { quantity: 'Jumlah Unit Komoditas', buy: 'Harga Beli / Unit', current: 'Harga Saat Ini / Unit', hint: 'Gunakan satuan sesuai aset yang Anda catat.' },
+  derivative: { quantity: 'Jumlah Kontrak', buy: 'Nilai Beli / Kontrak', current: 'Nilai Saat Ini / Kontrak', hint: 'Masukkan jumlah kontrak yang dimiliki.' },
+};
+
+const DEFAULT_ASSET_FIELDS = { quantity: 'Jumlah Unit', buy: 'Total Nilai Awal', current: 'Total Nilai Saat Ini', hint: 'Nilai aset dicatat langsung sebagai total nominal.' };
+
+const assetQuantitySummary = (asset: any) => {
+  if (DIRECT_VALUE_ASSETS.has(asset.asset_type)) return 'Dicatat sebagai total nilai';
+  const unit = asset.asset_type === 'gold' ? 'gram' : asset.asset_type === 'crypto' ? 'koin/token' : asset.asset_type === 'derivative' ? 'kontrak' : 'unit';
+  return `${new Intl.NumberFormat('id-ID', { maximumFractionDigits: 8 }).format(asset.quantity)} ${unit}`;
+};
 
 const parseAssetAmount = (value: string, currency: string) => {
   if (currency === 'IDR') return Number(value.replace(/[^\d]/g, ''));
@@ -62,6 +88,8 @@ export default function Portfolio() {
     current_price: '', currency: 'IDR', exchange_rate_to_idr: '1', acquired_date: '', notes: '',
   };
   const [assetForm, setAssetForm] = useState(emptyAssetForm);
+  const assetFields = ASSET_FIELD_LABELS[assetForm.asset_type] || DEFAULT_ASSET_FIELDS;
+  const usesDirectValue = DIRECT_VALUE_ASSETS.has(assetForm.asset_type);
 
   const [transactionForm, setTransactionForm] = useState({
     ticker: '',
@@ -334,7 +362,7 @@ export default function Portfolio() {
     const payload = {
       ...assetForm, name: assetForm.name.trim(), symbol: assetForm.symbol.trim().toUpperCase(),
       currency, notes: assetForm.notes.trim(),
-      quantity: Number(assetForm.quantity), average_price: parseAssetAmount(assetForm.average_price, currency),
+      quantity: usesDirectValue ? 1 : Number(assetForm.quantity), average_price: parseAssetAmount(assetForm.average_price, currency),
       current_price: parseAssetAmount(assetForm.current_price, currency), exchange_rate_to_idr: Number(assetForm.exchange_rate_to_idr),
       acquired_date: assetForm.acquired_date || null,
     };
@@ -529,7 +557,7 @@ export default function Portfolio() {
               <th className="text-right py-3 px-3 text-sm font-medium text-gray-700">Aksi</th>
             </tr></thead>
             <tbody>{investmentAssets.map((asset) => <tr key={asset.id} className="border-b border-gray-100 hover:bg-gray-50">
-              <td className="py-3 px-3"><p className="font-medium text-gray-900">{asset.name}</p><p className="text-xs text-gray-500">{asset.symbol || 'Tanpa simbol'} · {asset.quantity} unit</p></td>
+              <td className="py-3 px-3"><p className="font-medium text-gray-900">{asset.name}</p><p className="text-xs text-gray-500">{asset.symbol || 'Tanpa simbol'} · {assetQuantitySummary(asset)}</p></td>
               <td className="py-3 px-3 text-sm text-gray-700">{assetTypeLabel(asset.asset_type)}</td>
               <td className="py-3 px-3 text-right text-sm">{formatCurrency(asset.cost_basis)}</td>
               <td className="py-3 px-3 text-right font-medium">{formatCurrency(asset.market_value)}</td>
@@ -725,22 +753,25 @@ export default function Portfolio() {
           <div className="relative bg-white rounded-xl max-w-md w-full p-6 overflow-y-auto" style={{ maxHeight: '90vh' }} onClick={(event) => event.stopPropagation()}>
             <button onClick={() => setShowAssetModal(false)} className="absolute top-4 right-4 p-1 text-gray-500"><X className="w-5 h-5" /></button>
             <h3 className="text-xl font-bold text-gray-900 pr-8">{editingAssetId ? 'Edit Instrumen' : 'Tambah Instrumen Investasi'}</h3>
-            <p className="text-sm text-gray-500 mt-1 mb-5">Catat jumlah kepemilikan dan nilai per unit dalam mata uang aset.</p>
+            <p className="text-sm text-gray-500 mt-1 mb-5">Form akan menyesuaikan satuan dan nilai berdasarkan instrumen yang dipilih.</p>
             <div className="space-y-4">
-              <div><label className="block text-sm font-medium text-gray-700 mb-1">Jenis Instrumen</label><select value={assetForm.asset_type} onChange={(e) => setAssetForm({ ...assetForm, asset_type: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg">{ASSET_TYPES.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></div>
+              <div><label className="block text-sm font-medium text-gray-700 mb-1">Jenis Instrumen</label><select value={assetForm.asset_type} onChange={(e) => { const assetType = e.target.value; setAssetForm({ ...assetForm, asset_type: assetType, quantity: DIRECT_VALUE_ASSETS.has(assetType) ? '1' : assetForm.quantity }); }} className="w-full px-3 py-2 border border-gray-300 rounded-lg">{ASSET_TYPES.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></div>
               <div><label className="block text-sm font-medium text-gray-700 mb-1">Nama Aset</label><input value={assetForm.name} onChange={(e) => setAssetForm({ ...assetForm, name: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="Contoh: Bitcoin, Emas Antam, Rumah Jakarta" /></div>
               <div><label className="block text-sm font-medium text-gray-700 mb-1">Simbol / Kode <span className="text-gray-400">(opsional)</span></label><input value={assetForm.symbol} onChange={(e) => setAssetForm({ ...assetForm, symbol: e.target.value.toUpperCase() })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="BTC, XAU, FR0096" /></div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3"><div><label className="block text-sm font-medium text-gray-700 mb-1">Jumlah Unit</label><input type="number" inputMode="decimal" step="any" min="0" value={assetForm.quantity} onChange={(e) => setAssetForm({ ...assetForm, quantity: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="Contoh: 1" /><p className="text-xs text-gray-500 mt-1">Isi 1 jika aset dicatat langsung berdasarkan total nominal.</p></div><div><label className="block text-sm font-medium text-gray-700 mb-1">Mata Uang</label><select value={assetForm.currency} onChange={(e) => { const currency = e.target.value; const averagePrice = parseAssetAmount(assetForm.average_price, assetForm.currency); const currentPrice = parseAssetAmount(assetForm.current_price, assetForm.currency); setAssetForm({ ...assetForm, currency, average_price: averagePrice ? String(averagePrice) : '', current_price: currentPrice ? String(currentPrice) : '' }); }} className="w-full px-3 py-2 border border-gray-300 rounded-lg">{CURRENCY_CODES.map((code) => <option key={code} value={code}>{code}</option>)}</select><p className="text-xs text-gray-500 mt-1">Pilihan mata uang terpisah dari input angka.</p></div></div>
+              <div className={`grid grid-cols-1 ${usesDirectValue ? '' : 'sm:grid-cols-2'} gap-3`}>
+                {!usesDirectValue && <div><label className="block text-sm font-medium text-gray-700 mb-1">{assetFields.quantity}</label><input type="number" inputMode="decimal" step="any" min="0" value={assetForm.quantity} onChange={(e) => setAssetForm({ ...assetForm, quantity: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="Contoh: 1" /><p className="text-xs text-gray-500 mt-1">{assetFields.hint}</p></div>}
+                <div><label className="block text-sm font-medium text-gray-700 mb-1">Mata Uang</label><select value={assetForm.currency} onChange={(e) => { const currency = e.target.value; const averagePrice = parseAssetAmount(assetForm.average_price, assetForm.currency); const currentPrice = parseAssetAmount(assetForm.current_price, assetForm.currency); setAssetForm({ ...assetForm, currency, average_price: averagePrice ? formatAssetAmount(String(averagePrice), currency) : '', current_price: currentPrice ? formatAssetAmount(String(currentPrice), currency) : '' }); }} className="w-full px-3 py-2 border border-gray-300 rounded-lg">{CURRENCY_CODES.map((code) => <option key={code} value={code}>{code}</option>)}</select><p className="text-xs text-gray-500 mt-1">{usesDirectValue ? assetFields.hint : 'Mata uang untuk nilai per unit.'}</p></div>
+              </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Nilai Beli / Unit</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{assetFields.buy}</label>
                   <div className="flex">
                     <span className="flex items-center px-3 border border-r-0 border-gray-300 rounded-l-lg bg-gray-100 text-sm font-medium text-gray-600">{assetForm.currency}</span>
                     <input type="text" inputMode="numeric" value={assetForm.average_price} onChange={(e) => setAssetForm({ ...assetForm, average_price: formatAssetAmount(e.target.value, assetForm.currency) })} className="flex-1 min-w-0 px-3 py-2 border border-gray-300 rounded-r-lg" placeholder="16.000.000" />
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Nilai Saat Ini / Unit</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{assetFields.current}</label>
                   <div className="flex">
                     <span className="flex items-center px-3 border border-r-0 border-gray-300 rounded-l-lg bg-gray-100 text-sm font-medium text-gray-600">{assetForm.currency}</span>
                     <input type="text" inputMode="numeric" value={assetForm.current_price} onChange={(e) => setAssetForm({ ...assetForm, current_price: formatAssetAmount(e.target.value, assetForm.currency) })} className="flex-1 min-w-0 px-3 py-2 border border-gray-300 rounded-r-lg" placeholder="16.000.000" />

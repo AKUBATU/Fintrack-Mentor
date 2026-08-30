@@ -235,6 +235,14 @@ class ApiIntegrationTest(unittest.TestCase):
         self.assertEqual(created.json()["market_value"], 160000000)
         self.assertEqual(self.client.get("/api/investment-assets", headers=second).json(), [])
 
+        rdpu = self.client.post("/api/investment-assets", json={
+            "name": "RDPU Likuid", "symbol": "RDPU", "asset_type": "money_market_fund",
+            "quantity": 1000, "average_price": 1500, "current_price": 1600,
+            "currency": "IDR", "exchange_rate_to_idr": 1,
+        }, headers=second)
+        self.assertEqual(rdpu.status_code, 200, rdpu.text)
+        self.assertEqual(rdpu.json()["market_value"], 1600000)
+
         health = self.client.get("/api/investment-assets/health/summary", headers=first)
         self.assertEqual(health.status_code, 200, health.text)
         self.assertGreater(health.json()["total_value"], 0)

@@ -5,7 +5,7 @@ from pydantic import BaseModel, Field, field_validator
 
 
 ASSET_TYPES = {
-    "stock", "etf", "mutual_fund", "bond", "deposit", "cash", "crypto",
+    "stock", "etf", "money_market_fund", "mutual_fund", "bond", "deposit", "cash", "crypto",
     "gold", "commodity", "property", "business", "private_equity", "p2p",
     "pension", "insurance_investment", "collectible", "forex", "derivative", "other",
 }
