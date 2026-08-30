@@ -11,6 +11,16 @@ ASSET_TYPES = {
 }
 
 
+def normalize_currency_code(value: object) -> str:
+    normalized = str(value or "").strip().upper()
+    if "RUPIAH" in normalized or normalized == "RP":
+        return "IDR"
+    for code in ("IDR", "USD", "EUR", "SGD", "JPY", "CNY", "GBP", "AUD", "MYR", "THB", "HKD", "KRW", "CHF", "CAD"):
+        if code in normalized:
+            return code
+    return normalized
+
+
 class InvestmentAssetBase(BaseModel):
     name: str = Field(min_length=1, max_length=120)
     symbol: str = Field(default="", max_length=40)
@@ -36,13 +46,10 @@ class InvestmentAssetBase(BaseModel):
     def uppercase_fields(cls, value: str):
         return value.strip().upper()
 
-    @field_validator("currency")
+    @field_validator("currency", mode="before")
     @classmethod
-    def normalize_currency(cls, value: str):
-        normalized = value.strip().upper()
-        if normalized in {"RP", "RUPIAH"}:
-            return "IDR"
-        return normalized
+    def normalize_currency(cls, value: object):
+        return normalize_currency_code(value)
 
 
 class InvestmentAssetCreate(InvestmentAssetBase):
@@ -71,15 +78,19 @@ class InvestmentAssetUpdate(BaseModel):
             raise ValueError("Jenis instrumen tidak didukung")
         return value
 
-    @field_validator("symbol", "currency")
+    @field_validator("symbol")
     @classmethod
-    def normalize_optional_codes(cls, value: str | None):
+    def normalize_optional_symbol(cls, value: str | None):
         if value is None:
             return value
-        normalized = value.strip().upper()
-        if normalized in {"RP", "RUPIAH"}:
-            return "IDR"
-        return normalized
+        return value.strip().upper()
+
+    @field_validator("currency", mode="before")
+    @classmethod
+    def normalize_optional_currency(cls, value: object):
+        if value is None:
+            return value
+        return normalize_currency_code(value)
 
 
 class InvestmentAssetOut(InvestmentAssetBase):

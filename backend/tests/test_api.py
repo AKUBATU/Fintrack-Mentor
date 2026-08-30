@@ -225,7 +225,7 @@ class ApiIntegrationTest(unittest.TestCase):
         payload = {
             "name": "Bitcoin", "symbol": "BTC", "asset_type": "crypto",
             "quantity": 0.1, "average_price": 80000, "current_price": 100000,
-            "currency": "Rp", "exchange_rate_to_idr": 16000,
+            "currency": "IDR (Rupiah)", "exchange_rate_to_idr": 16000,
             "acquired_date": "2026-01-10", "notes": "Cold wallet",
         }
         created = self.client.post("/api/investment-assets", json=payload, headers=first)
