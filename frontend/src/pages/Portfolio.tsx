@@ -564,11 +564,12 @@ export default function Portfolio() {
       </div>
 
       {/* Unified portfolio */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
-        <div className="flex items-start sm:items-center justify-between gap-4 mb-4">
+      <section className="flex flex-col gap-4">
+        <div className="order-1 flex items-start sm:items-center justify-between gap-4">
           <div><h3 className="font-semibold text-gray-900">Portofolio Saya</h3><p className="text-sm text-gray-500">Seluruh saham dan instrumen investasi Anda dalam satu tempat.</p></div>
           <span className="px-2 py-1 bg-blue-50 text-blue-700 text-xs rounded-full">{holdings.length + investmentAssets.length} aset</span>
         </div>
+      <div className="order-3 bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
         <div className="space-y-3 md:hidden">
           {holdings.map((holding: any) => <div key={`mobile-stock-${holding.ticker}`} className="rounded-xl border border-gray-200 p-4">
             <div className="flex items-start justify-between gap-3"><div><p className="font-semibold text-gray-900">{holding.ticker}</p><p className="text-xs text-gray-500 mt-0.5">{holding.totalLots} lot · {holding.totalShares} lembar</p></div><span className="px-2 py-1 bg-blue-50 text-blue-700 text-xs rounded-full">Saham</span></div>
@@ -615,7 +616,7 @@ export default function Portfolio() {
       </div>
 
       {/* Portfolio Summary Cards */}
-      <div className="grid grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-6">
+      <div className="order-2 grid grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-6">
         <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 border border-gray-200 min-w-0">
           <p className="text-sm text-gray-600 mb-1">Nilai Portofolio</p>
           <p className="text-lg sm:text-2xl font-bold text-gray-900 break-words">{formatCurrency(portfolioMetrics.totalValue)}</p>
@@ -649,6 +650,7 @@ export default function Portfolio() {
           <p className="text-xs text-gray-500 mt-1">{dividends.length} pembayaran</p>
         </div>
       </div>
+      </section>
 
       {/* Recent Transactions & Dividends */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
