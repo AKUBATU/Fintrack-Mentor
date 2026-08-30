@@ -15,6 +15,18 @@ const ASSET_TYPES = [
 
 const assetTypeLabel = (type: string) => ASSET_TYPES.find(([value]) => value === type)?.[1] || type;
 
+const CURRENCY_CODES = (() => {
+  const supportedValuesOf = (Intl as typeof Intl & {
+    supportedValuesOf?: (key: 'currency') => string[];
+  }).supportedValuesOf;
+  const fallback = [
+    'IDR', 'USD', 'EUR', 'SGD', 'JPY', 'CNY', 'GBP', 'AUD', 'MYR', 'THB',
+    'HKD', 'KRW', 'CHF', 'CAD', 'NZD', 'INR', 'AED', 'SAR', 'PHP', 'VND',
+  ];
+  const codes = supportedValuesOf ? supportedValuesOf('currency') : fallback;
+  return ['IDR', ...codes.filter((code) => code !== 'IDR').sort()];
+})();
+
 export default function Portfolio() {
   // ✅ ambil context apa adanya (tetap), tapi kita bikin aman kalau ada field yang belum disediakan
   const data: any = useData();
@@ -716,7 +728,7 @@ export default function Portfolio() {
               <div><label className="block text-sm font-medium text-gray-700 mb-1">Jenis Instrumen</label><select value={assetForm.asset_type} onChange={(e) => setAssetForm({ ...assetForm, asset_type: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg">{ASSET_TYPES.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></div>
               <div><label className="block text-sm font-medium text-gray-700 mb-1">Nama Aset</label><input value={assetForm.name} onChange={(e) => setAssetForm({ ...assetForm, name: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="Contoh: Bitcoin, Emas Antam, Rumah Jakarta" /></div>
               <div><label className="block text-sm font-medium text-gray-700 mb-1">Simbol / Kode <span className="text-gray-400">(opsional)</span></label><input value={assetForm.symbol} onChange={(e) => setAssetForm({ ...assetForm, symbol: e.target.value.toUpperCase() })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="BTC, XAU, FR0096" /></div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3"><div><label className="block text-sm font-medium text-gray-700 mb-1">Jumlah Unit</label><input type="number" step="any" value={assetForm.quantity} onChange={(e) => setAssetForm({ ...assetForm, quantity: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div><div><label className="block text-sm font-medium text-gray-700 mb-1">Mata Uang</label><input value={assetForm.currency} maxLength={10} onChange={(e) => setAssetForm({ ...assetForm, currency: e.target.value.toUpperCase() })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="Contoh: IDR" /><p className="text-xs text-gray-500 mt-1">Gunakan kode seperti IDR, USD, EUR, atau SGD.</p></div></div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3"><div><label className="block text-sm font-medium text-gray-700 mb-1">Jumlah Unit</label><input type="number" step="any" value={assetForm.quantity} onChange={(e) => setAssetForm({ ...assetForm, quantity: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div><div><label className="block text-sm font-medium text-gray-700 mb-1">Mata Uang</label><select value={assetForm.currency} onChange={(e) => setAssetForm({ ...assetForm, currency: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg">{CURRENCY_CODES.map((code) => <option key={code} value={code}>{code}</option>)}</select><p className="text-xs text-gray-500 mt-1">IDR dipilih otomatis. Ubah melalui daftar bila aset memakai mata uang lain.</p></div></div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3"><div><label className="block text-sm font-medium text-gray-700 mb-1">Harga Beli / Unit</label><input type="number" step="any" value={assetForm.average_price} onChange={(e) => setAssetForm({ ...assetForm, average_price: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div><div><label className="block text-sm font-medium text-gray-700 mb-1">Harga Kini / Unit</label><input type="number" step="any" value={assetForm.current_price} onChange={(e) => setAssetForm({ ...assetForm, current_price: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div></div>
               <div><label className="block text-sm font-medium text-gray-700 mb-1">Kurs ke IDR</label><input type="number" step="any" value={assetForm.exchange_rate_to_idr} onChange={(e) => setAssetForm({ ...assetForm, exchange_rate_to_idr: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" /><p className="text-xs text-gray-500 mt-1">Gunakan 1 untuk aset berdenominasi Rupiah.</p></div>
               <div><label className="block text-sm font-medium text-gray-700 mb-1">Tanggal Perolehan</label><input type="date" value={assetForm.acquired_date} onChange={(e) => setAssetForm({ ...assetForm, acquired_date: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div>
