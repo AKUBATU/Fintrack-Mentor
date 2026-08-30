@@ -529,24 +529,61 @@ export default function Portfolio() {
         </div>
       </header>
 
-      <section className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
-        <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm md:col-span-2 xl:col-span-1">
-          <div className="mb-4 w-fit rounded-lg bg-blue-100 p-2"><Wallet className="h-6 w-6 text-blue-600" /></div>
-          <p className="mb-1 text-sm text-gray-600">Total Portofolio</p>
-          <p className="break-words text-3xl font-bold text-gray-900 tabular-nums">{formatCurrency(portfolioMetrics.totalValue)}</p>
-          <p className="mt-2 text-sm text-gray-500">{portfolioAssetCount} aset aktif</p>
+      <section className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(320px,1fr)]">
+        <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+          <div className="p-5 sm:p-6">
+            <div className="flex items-start justify-between gap-4">
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-gray-600">Total Portofolio</p>
+                <p className="mt-2 break-words text-3xl font-bold tracking-tight text-gray-900 tabular-nums sm:text-4xl">{formatCurrency(portfolioMetrics.totalValue)}</p>
+                <p className="mt-2 text-sm text-gray-500">Nilai pasar dari {portfolioAssetCount} aset aktif</p>
+              </div>
+              <div className="shrink-0 rounded-lg bg-blue-100 p-2.5"><Wallet className="h-5 w-5 text-blue-600" /></div>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 border-t border-gray-100 sm:grid-cols-2">
+            <div className="p-5 sm:border-r sm:border-gray-100 sm:px-6">
+              <div className="flex items-center gap-2 text-sm text-gray-500"><Layers3 className="h-4 w-4" /> Total Modal</div>
+              <p className="mt-2 break-words text-xl font-semibold text-gray-900 tabular-nums">{formatCurrency(portfolioMetrics.totalCost)}</p>
+              <p className="mt-1 text-xs text-gray-400">Cost basis seluruh posisi</p>
+            </div>
+            <div className="border-t border-gray-100 p-5 sm:border-t-0 sm:px-6">
+              <div className="flex items-center gap-2 text-sm text-gray-500">{portfolioMetrics.unrealizedPL >= 0 ? <TrendingUp className="h-4 w-4 text-green-600" /> : <TrendingDown className="h-4 w-4 text-red-600" />} Total Profit / Loss</div>
+              <p className={`mt-2 break-words text-xl font-semibold tabular-nums ${portfolioMetrics.unrealizedPL > 0 ? 'text-green-600' : portfolioMetrics.unrealizedPL < 0 ? 'text-red-600' : 'text-gray-900'}`}>{portfolioMetrics.unrealizedPL > 0 ? '+' : ''}{formatCurrency(portfolioMetrics.unrealizedPL)}</p>
+              <p className={`mt-1 text-xs font-medium ${portfolioMetrics.unrealizedPL > 0 ? 'text-green-600' : portfolioMetrics.unrealizedPL < 0 ? 'text-red-600' : 'text-gray-400'}`}>{portfolioMetrics.unrealizedPLPercent > 0 ? '+' : ''}{portfolioMetrics.unrealizedPLPercent.toFixed(2)}%</p>
+            </div>
+          </div>
         </div>
-        <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-          <div className="mb-4 w-fit rounded-lg bg-purple-100 p-2"><Layers3 className="h-6 w-6 text-purple-600" /></div>
-          <p className="mb-1 text-sm text-gray-600">Total Modal</p>
-          <p className="break-words text-2xl font-bold text-gray-900 tabular-nums">{formatCurrency(portfolioMetrics.totalCost)}</p>
-          <p className="mt-2 text-sm text-gray-500">Cost basis seluruh posisi</p>
-        </div>
-        <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-          <div className={`mb-4 w-fit rounded-lg p-2 ${portfolioMetrics.unrealizedPL >= 0 ? 'bg-green-100' : 'bg-red-100'}`}>{portfolioMetrics.unrealizedPL >= 0 ? <TrendingUp className="h-6 w-6 text-green-600" /> : <TrendingDown className="h-6 w-6 text-red-600" />}</div>
-          <p className="mb-1 text-sm text-gray-600">Total Profit / Loss</p>
-          <p className={`break-words text-2xl font-bold tabular-nums ${portfolioMetrics.unrealizedPL > 0 ? 'text-green-600' : portfolioMetrics.unrealizedPL < 0 ? 'text-red-600' : 'text-gray-900'}`}>{portfolioMetrics.unrealizedPL > 0 ? '+' : ''}{formatCurrency(portfolioMetrics.unrealizedPL)}</p>
-          <p className={`mt-2 text-sm ${portfolioMetrics.unrealizedPL > 0 ? 'text-green-600' : portfolioMetrics.unrealizedPL < 0 ? 'text-red-600' : 'text-gray-500'}`}>{portfolioMetrics.unrealizedPLPercent > 0 ? '+' : ''}{portfolioMetrics.unrealizedPLPercent.toFixed(2)}%</p>
+
+        <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="text-sm font-medium text-gray-600">Kesehatan Portofolio</p>
+              <div className="mt-2 flex items-baseline gap-2"><span className="text-3xl font-bold text-gray-900">{portfolioHealth?.score ?? 0}</span><span className="text-sm text-gray-400">/ 100</span></div>
+              <p className="mt-1 text-xs font-medium text-gray-500">{portfolioHealth?.status || (assetLoading ? 'Menghitung…' : 'Belum dapat dinilai')}</p>
+            </div>
+            <div className="rounded-lg bg-blue-50 p-2.5 text-blue-600"><Activity className="h-5 w-5" /></div>
+          </div>
+          <div className="mt-5 grid grid-cols-2 gap-x-5 gap-y-4">
+            {[
+              ['Diversifikasi', portfolioHealth?.diversification_score],
+              ['Konsentrasi', portfolioHealth?.concentration_score],
+              ['Likuiditas', portfolioHealth?.liquidity_score],
+              ['Risiko', portfolioHealth?.risk_score],
+            ].map(([label, value]) => (
+              <div key={String(label)}>
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-gray-500">{label}</span>
+                  <span className="font-medium text-gray-700">{Number(value) || 0}</span>
+                </div>
+                <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-gray-100">
+                  <div className="h-full rounded-full bg-blue-600" style={{ width: `${Math.max(0, Math.min(100, Number(value) || 0))}%` }} />
+                </div>
+              </div>
+            ))}
+          </div>
+          {(portfolioHealth?.insights || []).length > 0 && <p className="mt-5 border-t border-gray-100 pt-4 text-xs leading-relaxed text-gray-500">{portfolioHealth.insights[0]}</p>}
+          <p className="mt-3 text-[11px] text-gray-400">Indikator edukatif, bukan rekomendasi investasi.</p>
         </div>
       </section>
 
@@ -627,11 +664,6 @@ export default function Portfolio() {
             ))}
           </div>
         </>}
-      </section>
-
-      <section className="rounded-xl border border-gray-200 bg-white px-5 py-5 shadow-sm sm:px-6">
-        <div className="flex flex-col gap-5 xl:flex-row xl:items-center"><div className="flex min-w-[190px] items-center gap-3"><div className="rounded-lg bg-blue-50 p-2.5 text-blue-600"><Activity className="h-5 w-5" /></div><div><p className="text-xs text-gray-400">Kesehatan Portofolio</p><div className="mt-1 flex items-baseline gap-2"><span className="text-2xl font-semibold text-gray-900">{portfolioHealth?.score ?? 0}</span><span className="text-xs text-gray-400">/ 100</span></div><p className="text-xs font-medium text-gray-600">{portfolioHealth?.status || (assetLoading ? 'Menghitung…' : 'Belum dapat dinilai')}</p></div></div><div className="grid flex-1 grid-cols-2 gap-x-5 gap-y-3 sm:grid-cols-4">{[['Diversifikasi', portfolioHealth?.diversification_score], ['Konsentrasi', portfolioHealth?.concentration_score], ['Likuiditas', portfolioHealth?.liquidity_score], ['Risiko', portfolioHealth?.risk_score]].map(([label, value]) => <div key={String(label)}><div className="flex items-center justify-between text-xs"><span className="text-gray-500">{label}</span><span className="font-medium text-gray-700">{Number(value) || 0}</span></div><div className="mt-2 h-1.5 overflow-hidden rounded-full bg-gray-100"><div className="h-full rounded-full bg-blue-600" style={{ width: `${Math.max(0, Math.min(100, Number(value) || 0))}%` }} /></div></div>)}</div></div>
-        {(portfolioHealth?.insights || []).length > 0 && <div className="mt-5 border-t border-gray-100 pt-4"><div className="flex flex-wrap gap-x-6 gap-y-2">{portfolioHealth.insights.slice(0, 3).map((insight: string, index: number) => <p key={index} className="flex max-w-xl gap-2 text-xs leading-relaxed text-gray-500"><span className="text-blue-500">•</span>{insight}</p>)}</div><p className="mt-3 text-[11px] text-gray-400">Indikator edukatif, bukan rekomendasi investasi.</p></div>}
       </section>
 
       <section className="grid grid-cols-1 gap-6 xl:grid-cols-2">
