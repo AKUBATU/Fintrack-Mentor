@@ -512,9 +512,9 @@ export default function Portfolio() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col gap-6">
       {/* Header */}
-      <div className="portfolio-page-header flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+      <div className="portfolio-page-header order-1 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Portofolio Investasi</h1>
           <p className="text-gray-600">Kelola seluruh instrumen investasi dan pantau kesehatan portofolio</p>
@@ -551,7 +551,7 @@ export default function Portfolio() {
       </div>
 
       {/* Portfolio health */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="order-4 grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 border border-gray-200">
           <div className="flex items-start justify-between gap-4">
             <div>
@@ -586,7 +586,7 @@ export default function Portfolio() {
       </div>
 
       {/* Unified portfolio */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
+      <div className="order-3 bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
         <div className="flex items-start sm:items-center justify-between gap-4 mb-4">
           <div><h3 className="font-semibold text-gray-900">Portofolio Saya</h3><p className="text-sm text-gray-500">Seluruh saham dan instrumen investasi Anda dalam satu tempat.</p></div>
           <span className="px-2 py-1 bg-blue-50 text-blue-700 text-xs rounded-full">{portfolioAssetCount} aset</span>
@@ -646,7 +646,7 @@ export default function Portfolio() {
       </div>
 
       {/* Portfolio Summary Cards */}
-      <div className="grid grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-6">
+      <div className="order-2 grid grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-6">
         <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 border border-gray-200 min-w-0">
           <p className="text-sm text-gray-600 mb-1">Nilai Portofolio</p>
           <p className="text-lg sm:text-2xl font-bold text-gray-900 break-words">{formatCurrency(portfolioMetrics.totalValue)}</p>
@@ -682,7 +682,7 @@ export default function Portfolio() {
       </div>
 
       {/* Recent Transactions & Dividends */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="order-5 grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Transactions */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
           <div className="flex items-start justify-between mb-4">
