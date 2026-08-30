@@ -134,6 +134,7 @@ const defaultUserProfile: UserProfile = {
 }
 
 interface DataContextType {
+  accountDataLoading: boolean
   expenses: ExpenseTransaction[]
   budgets: Budget[]
   stockTransactions: StockTransaction[]
@@ -252,6 +253,7 @@ function buildHoldingsFromTransactions(
 export function DataProvider({ children }: { children: ReactNode }) {
   const { isAuthenticated, user } = useAuth()
 
+  const [accountDataLoading, setAccountDataLoading] = useState(false)
   const [expenses, setExpenses] = useState<ExpenseTransaction[]>([])
   const [budgets, setBudgets] = useState<Budget[]>([])
   const [stockTransactions, setStockTransactions] =
@@ -264,6 +266,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   /* ================= Load account data from backend ================= */
   useEffect(() => {
     if (!isAuthenticated || !user) {
+      setAccountDataLoading(false)
       setExpenses([])
       setBudgets([])
       setStockTransactions([])
@@ -274,15 +277,17 @@ export function DataProvider({ children }: { children: ReactNode }) {
     }
 
     const load = async () => {
-      const results = await Promise.allSettled([
-        api.listExpenses(),
-        api.listBudgets(),
-        api.listTransactions(),
-        api.listDividends(),
-        api.listReports(),
-      ])
+      setAccountDataLoading(true)
+      try {
+        const results = await Promise.allSettled([
+          api.listExpenses(),
+          api.listBudgets(),
+          api.listTransactions(),
+          api.listDividends(),
+          api.listReports(),
+        ])
 
-      const [expenseResult, budgetResult, transactionResult, dividendResult, reportResult] = results
+        const [expenseResult, budgetResult, transactionResult, dividendResult, reportResult] = results
 
       if (expenseResult.status === 'fulfilled') setExpenses(expenseResult.value.map((row) => ({
         id: String(row.id),
@@ -327,10 +332,13 @@ export function DataProvider({ children }: { children: ReactNode }) {
         screenshotUrl: row.screenshot_url || undefined,
       })))
 
-      const failures = results.filter((result) => result.status === 'rejected')
-      if (failures.length > 0) {
-        console.error('Failed account data requests:', failures)
-        toast.error(`${failures.length} bagian data gagal dimuat. Silakan coba login kembali.`)
+        const failures = results.filter((result) => result.status === 'rejected')
+        if (failures.length > 0) {
+          console.error('Failed account data requests:', failures)
+          toast.error(`${failures.length} bagian data gagal dimuat. Silakan coba login kembali.`)
+        }
+      } finally {
+        setAccountDataLoading(false)
       }
     }
 
@@ -534,6 +542,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   return (
     <DataContext.Provider
       value={{
+        accountDataLoading,
         expenses,
         budgets,
         stockTransactions,

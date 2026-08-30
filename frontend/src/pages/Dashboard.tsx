@@ -1,5 +1,6 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useData } from '../contexts/DataContext'
+import { api } from '../services/api'
 import { TrendingUp, TrendingDown, Wallet, PieChart, DollarSign, AlertCircle } from 'lucide-react'
 import {
   LineChart,
@@ -18,7 +19,21 @@ import {
 } from 'recharts'
 
 export default function Dashboard() {
-  const { expenses, holdings, dailyReports, budgets } = useData()
+  const { accountDataLoading, expenses, holdings, dailyReports, budgets } = useData()
+  const [investmentAssets, setInvestmentAssets] = useState<any[]>([])
+  const [investmentAssetsLoading, setInvestmentAssetsLoading] = useState(true)
+
+  useEffect(() => {
+    let active = true
+    setInvestmentAssetsLoading(true)
+    api.listInvestmentAssets()
+      .then((assets) => { if (active) setInvestmentAssets(assets) })
+      .catch((error) => console.error('Failed to load dashboard investment assets:', error))
+      .finally(() => { if (active) setInvestmentAssetsLoading(false) })
+    return () => { active = false }
+  }, [])
+
+  const portfolioLoading = accountDataLoading || investmentAssetsLoading
 
   // Calculate metrics
   const metrics = useMemo(() => {
@@ -38,8 +53,12 @@ export default function Dashboard() {
       })
       .reduce((sum, e) => sum + e.amount, 0)
 
-    const portfolioValue = (holdings ?? []).reduce((sum, h) => sum + (h.marketValue ?? 0), 0)
-    const totalCost = (holdings ?? []).reduce((sum, h) => sum + (h.costBasis ?? 0), 0)
+    const stockPortfolioValue = (holdings ?? []).reduce((sum, h) => sum + (h.marketValue ?? 0), 0)
+    const stockTotalCost = (holdings ?? []).reduce((sum, h) => sum + (h.costBasis ?? 0), 0)
+    const otherPortfolioValue = investmentAssets.reduce((sum, asset) => sum + Number(asset.market_value || 0), 0)
+    const otherTotalCost = investmentAssets.reduce((sum, asset) => sum + Number(asset.cost_basis || 0), 0)
+    const portfolioValue = stockPortfolioValue + otherPortfolioValue
+    const totalCost = stockTotalCost + otherTotalCost
     const unrealizedPL = portfolioValue - totalCost
     const unrealizedPLPercent = totalCost > 0 ? (unrealizedPL / totalCost) * 100 : 0
 
@@ -57,7 +76,7 @@ export default function Dashboard() {
       totalBudget,
       budgetUsage,
     }
-  }, [expenses, holdings, budgets])
+  }, [expenses, holdings, budgets, investmentAssets])
 
   // Expense by category
   const expenseByCategory = useMemo(() => {
@@ -172,7 +191,9 @@ export default function Dashboard() {
             </div>
           </div>
           <p className="text-sm text-gray-600 mb-1">Nilai Portofolio</p>
-          <p className="text-2xl font-bold text-gray-900">{formatCurrency(metrics.portfolioValue)}</p>
+          {portfolioLoading
+            ? <div className="mt-2 h-8 w-40 animate-pulse rounded bg-gray-100" />
+            : <p className="text-2xl font-bold text-gray-900">{formatCurrency(metrics.portfolioValue)}</p>}
         </div>
 
         <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
@@ -186,13 +207,15 @@ export default function Dashboard() {
             </div>
           </div>
           <p className="text-sm text-gray-600 mb-1">Unrealized P/L</p>
-          <p className={`text-2xl font-bold ${metrics.unrealizedPL >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-            {formatCurrency(metrics.unrealizedPL)}
-          </p>
-          <p className={`text-sm mt-1 ${metrics.unrealizedPL >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-            {metrics.unrealizedPLPercent > 0 ? '+' : ''}
-            {metrics.unrealizedPLPercent.toFixed(2)}%
-          </p>
+          {portfolioLoading ? <div className="mt-2 space-y-2"><div className="h-8 w-40 animate-pulse rounded bg-gray-100" /><div className="h-4 w-16 animate-pulse rounded bg-gray-100" /></div> : <>
+            <p className={`text-2xl font-bold ${metrics.unrealizedPL >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+              {formatCurrency(metrics.unrealizedPL)}
+            </p>
+            <p className={`text-sm mt-1 ${metrics.unrealizedPL >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+              {metrics.unrealizedPLPercent > 0 ? '+' : ''}
+              {metrics.unrealizedPLPercent.toFixed(2)}%
+            </p>
+          </>}
         </div>
 
         <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
