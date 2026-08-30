@@ -513,10 +513,10 @@ export default function Portfolio() {
   };
 
   return (
-    <div className="space-y-6 pb-2 sm:space-y-7">
+    <div className="space-y-6">
       <header className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Portfolio</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Portofolio</h1>
           <p className="mt-1 text-sm text-gray-600">Pantau seluruh investasi dan performa portofolio Anda.</p>
         </div>
         <div className="portfolio-header-actions flex w-full gap-2 sm:w-auto">
@@ -529,27 +529,30 @@ export default function Portfolio() {
         </div>
       </header>
 
-      <section className="grid grid-cols-1 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm md:grid-cols-2 xl:grid-cols-3">
-        <div className="p-5 sm:p-6 md:col-span-2 xl:col-span-1 xl:border-r xl:border-gray-100">
-          <div className="flex items-center gap-2 text-sm font-medium text-gray-500"><Wallet className="h-4 w-4 text-blue-600" /> Total Portofolio</div>
-          <p className="mt-3 break-words text-3xl font-semibold tracking-tight text-gray-950 tabular-nums">{formatCurrency(portfolioMetrics.totalValue)}</p>
-          <p className="mt-2 text-xs text-gray-400">{portfolioAssetCount} aset aktif</p>
+      <section className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
+        <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm md:col-span-2 xl:col-span-1">
+          <div className="mb-4 w-fit rounded-lg bg-blue-100 p-2"><Wallet className="h-6 w-6 text-blue-600" /></div>
+          <p className="mb-1 text-sm text-gray-600">Total Portofolio</p>
+          <p className="break-words text-3xl font-bold text-gray-900 tabular-nums">{formatCurrency(portfolioMetrics.totalValue)}</p>
+          <p className="mt-2 text-sm text-gray-500">{portfolioAssetCount} aset aktif</p>
         </div>
-        <div className="border-t border-gray-100 p-5 sm:p-6 md:border-r xl:border-t-0">
-          <div className="flex items-center gap-2 text-sm font-medium text-gray-500"><Layers3 className="h-4 w-4" /> Total Modal</div>
-          <p className="mt-3 break-words text-2xl font-semibold text-gray-900 tabular-nums">{formatCurrency(portfolioMetrics.totalCost)}</p>
-          <p className="mt-2 text-xs text-gray-400">Total cost basis seluruh posisi</p>
+        <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+          <div className="mb-4 w-fit rounded-lg bg-purple-100 p-2"><Layers3 className="h-6 w-6 text-purple-600" /></div>
+          <p className="mb-1 text-sm text-gray-600">Total Modal</p>
+          <p className="break-words text-2xl font-bold text-gray-900 tabular-nums">{formatCurrency(portfolioMetrics.totalCost)}</p>
+          <p className="mt-2 text-sm text-gray-500">Cost basis seluruh posisi</p>
         </div>
-        <div className="border-t border-gray-100 p-5 sm:p-6 xl:border-t-0">
-          <div className="flex items-center gap-2 text-sm font-medium text-gray-500">{portfolioMetrics.unrealizedPL >= 0 ? <TrendingUp className="h-4 w-4 text-emerald-600" /> : <TrendingDown className="h-4 w-4 text-red-600" />} Total P/L</div>
-          <p className={`mt-3 break-words text-2xl font-semibold tabular-nums ${portfolioMetrics.unrealizedPL > 0 ? 'text-emerald-600' : portfolioMetrics.unrealizedPL < 0 ? 'text-red-600' : 'text-gray-900'}`}>{portfolioMetrics.unrealizedPL > 0 ? '+' : ''}{formatCurrency(portfolioMetrics.unrealizedPL)}</p>
-          <p className={`mt-2 text-xs font-medium ${portfolioMetrics.unrealizedPL > 0 ? 'text-emerald-600' : portfolioMetrics.unrealizedPL < 0 ? 'text-red-600' : 'text-gray-400'}`}>{portfolioMetrics.unrealizedPLPercent > 0 ? '+' : ''}{portfolioMetrics.unrealizedPLPercent.toFixed(2)}%</p>
+        <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+          <div className={`mb-4 w-fit rounded-lg p-2 ${portfolioMetrics.unrealizedPL >= 0 ? 'bg-green-100' : 'bg-red-100'}`}>{portfolioMetrics.unrealizedPL >= 0 ? <TrendingUp className="h-6 w-6 text-green-600" /> : <TrendingDown className="h-6 w-6 text-red-600" />}</div>
+          <p className="mb-1 text-sm text-gray-600">Total Profit / Loss</p>
+          <p className={`break-words text-2xl font-bold tabular-nums ${portfolioMetrics.unrealizedPL > 0 ? 'text-green-600' : portfolioMetrics.unrealizedPL < 0 ? 'text-red-600' : 'text-gray-900'}`}>{portfolioMetrics.unrealizedPL > 0 ? '+' : ''}{formatCurrency(portfolioMetrics.unrealizedPL)}</p>
+          <p className={`mt-2 text-sm ${portfolioMetrics.unrealizedPL > 0 ? 'text-green-600' : portfolioMetrics.unrealizedPL < 0 ? 'text-red-600' : 'text-gray-500'}`}>{portfolioMetrics.unrealizedPLPercent > 0 ? '+' : ''}{portfolioMetrics.unrealizedPLPercent.toFixed(2)}%</p>
         </div>
       </section>
 
-      <section className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1.85fr)_minmax(300px,1fr)]">
+      <section className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1.85fr)_minmax(300px,1fr)]">
         <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
-          <div className="mb-5 flex items-center justify-between gap-4"><div><h2 className="font-semibold text-gray-900">Portfolio Performance</h2><p className="mt-1 text-xs text-gray-500">Perkembangan nilai dari data laporan yang tersedia.</p></div><BarChart3 className="h-5 w-5 text-gray-400" /></div>
+          <div className="mb-5 flex items-center justify-between gap-4"><div><h2 className="font-semibold text-gray-900">Performa Portofolio</h2><p className="mt-1 text-xs text-gray-500">Perkembangan nilai dari data laporan yang tersedia.</p></div><BarChart3 className="h-5 w-5 text-gray-400" /></div>
           {portfolioHistory.length > 0 ? <div className="h-64 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={portfolioHistory} margin={{ top: 8, right: 4, left: 4, bottom: 0 }}>
@@ -564,7 +567,7 @@ export default function Portfolio() {
           </div> : <div className="flex h-64 flex-col items-center justify-center text-center"><BarChart3 className="h-8 w-8 text-gray-300"/><p className="mt-3 text-sm font-medium text-gray-700">Belum ada histori performa</p><p className="mt-1 max-w-xs text-xs text-gray-400">Grafik akan menggunakan data laporan portofolio yang memang tersimpan, tanpa membuat data estimasi.</p></div>}
         </div>
         <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
-          <div className="mb-3 flex items-center justify-between"><div><h2 className="font-semibold text-gray-900">Asset Allocation</h2><p className="mt-1 text-xs text-gray-500">Komposisi berdasarkan nilai kini.</p></div><PieChartIcon className="h-5 w-5 text-gray-400" /></div>
+          <div className="mb-3 flex items-center justify-between"><div><h2 className="font-semibold text-gray-900">Alokasi Aset</h2><p className="mt-1 text-xs text-gray-500">Komposisi berdasarkan nilai kini.</p></div><PieChartIcon className="h-5 w-5 text-gray-400" /></div>
           {allocationData.length > 0 ? <>
             <div className="mx-auto h-44 max-w-[240px]"><ResponsiveContainer width="100%" height="100%"><PieChart><Pie data={allocationData} dataKey="value" nameKey="name" innerRadius={52} outerRadius={74} paddingAngle={2} stroke="none">{allocationData.map((entry, index) => <Cell key={entry.name} fill={ALLOCATION_COLORS[index % ALLOCATION_COLORS.length]} />)}</Pie><Tooltip formatter={(value: any) => formatCurrency(Number(value))} /></PieChart></ResponsiveContainer></div>
             <div className="space-y-2">{allocationData.slice(0, 6).map((entry, index) => <div key={entry.name} className="flex items-center justify-between gap-3 text-xs"><div className="flex min-w-0 items-center gap-2"><span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: ALLOCATION_COLORS[index % ALLOCATION_COLORS.length] }} /><span className="truncate text-gray-600">{entry.name}</span></div><span className="font-medium tabular-nums text-gray-800">{entry.percentage.toFixed(1)}%</span></div>)}</div>
@@ -595,17 +598,17 @@ export default function Portfolio() {
       </section>
 
       <section className="rounded-xl border border-gray-200 bg-white px-5 py-5 shadow-sm sm:px-6">
-        <div className="flex flex-col gap-5 xl:flex-row xl:items-center"><div className="flex min-w-[190px] items-center gap-3"><div className="rounded-lg bg-blue-50 p-2.5 text-blue-600"><Activity className="h-5 w-5" /></div><div><p className="text-xs text-gray-400">Kesehatan Portfolio</p><div className="mt-1 flex items-baseline gap-2"><span className="text-2xl font-semibold text-gray-900">{portfolioHealth?.score ?? 0}</span><span className="text-xs text-gray-400">/ 100</span></div><p className="text-xs font-medium text-gray-600">{portfolioHealth?.status || (assetLoading ? 'Menghitung…' : 'Belum dapat dinilai')}</p></div></div><div className="grid flex-1 grid-cols-2 gap-x-5 gap-y-3 sm:grid-cols-4">{[['Diversifikasi', portfolioHealth?.diversification_score], ['Konsentrasi', portfolioHealth?.concentration_score], ['Likuiditas', portfolioHealth?.liquidity_score], ['Risiko', portfolioHealth?.risk_score]].map(([label, value]) => <div key={String(label)}><div className="flex items-center justify-between text-xs"><span className="text-gray-500">{label}</span><span className="font-medium text-gray-700">{Number(value) || 0}</span></div><div className="mt-2 h-1.5 overflow-hidden rounded-full bg-gray-100"><div className="h-full rounded-full bg-blue-600" style={{ width: `${Math.max(0, Math.min(100, Number(value) || 0))}%` }} /></div></div>)}</div></div>
+        <div className="flex flex-col gap-5 xl:flex-row xl:items-center"><div className="flex min-w-[190px] items-center gap-3"><div className="rounded-lg bg-blue-50 p-2.5 text-blue-600"><Activity className="h-5 w-5" /></div><div><p className="text-xs text-gray-400">Kesehatan Portofolio</p><div className="mt-1 flex items-baseline gap-2"><span className="text-2xl font-semibold text-gray-900">{portfolioHealth?.score ?? 0}</span><span className="text-xs text-gray-400">/ 100</span></div><p className="text-xs font-medium text-gray-600">{portfolioHealth?.status || (assetLoading ? 'Menghitung…' : 'Belum dapat dinilai')}</p></div></div><div className="grid flex-1 grid-cols-2 gap-x-5 gap-y-3 sm:grid-cols-4">{[['Diversifikasi', portfolioHealth?.diversification_score], ['Konsentrasi', portfolioHealth?.concentration_score], ['Likuiditas', portfolioHealth?.liquidity_score], ['Risiko', portfolioHealth?.risk_score]].map(([label, value]) => <div key={String(label)}><div className="flex items-center justify-between text-xs"><span className="text-gray-500">{label}</span><span className="font-medium text-gray-700">{Number(value) || 0}</span></div><div className="mt-2 h-1.5 overflow-hidden rounded-full bg-gray-100"><div className="h-full rounded-full bg-blue-600" style={{ width: `${Math.max(0, Math.min(100, Number(value) || 0))}%` }} /></div></div>)}</div></div>
         {(portfolioHealth?.insights || []).length > 0 && <div className="mt-5 border-t border-gray-100 pt-4"><div className="flex flex-wrap gap-x-6 gap-y-2">{portfolioHealth.insights.slice(0, 3).map((insight: string, index: number) => <p key={index} className="flex max-w-xl gap-2 text-xs leading-relaxed text-gray-500"><span className="text-blue-500">•</span>{insight}</p>)}</div><p className="mt-3 text-[11px] text-gray-400">Indikator edukatif, bukan rekomendasi investasi.</p></div>}
       </section>
 
-      <section className="grid grid-cols-1 gap-5 xl:grid-cols-2">
+      <section className="grid grid-cols-1 gap-6 xl:grid-cols-2">
         <div className="rounded-xl border border-gray-200 bg-white shadow-sm">
           <div className="flex flex-col gap-3 border-b border-gray-100 px-5 py-4 sm:flex-row sm:items-center sm:justify-between"><div><h2 className="font-semibold text-gray-900">Aktivitas Saham</h2><p className="mt-1 text-xs text-gray-500">Transaksi terbaru Anda.</p></div><button onClick={() => { setEditingTransactionId(null); setShowAddTransaction(true); }} className="inline-flex items-center justify-center gap-1.5 self-start rounded-lg border border-gray-200 px-3 py-2 text-xs font-medium text-gray-700 transition hover:border-gray-300 hover:bg-gray-50 sm:self-auto"><Plus className="h-3.5 w-3.5" /> Catat</button></div>
           <div className="max-h-[360px] divide-y divide-gray-100 overflow-y-auto">{transactionHistory.map((tx: any) => { const uiType = getTxUIType(tx); const lots = getTxLots(tx); const shares = getTxShares(tx); const price = getTxPricePerShare(tx); return <div key={tx.id} className="flex items-center justify-between gap-4 px-5 py-3.5"><div className="min-w-0"><div className="flex items-center gap-2"><p className="font-medium text-gray-900">{tx.ticker}</p><span className={`text-[10px] font-semibold ${uiType === 'buy' ? 'text-emerald-600' : 'text-red-600'}`}>{uiType === 'buy' ? 'BELI' : 'JUAL'}</span></div><p className="mt-1 text-xs text-gray-400">{lots} lot · {new Date(tx.date).toLocaleDateString('id-ID')}</p></div><div className="text-right"><p className="text-sm font-medium tabular-nums text-gray-800">{formatCurrency(shares * price)}</p><div className="mt-1 flex justify-end gap-2"><button onClick={() => openEditTransaction(tx)} className="text-gray-400 hover:text-blue-600"><Pencil className="h-3.5 w-3.5" /></button><button onClick={() => handleDeleteTransaction(tx)} className="text-gray-400 hover:text-red-600"><Trash2 className="h-3.5 w-3.5" /></button></div></div></div>})}{transactionHistory.length === 0 && <div className="px-5 py-12 text-center"><p className="text-sm font-medium text-gray-700">Belum ada transaksi saham</p><p className="mt-1 text-xs text-gray-400">Catat transaksi beli atau jual pertama Anda.</p></div>}</div>
         </div>
         <div className="rounded-xl border border-gray-200 bg-white shadow-sm">
-          <div className="flex flex-col gap-3 border-b border-gray-100 px-5 py-4 sm:flex-row sm:items-center sm:justify-between"><div><h2 className="font-semibold text-gray-900">Investment Income</h2><p className="mt-1 text-xs text-gray-500">Total dividen <span className="font-semibold text-emerald-600">{formatCurrency(portfolioMetrics.totalDividends)}</span></p></div><button onClick={() => setShowAddDividend(true)} className="inline-flex items-center justify-center gap-1.5 self-start rounded-lg border border-gray-200 px-3 py-2 text-xs font-medium text-gray-700 transition hover:border-gray-300 hover:bg-gray-50 sm:self-auto"><DollarSign className="h-3.5 w-3.5" /> Catat Dividen</button></div>
+          <div className="flex flex-col gap-3 border-b border-gray-100 px-5 py-4 sm:flex-row sm:items-center sm:justify-between"><div><h2 className="font-semibold text-gray-900">Pendapatan Investasi</h2><p className="mt-1 text-xs text-gray-500">Total dividen <span className="font-semibold text-emerald-600">{formatCurrency(portfolioMetrics.totalDividends)}</span></p></div><button onClick={() => setShowAddDividend(true)} className="inline-flex items-center justify-center gap-1.5 self-start rounded-lg border border-gray-200 px-3 py-2 text-xs font-medium text-gray-700 transition hover:border-gray-300 hover:bg-gray-50 sm:self-auto"><DollarSign className="h-3.5 w-3.5" /> Catat Dividen</button></div>
           <div className="max-h-[360px] divide-y divide-gray-100 overflow-y-auto">{dividendHistory.map((div: any) => { const payment = getDividendPaymentDate(div); return <div key={div.id} className="flex items-center justify-between gap-4 px-5 py-4"><div><p className="font-medium text-gray-900">{div.ticker}</p><p className="mt-1 text-xs text-gray-400">{payment ? new Date(payment).toLocaleDateString('id-ID') : 'Tanggal belum tersedia'}</p></div><p className="text-sm font-semibold tabular-nums text-emerald-600">+{formatCurrency(getDividendTotal(div))}</p></div>})}{dividendHistory.length === 0 && <div className="px-5 py-12 text-center"><p className="text-sm font-medium text-gray-700">Belum ada pendapatan dividen</p><p className="mt-1 text-xs text-gray-400">Catat dividen ketika pembayaran diterima.</p></div>}</div>
         </div>
       </section>
