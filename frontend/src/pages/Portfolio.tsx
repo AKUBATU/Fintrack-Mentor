@@ -18,14 +18,14 @@ const assetTypeLabel = (type: string) => ASSET_TYPES.find(([value]) => value ===
 const CURRENCY_CODES = ['IDR', 'USD', 'EUR'] as const;
 
 const DIRECT_VALUE_ASSETS = new Set([
-  'deposit', 'cash', 'property', 'business', 'private_equity', 'p2p', 'pension',
+  'money_market_fund', 'deposit', 'cash', 'property', 'business', 'private_equity', 'p2p', 'pension',
   'insurance_investment', 'collectible', 'other',
 ]);
 
 const ASSET_FIELD_LABELS: Record<string, { quantity: string; buy: string; current: string; hint: string }> = {
   stock: { quantity: 'Jumlah Lembar', buy: 'Harga Beli / Lembar', current: 'Harga Saat Ini / Lembar', hint: 'Masukkan jumlah lembar saham.' },
   etf: { quantity: 'Jumlah Unit ETF', buy: 'Harga Beli / Unit', current: 'Harga Saat Ini / Unit', hint: 'Masukkan unit ETF yang dimiliki.' },
-  money_market_fund: { quantity: 'Unit Penyertaan', buy: 'NAB Beli / Unit', current: 'NAB Saat Ini / Unit', hint: 'Gunakan jumlah unit dan NAB yang tampil di aplikasi investasi.' },
+  money_market_fund: { quantity: 'Jumlah Unit', buy: 'Nilai Investasi Awal', current: 'Nilai Investasi Saat Ini', hint: 'Masukkan total nominal RDPU yang terlihat di aplikasi investasi.' },
   mutual_fund: { quantity: 'Unit Penyertaan', buy: 'NAB Beli / Unit', current: 'NAB Saat Ini / Unit', hint: 'Gunakan jumlah unit penyertaan dan NAB per unit.' },
   crypto: { quantity: 'Jumlah Koin / Token', buy: 'Harga Beli / Koin', current: 'Harga Saat Ini / Koin', hint: 'Jumlah boleh berupa pecahan, misalnya 0,025.' },
   gold: { quantity: 'Berat (gram)', buy: 'Harga Beli / Gram', current: 'Harga Saat Ini / Gram', hint: 'Masukkan berat emas dalam gram.' },
@@ -343,11 +343,15 @@ export default function Portfolio() {
 
   const openEditAsset = (asset: any) => {
     const currency = asset.currency || 'IDR';
+    const directValue = DIRECT_VALUE_ASSETS.has(asset.asset_type);
+    const exchangeRate = Number(asset.exchange_rate_to_idr) || 1;
+    const averagePrice = directValue ? Number(asset.cost_basis) / exchangeRate : Number(asset.average_price);
+    const currentPrice = directValue ? Number(asset.market_value) / exchangeRate : Number(asset.current_price);
     setEditingAssetId(Number(asset.id));
     setAssetForm({
       name: asset.name, symbol: asset.symbol || '', asset_type: asset.asset_type,
-      quantity: String(asset.quantity), average_price: formatAssetAmount(String(asset.average_price), currency),
-      current_price: formatAssetAmount(String(asset.current_price), currency), currency,
+      quantity: directValue ? '1' : String(asset.quantity), average_price: formatAssetAmount(String(averagePrice), currency),
+      current_price: formatAssetAmount(String(currentPrice), currency), currency,
       exchange_rate_to_idr: String(asset.exchange_rate_to_idr || 1),
       acquired_date: asset.acquired_date || '', notes: asset.notes || '',
     });
