@@ -528,6 +528,29 @@ export default function Portfolio() {
         </div>
       </div>
 
+      {/* Primary portfolio value */}
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-700 via-blue-600 to-indigo-600 p-5 sm:p-7 text-white shadow-lg shadow-blue-100">
+        <div className="absolute -right-12 -top-16 h-44 w-44 rounded-full bg-white/10" />
+        <div className="absolute -bottom-20 right-20 h-40 w-40 rounded-full bg-indigo-300/10" />
+        <div className="relative flex flex-col sm:flex-row sm:items-end sm:justify-between gap-5">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 text-blue-100"><Layers3 className="w-4 h-4" /><p className="text-sm font-medium">Nilai Portofolio</p></div>
+            <p className="mt-2 text-3xl sm:text-4xl font-bold tracking-tight break-words">{formatCurrency(portfolioMetrics.totalValue)}</p>
+            <p className="mt-2 text-sm text-blue-100">Total modal {formatCurrency(portfolioMetrics.totalCost)}</p>
+          </div>
+          <div className="flex gap-3">
+            <div className="rounded-xl border border-white/15 bg-white/10 px-4 py-3 backdrop-blur-sm">
+              <p className="text-xs text-blue-100">Total aset</p>
+              <p className="mt-1 text-xl font-semibold">{holdings.length + investmentAssets.length}</p>
+            </div>
+            <div className="rounded-xl border border-white/15 bg-white/10 px-4 py-3 backdrop-blur-sm">
+              <p className="text-xs text-blue-100">Instrumen</p>
+              <p className="mt-1 text-xl font-semibold">{new Set([...holdings.map(() => 'stock'), ...investmentAssets.map((asset) => asset.asset_type)]).size}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Portfolio health */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 border border-gray-200">
@@ -615,13 +638,7 @@ export default function Portfolio() {
       </div>
 
       {/* Portfolio Summary Cards */}
-      <div className="grid grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-6">
-        <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 border border-gray-200 min-w-0">
-          <p className="text-sm text-gray-600 mb-1">Nilai Portofolio</p>
-          <p className="text-lg sm:text-2xl font-bold text-gray-900 break-words">{formatCurrency(portfolioMetrics.totalValue)}</p>
-          <p className="text-xs text-gray-500 mt-1">Modal: {formatCurrency(portfolioMetrics.totalCost)}</p>
-        </div>
-
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-6">
         <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 border border-gray-200 min-w-0">
           <p className="text-sm text-gray-600 mb-1">Unrealized P/L</p>
           <p className={`text-lg sm:text-2xl font-bold break-words ${portfolioMetrics.unrealizedPL >= 0 ? 'text-green-600' : 'text-red-600'}`}>
