@@ -91,8 +91,14 @@ export default function Portfolio() {
   const [assetForm, setAssetForm] = useState(emptyAssetForm);
   const assetFields = ASSET_FIELD_LABELS[assetForm.asset_type] || DEFAULT_ASSET_FIELDS;
   const usesDirectValue = DIRECT_VALUE_ASSETS.has(assetForm.asset_type);
-  const portfolioHoldings = holdings.filter((holding: any) => (num(holding?.marketValue) || 0) !== 0);
-  const portfolioInvestmentAssets = investmentAssets.filter((asset: any) => (num(asset?.market_value) || 0) !== 0);
+  const portfolioHoldings = holdings.filter((holding: any) => {
+    const marketValue = Number(holding?.marketValue);
+    return Number.isFinite(marketValue) && marketValue !== 0;
+  });
+  const portfolioInvestmentAssets = investmentAssets.filter((asset: any) => {
+    const marketValue = Number(asset?.market_value);
+    return Number.isFinite(marketValue) && marketValue !== 0;
+  });
   const portfolioAssetCount = portfolioHoldings.length + portfolioInvestmentAssets.length;
   let previewHoldingCount = Math.min(portfolioHoldings.length, portfolioInvestmentAssets.length > 0 ? 3 : 6);
   let previewAssetCount = Math.min(portfolioInvestmentAssets.length, 6 - previewHoldingCount);
