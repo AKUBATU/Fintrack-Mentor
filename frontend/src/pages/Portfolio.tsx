@@ -767,14 +767,14 @@ export default function Portfolio() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">{assetFields.buy}</label>
                   <div className="flex">
                     <span className="flex items-center px-3 border border-r-0 border-gray-300 rounded-l-lg bg-gray-100 text-sm font-medium text-gray-600">{assetForm.currency}</span>
-                    <input type="text" inputMode="numeric" value={assetForm.average_price} onChange={(e) => setAssetForm({ ...assetForm, average_price: formatAssetAmount(e.target.value, assetForm.currency) })} className="flex-1 min-w-0 px-3 py-2 border border-gray-300 rounded-r-lg" placeholder="16.000.000" />
+                    <input type="text" inputMode="numeric" value={assetForm.average_price} onChange={(e) => setAssetForm({ ...assetForm, average_price: formatAssetAmount(e.target.value, assetForm.currency) })} className="flex-1 min-w-0 px-3 py-2 border border-gray-300 rounded-r-lg" placeholder="Masukkan nilai" />
                   </div>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">{assetFields.current}</label>
                   <div className="flex">
                     <span className="flex items-center px-3 border border-r-0 border-gray-300 rounded-l-lg bg-gray-100 text-sm font-medium text-gray-600">{assetForm.currency}</span>
-                    <input type="text" inputMode="numeric" value={assetForm.current_price} onChange={(e) => setAssetForm({ ...assetForm, current_price: formatAssetAmount(e.target.value, assetForm.currency) })} className="flex-1 min-w-0 px-3 py-2 border border-gray-300 rounded-r-lg" placeholder="16.000.000" />
+                    <input type="text" inputMode="numeric" value={assetForm.current_price} onChange={(e) => setAssetForm({ ...assetForm, current_price: formatAssetAmount(e.target.value, assetForm.currency) })} className="flex-1 min-w-0 px-3 py-2 border border-gray-300 rounded-r-lg" placeholder="Masukkan nilai" />
                   </div>
                 </div>
               </div>
