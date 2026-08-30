@@ -91,13 +91,15 @@ export default function Portfolio() {
   const [assetForm, setAssetForm] = useState(emptyAssetForm);
   const assetFields = ASSET_FIELD_LABELS[assetForm.asset_type] || DEFAULT_ASSET_FIELDS;
   const usesDirectValue = DIRECT_VALUE_ASSETS.has(assetForm.asset_type);
-  const portfolioAssetCount = holdings.length + investmentAssets.length;
-  let previewHoldingCount = Math.min(holdings.length, investmentAssets.length > 0 ? 3 : 6);
-  let previewAssetCount = Math.min(investmentAssets.length, 6 - previewHoldingCount);
-  previewHoldingCount += Math.min(holdings.length - previewHoldingCount, 6 - previewHoldingCount - previewAssetCount);
-  previewAssetCount += Math.min(investmentAssets.length - previewAssetCount, 6 - previewHoldingCount - previewAssetCount);
-  const visibleHoldings = showAllPortfolioAssets ? holdings : holdings.slice(0, previewHoldingCount);
-  const visibleInvestmentAssets = showAllPortfolioAssets ? investmentAssets : investmentAssets.slice(0, previewAssetCount);
+  const portfolioHoldings = holdings.filter((holding: any) => (num(holding?.marketValue) || 0) !== 0);
+  const portfolioInvestmentAssets = investmentAssets.filter((asset: any) => (num(asset?.market_value) || 0) !== 0);
+  const portfolioAssetCount = portfolioHoldings.length + portfolioInvestmentAssets.length;
+  let previewHoldingCount = Math.min(portfolioHoldings.length, portfolioInvestmentAssets.length > 0 ? 3 : 6);
+  let previewAssetCount = Math.min(portfolioInvestmentAssets.length, 6 - previewHoldingCount);
+  previewHoldingCount += Math.min(portfolioHoldings.length - previewHoldingCount, 6 - previewHoldingCount - previewAssetCount);
+  previewAssetCount += Math.min(portfolioInvestmentAssets.length - previewAssetCount, 6 - previewHoldingCount - previewAssetCount);
+  const visibleHoldings = showAllPortfolioAssets ? portfolioHoldings : portfolioHoldings.slice(0, previewHoldingCount);
+  const visibleInvestmentAssets = showAllPortfolioAssets ? portfolioInvestmentAssets : portfolioInvestmentAssets.slice(0, previewAssetCount);
   const visibleAssetSections = Object.entries(
     visibleInvestmentAssets.reduce((sections: Record<string, any[]>, asset: any) => {
       (sections[asset.asset_type] ||= []).push(asset);
