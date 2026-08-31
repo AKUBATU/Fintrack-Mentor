@@ -2101,6 +2101,12 @@ button:disabled { cursor: not-allowed; }
   transition: border-color .16s ease, box-shadow .16s ease, background .16s ease;
 }
 .app-main textarea { min-height: auto; }
+.app-main > div.fixed {
+  overscroll-behavior: none;
+}
+.app-main > div.fixed > div.bg-white {
+  overscroll-behavior-y: contain;
+}
 .app-main input:focus,
 .app-main select:focus,
 .app-main textarea:focus {

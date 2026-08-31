@@ -33,6 +33,21 @@ export default function Expenses() {
   const [historyType, setHistoryType] = useState<'all' | 'income' | 'expense'>('all');
   const [historySearch, setHistorySearch] = useState('');
 
+  useEffect(() => {
+    const modalOpen = showAddExpense || Boolean(editingExpense) || showAddBudget || Boolean(selectedReceipt);
+    if (!modalOpen) return;
+
+    const previousBodyOverflow = document.body.style.overflow;
+    const previousHtmlOverflow = document.documentElement.style.overflow;
+    document.body.style.overflow = 'hidden';
+    document.documentElement.style.overflow = 'hidden';
+
+    return () => {
+      document.body.style.overflow = previousBodyOverflow;
+      document.documentElement.style.overflow = previousHtmlOverflow;
+    };
+  }, [showAddExpense, editingExpense, showAddBudget, selectedReceipt]);
+
   // Form states
   const [formData, setFormData] = useState({
     transactionType: 'expense' as 'income' | 'expense',

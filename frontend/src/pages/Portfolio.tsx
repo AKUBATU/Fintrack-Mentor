@@ -135,6 +135,21 @@ export default function Portfolio() {
     price: ''
   });
 
+  useEffect(() => {
+    const modalOpen = showAssetModal || showAddTransaction || showAddDividend || showUpdatePrice;
+    if (!modalOpen) return;
+
+    const previousBodyOverflow = document.body.style.overflow;
+    const previousHtmlOverflow = document.documentElement.style.overflow;
+    document.body.style.overflow = 'hidden';
+    document.documentElement.style.overflow = 'hidden';
+
+    return () => {
+      document.body.style.overflow = previousBodyOverflow;
+      document.documentElement.style.overflow = previousHtmlOverflow;
+    };
+  }, [showAssetModal, showAddTransaction, showAddDividend, showUpdatePrice]);
+
   const loadAssetsAndHealth = async () => {
     try {
       const [assets, health] = await Promise.all([api.listInvestmentAssets(), api.portfolioHealth()]);
