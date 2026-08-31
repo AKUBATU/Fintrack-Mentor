@@ -190,7 +190,7 @@ export default function Expenses() {
     }
   };
 
-  // Calculate monthly summary
+  // Ringkasan utama memakai seluruh riwayat. Budget tetap dibandingkan dengan bulan berjalan.
   const monthlySummary = useMemo(() => {
     const currentMonth = new Date().getMonth();
     const currentYear = new Date().getFullYear();
@@ -201,24 +201,30 @@ export default function Expenses() {
     });
 
     const monthlyExpenses = monthlyTransactions.filter(e => e.transactionType !== 'income');
-    const monthlyIncome = monthlyTransactions.filter(e => e.transactionType === 'income');
-    const totalExpense = monthlyExpenses.reduce((sum, e) => sum + e.amount, 0);
-    const totalIncome = monthlyIncome.reduce((sum, e) => sum + e.amount, 0);
+    const allExpenses = expenses.filter(e => e.transactionType !== 'income');
+    const allIncome = expenses.filter(e => e.transactionType === 'income');
+    const totalExpense = allExpenses.reduce((sum, e) => sum + e.amount, 0);
+    const totalIncome = allIncome.reduce((sum, e) => sum + e.amount, 0);
 
     const byCategory = new Map<string, number>();
-    monthlyExpenses.forEach(e => {
+    allExpenses.forEach(e => {
       byCategory.set(e.category, (byCategory.get(e.category) || 0) + e.amount);
+    });
+    const monthlyByCategory = new Map<string, number>();
+    monthlyExpenses.forEach(e => {
+      monthlyByCategory.set(e.category, (monthlyByCategory.get(e.category) || 0) + e.amount);
     });
 
     return {
       totalExpense,
       totalIncome,
       balance: totalIncome - totalExpense,
-      count: monthlyTransactions.length,
+      count: expenses.length,
       byCategory: Array.from(byCategory.entries()).map(([category, amount]) => ({
         category,
         amount,
         budget: budgets.find(b => b.category === category)?.amount || 0,
+        budgetSpent: monthlyByCategory.get(category) || 0,
       })),
     };
   }, [expenses, budgets]);
@@ -412,8 +418,8 @@ export default function Expenses() {
       <section>
         <div className="flex items-center justify-between mb-3">
           <div>
-            <h3 className="font-semibold text-gray-900">Ringkasan Bulan Ini</h3>
-            <p className="text-sm text-gray-500">Arus keuangan pada bulan berjalan</p>
+            <h3 className="font-semibold text-gray-900">Ringkasan Keseluruhan</h3>
+            <p className="text-sm text-gray-500">Akumulasi seluruh transaksi Anda</p>
           </div>
         </div>
 
@@ -425,7 +431,7 @@ export default function Expenses() {
               <div className="finance-balance-heading">
                 <div className="finance-balance-icon"><WalletCards className="w-5 h-5" /></div>
                 <div>
-                  <p className="finance-balance-label">Saldo bulan ini</p>
+                  <p className="finance-balance-label">Saldo keseluruhan</p>
                   <p className="finance-balance-period">Pemasukan dikurangi pengeluaran</p>
                 </div>
               </div>
@@ -464,20 +470,20 @@ export default function Expenses() {
             </button>
           </div>
 
-          {monthlySummary.byCategory.map(({ category, amount, budget }) => {
-            const percentage = budget > 0 ? (amount / budget) * 100 : 0;
+          {monthlySummary.byCategory.map(({ category, amount, budget, budgetSpent }) => {
+            const percentage = budget > 0 ? (budgetSpent / budget) * 100 : 0;
             const isOverBudget = percentage > 100;
 
             return (
               <div key={category} className="space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium text-gray-700">{category}</span>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-gray-900">{formatCurrency(amount)}</span>
+                  <div className="text-right">
+                    <span className="text-sm font-medium text-gray-900">{formatCurrency(amount)}</span>
                     {budget > 0 && (
-                      <span className="text-xs text-gray-500">/ {formatCurrency(budget)}</span>
+                      <p className="text-xs text-gray-500">Bulan ini: {formatCurrency(budgetSpent)} / {formatCurrency(budget)}</p>
                     )}
-                    {isOverBudget && <AlertTriangle className="w-4 h-4 text-red-500" />}
+                    {isOverBudget && <AlertTriangle className="inline-block w-4 h-4 text-red-500 mt-1" />}
                   </div>
                 </div>
                 {budget > 0 && (
@@ -493,7 +499,7 @@ export default function Expenses() {
           })}
           {monthlySummary.byCategory.length === 0 && (
             <div className="text-center py-6">
-              <p className="text-sm text-gray-500">Belum ada pengeluaran bulan ini.</p>
+              <p className="text-sm text-gray-500">Belum ada data pengeluaran.</p>
             </div>
           )}
         </div>

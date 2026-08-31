@@ -42,13 +42,13 @@ export default function Dashboard() {
       return e.transactionType !== 'income' && date.getMonth() === currentMonth && date.getFullYear() === currentYear
     })
 
-    const totalExpenses = monthlyExpenses.reduce((sum, e) => sum + e.amount, 0)
-    const totalIncome = (expenses ?? [])
-      .filter((e) => {
-        const date = new Date(e.date)
-        return e.transactionType === 'income' && date.getMonth() === currentMonth && date.getFullYear() === currentYear
-      })
+    const totalExpenses = (expenses ?? [])
+      .filter((e) => e.transactionType !== 'income')
       .reduce((sum, e) => sum + e.amount, 0)
+    const totalIncome = (expenses ?? [])
+      .filter((e) => e.transactionType === 'income')
+      .reduce((sum, e) => sum + e.amount, 0)
+    const currentMonthExpenses = monthlyExpenses.reduce((sum, e) => sum + e.amount, 0)
 
     const stockPortfolioValue = (holdings ?? []).reduce((sum, h) => sum + (h.marketValue ?? 0), 0)
     const stockTotalCost = (holdings ?? []).reduce((sum, h) => sum + (h.costBasis ?? 0), 0)
@@ -61,7 +61,7 @@ export default function Dashboard() {
 
     // Budget tracking
     const totalBudget = (budgets ?? []).reduce((sum, b) => sum + b.amount, 0)
-    const budgetUsage = totalBudget > 0 ? (totalExpenses / totalBudget) * 100 : 0
+    const budgetUsage = totalBudget > 0 ? (currentMonthExpenses / totalBudget) * 100 : 0
 
     return {
       totalExpenses,
@@ -78,11 +78,8 @@ export default function Dashboard() {
   // Expense by category
   const expenseByCategory = useMemo(() => {
     const categoryMap = new Map<string, number>()
-    const currentMonth = new Date().getMonth()
-
     ;(expenses ?? []).forEach((e) => {
-      const date = new Date(e.date)
-      if (e.transactionType !== 'income' && date.getMonth() === currentMonth) {
+      if (e.transactionType !== 'income') {
         categoryMap.set(e.category, (categoryMap.get(e.category) || 0) + e.amount)
       }
     })
@@ -139,11 +136,11 @@ export default function Dashboard() {
               <Wallet className="w-6 h-6 text-red-600" />
             </div>
           </div>
-          <p className="text-sm text-gray-600 mb-1">Pengeluaran Bulan Ini</p>
+          <p className="text-sm text-gray-600 mb-1">Total Pengeluaran</p>
           <p className="text-2xl font-bold text-gray-900">{formatCurrency(metrics.totalExpenses)}</p>
           <div className="mt-2">
             <div className="flex items-center text-sm">
-              <span className="text-gray-600">Budget: {formatCurrency(metrics.totalBudget)}</span>
+              <span className="text-gray-600">Budget bulan ini: {formatCurrency(metrics.totalBudget)}</span>
             </div>
             <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
               <div
@@ -158,7 +155,7 @@ export default function Dashboard() {
           <div className="p-2 bg-green-100 rounded-lg w-fit mb-4">
             <TrendingUp className="w-6 h-6 text-green-600" />
           </div>
-          <p className="text-sm text-gray-600 mb-1">Pemasukan Bulan Ini</p>
+          <p className="text-sm text-gray-600 mb-1">Total Pemasukan</p>
           <p className="text-2xl font-bold text-green-600">{formatCurrency(metrics.totalIncome)}</p>
         </div>
 
@@ -166,7 +163,7 @@ export default function Dashboard() {
           <div className={`p-2 rounded-lg w-fit mb-4 ${metrics.cashFlowBalance >= 0 ? 'bg-green-100' : 'bg-red-100'}`}>
             <Wallet className={`w-6 h-6 ${metrics.cashFlowBalance >= 0 ? 'text-green-600' : 'text-red-600'}`} />
           </div>
-          <p className="text-sm text-gray-600 mb-1">Saldo Arus Kas Bulan Ini</p>
+          <p className="text-sm text-gray-600 mb-1">Saldo Arus Kas Keseluruhan</p>
           <p className={`text-2xl font-bold ${metrics.cashFlowBalance >= 0 ? 'text-green-600' : 'text-red-600'}`}>{formatCurrency(metrics.cashFlowBalance)}</p>
         </div>
 
@@ -247,7 +244,7 @@ export default function Dashboard() {
 
         {/* Expense by Category */}
         <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-          <h3 className="font-semibold text-gray-900 mb-4">Pengeluaran per Kategori</h3>
+          <h3 className="font-semibold text-gray-900 mb-4">Pengeluaran per Kategori (Keseluruhan)</h3>
           {expenseByCategory.length > 0 ? (
             <ResponsiveContainer width="100%" height={250}>
               <RechartsPie>
