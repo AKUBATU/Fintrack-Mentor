@@ -486,8 +486,9 @@ export default function Expenses() {
 
       {/* Add/Edit Expense Modal */}
       {(showAddExpense || editingExpense) && (
-        <div className="fixed inset-0 flex items-center justify-center z-50 p-4" style={{ backgroundColor: 'rgba(17, 24, 39, 0.22)', backdropFilter: 'blur(7px)', WebkitBackdropFilter: 'blur(7px)' }}>
-          <div className="bg-white rounded-xl max-w-md w-full p-6 max-h-[92vh] overflow-y-auto">
+        <div className="fixed inset-0 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4" style={{ backgroundColor: 'rgba(17, 24, 39, 0.22)', backdropFilter: 'blur(7px)', WebkitBackdropFilter: 'blur(7px)' }}>
+          <div className="bg-white rounded-t-2xl sm:rounded-xl max-w-md w-full max-h-[calc(100dvh-1rem)] sm:max-h-[92vh] flex flex-col overflow-hidden">
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pt-4 sm:px-6 sm:pt-6">
             <h3 className="text-xl font-bold text-gray-900 mb-4">
               {editingExpense ? 'Edit Transaksi' : 'Tambah Transaksi'}
             </h3>
@@ -674,8 +675,9 @@ export default function Expenses() {
               )}
               </>}
             </div>
+            </div>
 
-            <div className="flex gap-2 mt-6">
+            <div className="shrink-0 grid grid-cols-2 gap-2 px-4 sm:px-6 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))] bg-white border-t border-gray-100 shadow-[0_-8px_20px_rgba(15,23,42,0.06)]">
               <button
                 onClick={() => {
                   setShowAddExpense(false);
@@ -684,14 +686,14 @@ export default function Expenses() {
                   setEntryMode('scan');
                   void handleReceiptChange([]);
                 }}
-                className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200"
+                className="min-w-0 px-3 sm:px-4 py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200"
               >
                 Batal
               </button>
               <button
                 onClick={editingExpense ? () => handleUpdateExpense(editingExpense) : handleAddExpense}
                 disabled={receiptScanning || (!editingExpense && entryMode === 'scan' && !receiptScanText)}
-                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                className="min-w-0 px-3 sm:px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
               >
                 {receiptScanning ? 'Membaca Struk…' : editingExpense ? 'Update' : entryMode === 'scan' && !receiptScanText ? 'Upload Struk Dahulu' : 'Simpan'}
               </button>
