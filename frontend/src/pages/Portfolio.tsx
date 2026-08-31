@@ -763,9 +763,9 @@ export default function Portfolio() {
 
       {/* Generic asset modal */}
       {showAssetModal && (
-        <div className="fixed inset-0 flex items-center justify-center z-50 p-4" style={{ backgroundColor: 'rgba(17, 24, 39, 0.22)', backdropFilter: 'blur(7px)', WebkitBackdropFilter: 'blur(7px)' }} onClick={() => setShowAssetModal(false)} role="dialog" aria-modal="true">
-          <div className="relative bg-white rounded-xl max-w-md w-full p-6 overflow-y-auto" style={{ maxHeight: '90vh' }} onClick={(event) => event.stopPropagation()}>
-            <button onClick={() => setShowAssetModal(false)} className="absolute top-4 right-4 p-1 text-gray-500"><X className="w-5 h-5" /></button>
+        <div className="fixed inset-0 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4" style={{ backgroundColor: 'rgba(17, 24, 39, 0.22)', backdropFilter: 'blur(7px)', WebkitBackdropFilter: 'blur(7px)' }} onClick={() => setShowAssetModal(false)} role="dialog" aria-modal="true">
+          <div className="relative bg-white rounded-t-2xl sm:rounded-xl max-w-md w-full p-4 sm:p-6 overflow-y-auto overscroll-contain max-h-[calc(100dvh-1rem)] sm:max-h-[90vh]" onClick={(event) => event.stopPropagation()}>
+            <button onClick={() => setShowAssetModal(false)} className="absolute top-3 sm:top-4 right-3 sm:right-4 p-2 text-gray-500"><X className="w-5 h-5" /></button>
             <h3 className="text-xl font-bold text-gray-900 pr-8">{editingAssetId ? 'Edit Instrumen' : 'Tambah Instrumen Investasi'}</h3>
             <p className="text-sm text-gray-500 mt-1 mb-5">Form akan menyesuaikan satuan dan nilai berdasarkan instrumen yang dipilih.</p>
             <div className="space-y-4">
@@ -796,7 +796,7 @@ export default function Portfolio() {
               <div><label className="block text-sm font-medium text-gray-700 mb-1">Tanggal Perolehan</label><input type="date" value={assetForm.acquired_date} onChange={(e) => setAssetForm({ ...assetForm, acquired_date: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div>
               <div><label className="block text-sm font-medium text-gray-700 mb-1">Catatan</label><textarea value={assetForm.notes} onChange={(e) => setAssetForm({ ...assetForm, notes: e.target.value })} rows={2} className="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div>
             </div>
-            <div className="flex gap-2 mt-6"><button disabled={savingAsset} onClick={() => setShowAssetModal(false)} className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg">Batal</button><button disabled={savingAsset} onClick={saveAsset} className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg disabled:opacity-50">{savingAsset ? 'Menyimpan…' : editingAssetId ? 'Simpan Perubahan' : 'Simpan Aset'}</button></div>
+            <div className="sticky bottom-0 grid grid-cols-2 gap-2 mt-6 pt-3 pb-[max(0px,env(safe-area-inset-bottom))] bg-white"><button disabled={savingAsset} onClick={() => setShowAssetModal(false)} className="min-w-0 px-3 sm:px-4 py-2.5 bg-gray-100 text-gray-700 rounded-lg">Batal</button><button disabled={savingAsset} onClick={saveAsset} className="min-w-0 px-3 sm:px-4 py-2.5 bg-blue-600 text-white rounded-lg disabled:opacity-50">{savingAsset ? 'Menyimpan…' : editingAssetId ? 'Simpan Perubahan' : 'Simpan Aset'}</button></div>
           </div>
         </div>
       )}
@@ -804,15 +804,15 @@ export default function Portfolio() {
       {/* Add Transaction Modal */}
       {showAddTransaction && (
         <div
-          className="fixed inset-0 flex items-center justify-center z-50 p-4"
+          className="fixed inset-0 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4"
           style={{ backgroundColor: 'rgba(17, 24, 39, 0.22)', backdropFilter: 'blur(7px)', WebkitBackdropFilter: 'blur(7px)' }}
           onClick={() => setShowAddTransaction(false)}
           role="dialog"
           aria-modal="true"
           aria-labelledby="asset-modal-title"
         >
-          <div className="relative bg-white rounded-xl max-w-md w-full p-6 max-h-[90vh] overflow-y-auto" onClick={(event) => event.stopPropagation()}>
-            <button type="button" onClick={() => setShowAddTransaction(false)} className="absolute top-4 right-4 p-1 text-gray-500 hover:text-gray-800" aria-label="Tutup popup catat aset">
+          <div className="relative bg-white rounded-t-2xl sm:rounded-xl max-w-md w-full p-4 sm:p-6 max-h-[calc(100dvh-1rem)] sm:max-h-[90vh] overflow-y-auto overscroll-contain" onClick={(event) => event.stopPropagation()}>
+            <button type="button" onClick={() => setShowAddTransaction(false)} className="absolute top-3 sm:top-4 right-3 sm:right-4 p-2 text-gray-500 hover:text-gray-800" aria-label="Tutup popup catat aset">
               <X className="w-5 h-5" />
             </button>
             <h3 id="asset-modal-title" className="text-xl font-bold text-gray-900 mb-1 pr-8">{editingTransactionId ? 'Edit Transaksi Saham' : 'Catat Aset Saham'}</h3>
@@ -907,12 +907,12 @@ export default function Portfolio() {
               )}
             </div>
 
-            <div className="flex gap-2 mt-6">
+            <div className="sticky bottom-0 grid grid-cols-2 gap-2 mt-6 pt-3 pb-[max(0px,env(safe-area-inset-bottom))] bg-white">
               <button
                 type="button"
                 onClick={() => { setShowAddTransaction(false); setEditingTransactionId(null); }}
                 disabled={savingTransaction}
-                className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200"
+                className="min-w-0 px-3 sm:px-4 py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200"
               >
                 Batal
               </button>
@@ -920,7 +920,7 @@ export default function Portfolio() {
                 type="button"
                 onClick={handleAddTransaction}
                 disabled={savingTransaction}
-                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                className="min-w-0 px-3 sm:px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
               >
                 {savingTransaction ? 'Menyimpan…' : editingTransactionId ? 'Simpan Perubahan' : 'Simpan'}
               </button>
@@ -932,15 +932,15 @@ export default function Portfolio() {
       {/* Add Dividend Modal */}
       {showAddDividend && (
         <div
-          className="fixed inset-0 flex items-center justify-center z-50 p-4"
+          className="fixed inset-0 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4"
           style={{ backgroundColor: 'rgba(17, 24, 39, 0.22)', backdropFilter: 'blur(7px)', WebkitBackdropFilter: 'blur(7px)' }}
           onClick={() => setShowAddDividend(false)}
           role="dialog"
           aria-modal="true"
           aria-labelledby="dividend-modal-title"
         >
-          <div className="relative bg-white rounded-xl max-w-md w-full p-6 max-h-[90vh] overflow-y-auto" onClick={(event) => event.stopPropagation()}>
-            <button type="button" onClick={() => setShowAddDividend(false)} className="absolute top-4 right-4 p-1 text-gray-500 hover:text-gray-800" aria-label="Tutup popup dividen">
+          <div className="relative bg-white rounded-t-2xl sm:rounded-xl max-w-md w-full p-4 sm:p-6 max-h-[calc(100dvh-1rem)] sm:max-h-[90vh] overflow-y-auto overscroll-contain" onClick={(event) => event.stopPropagation()}>
+            <button type="button" onClick={() => setShowAddDividend(false)} className="absolute top-3 sm:top-4 right-3 sm:right-4 p-2 text-gray-500 hover:text-gray-800" aria-label="Tutup popup dividen">
               <X className="w-5 h-5" />
             </button>
             <h3 id="dividend-modal-title" className="text-xl font-bold text-gray-900 mb-4 pr-8">Catat Dividen</h3>
@@ -1008,16 +1008,16 @@ export default function Portfolio() {
               )}
             </div>
 
-            <div className="flex gap-2 mt-6">
+            <div className="sticky bottom-0 grid grid-cols-2 gap-2 mt-6 pt-3 pb-[max(0px,env(safe-area-inset-bottom))] bg-white">
               <button
                 onClick={() => setShowAddDividend(false)}
-                className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200"
+                className="min-w-0 px-3 sm:px-4 py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200"
               >
                 Batal
               </button>
               <button
                 onClick={handleAddDividend}
-                className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+                className="min-w-0 px-3 sm:px-4 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700"
               >
                 Simpan
               </button>
@@ -1028,8 +1028,8 @@ export default function Portfolio() {
 
       {/* Update Price Modal */}
       {showUpdatePrice && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl max-w-md w-full p-6">
+        <div className="fixed inset-0 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4" style={{ backgroundColor: 'rgba(17, 24, 39, 0.22)', backdropFilter: 'blur(7px)', WebkitBackdropFilter: 'blur(7px)' }}>
+          <div className="bg-white rounded-t-2xl sm:rounded-xl max-w-md w-full p-4 sm:p-6 max-h-[calc(100dvh-1rem)] overflow-y-auto overscroll-contain">
             <h3 className="text-xl font-bold text-gray-900 mb-4">Update Harga Saham</h3>
             <div className="space-y-4">
               <div>
@@ -1058,16 +1058,16 @@ export default function Portfolio() {
                 />
               </div>
             </div>
-            <div className="flex gap-2 mt-6">
+            <div className="grid grid-cols-2 gap-2 mt-6 pb-[max(0px,env(safe-area-inset-bottom))]">
               <button
                 onClick={() => setShowUpdatePrice(false)}
-                className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200"
+                className="min-w-0 px-3 sm:px-4 py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200"
               >
                 Batal
               </button>
               <button
                 onClick={handleUpdatePrice}
-                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                className="min-w-0 px-3 sm:px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
               >
                 Update
               </button>
