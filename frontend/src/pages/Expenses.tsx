@@ -550,8 +550,8 @@ export default function Expenses() {
                 </div>
               )}
 
-              {(editingExpense || entryMode === 'manual') && <>
-              <div>
+              {(editingExpense || entryMode === 'manual') && <div className="space-y-3">
+              <div className="rounded-xl border border-gray-200 bg-gray-50/70 p-3">
                 <label className="block text-sm font-medium text-gray-700 mb-1">Jenis Transaksi</label>
                 <div className="grid grid-cols-2 gap-2">
                   <button
@@ -560,7 +560,7 @@ export default function Expenses() {
                       setFormData({ ...formData, transactionType: 'expense', category: 'Makan' });
                       setAutoPred(null);
                     }}
-                    className={`px-4 py-2 rounded-lg border ${formData.transactionType === 'expense' ? 'bg-red-50 border-red-500 text-red-700' : 'border-gray-300 text-gray-600'}`}
+                    className={`min-w-0 px-2 py-2.5 rounded-lg border text-sm font-medium ${formData.transactionType === 'expense' ? 'bg-red-50 border-red-400 text-red-700' : 'bg-white border-gray-200 text-gray-600'}`}
                   >
                     Pengeluaran
                   </button>
@@ -570,21 +570,37 @@ export default function Expenses() {
                       setFormData({ ...formData, transactionType: 'income', category: 'Gaji' });
                       setAutoPred(null);
                     }}
-                    className={`px-4 py-2 rounded-lg border ${formData.transactionType === 'income' ? 'bg-green-50 border-green-500 text-green-700' : 'border-gray-300 text-gray-600'}`}
+                    className={`min-w-0 px-2 py-2.5 rounded-lg border text-sm font-medium ${formData.transactionType === 'income' ? 'bg-green-50 border-green-400 text-green-700' : 'bg-white border-gray-200 text-gray-600'}`}
                   >
                     Pemasukan
                   </button>
                 </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Tanggal</label>
-                <input
-                  type="date"
-                  value={formData.date}
-                  onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                />
+              <div className="grid grid-cols-2 gap-3">
+                <div className="min-w-0">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Tanggal</label>
+                  <input
+                    type="date"
+                    value={formData.date}
+                    onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                    className="w-full min-w-0 px-2.5 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div className="min-w-0">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Jumlah</label>
+                  <div className="flex min-w-0">
+                    <span className="flex items-center px-2 border border-r-0 border-gray-300 rounded-l-lg bg-gray-50 text-xs font-medium text-gray-500">Rp</span>
+                    <input
+                      type="number"
+                      inputMode="numeric"
+                      value={formData.amount}
+                      onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+                      className="w-full min-w-0 px-2.5 py-2.5 text-sm border border-gray-300 rounded-r-lg focus:ring-2 focus:ring-blue-500"
+                      placeholder="50.000"
+                    />
+                  </div>
+                </div>
               </div>
 
               <div>
@@ -593,63 +609,32 @@ export default function Expenses() {
                   type="text"
                   value={formData.merchant}
                   onChange={(e) => setFormData({ ...formData, merchant: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   placeholder={formData.transactionType === 'income' ? 'Contoh: Perusahaan atau klien' : 'Nama toko/tempat'}
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Jumlah</label>
-                <input
-                  type="number"
-                  value={formData.amount}
-                  onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                  placeholder="50000"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Kategori</label>
-
-                {formData.transactionType === 'expense' && <div className="flex items-center gap-2 mb-2">
-                  <button
-                    type="button"
-                    onClick={handleAutoCategorize}
-                    disabled={autoLoading}
-                    className="px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 border border-gray-200 text-sm text-gray-800 disabled:opacity-60"
-                  >
-                    {autoLoading ? 'Predicting…' : 'Auto Categorize'}
-                  </button>
-                  {autoPred && (
-                    <span className="text-xs text-gray-600">
-                      Confidence: {Math.round(autoPred.confidence * 100)}%
-                    </span>
-                  )}
-                </div>}
-
-                <select
-                  value={formData.category}
-                  onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                >
-                  {categories.map(cat => (
-                    <option key={cat} value={cat}>{cat}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Metode Transaksi</label>
-                <select
-                  value={formData.paymentMethod}
-                  onChange={(e) => setFormData({ ...formData, paymentMethod: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                >
-                  {paymentMethods.map(method => (
-                    <option key={method} value={method}>{method}</option>
-                  ))}
-                </select>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="min-w-0">
+                  <div className="flex items-center justify-between gap-1 mb-1">
+                    <label className="text-sm font-medium text-gray-700">Kategori</label>
+                    {formData.transactionType === 'expense' && (
+                      <button type="button" onClick={handleAutoCategorize} disabled={autoLoading} className="text-xs font-medium text-blue-600 disabled:opacity-60">
+                        {autoLoading ? 'Memproses…' : 'Otomatis'}
+                      </button>
+                    )}
+                  </div>
+                  <select value={formData.category} onChange={(e) => setFormData({ ...formData, category: e.target.value })} className="w-full min-w-0 px-2.5 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                    {categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                  </select>
+                  {autoPred && <p className="mt-1 text-[11px] text-gray-500">Akurasi {Math.round(autoPred.confidence * 100)}%</p>}
+                </div>
+                <div className="min-w-0">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Metode</label>
+                  <select value={formData.paymentMethod} onChange={(e) => setFormData({ ...formData, paymentMethod: e.target.value })} className="w-full min-w-0 px-2.5 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                    {paymentMethods.map(method => <option key={method} value={method}>{method}</option>)}
+                  </select>
+                </div>
               </div>
 
               <div>
@@ -657,7 +642,7 @@ export default function Expenses() {
                 <textarea
                   value={formData.notes}
                   onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 resize-none"
                   rows={2}
                   placeholder="Catatan opsional"
                 />
@@ -673,7 +658,7 @@ export default function Expenses() {
                   </label>
                 </div>
               )}
-              </>}
+              </div>}
             </div>
             </div>
 
