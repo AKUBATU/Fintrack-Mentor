@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useState } from 'react';
+import ThemeToggle from './ThemeToggle';
 
 export default function Layout() {
   const { user, logout } = useAuth();
@@ -129,8 +130,11 @@ export default function Layout() {
               </h2>
               <p className="app-topbar-subtitle text-xs text-gray-500">Kelola finansial Anda dengan lebih terarah</p>
             </div>
-            <div className="app-topbar-meta">
-              <div className="app-date-pill">{new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }).format(new Date())}</div>
+            <div className="flex items-center gap-2">
+              <div className="app-topbar-meta">
+                <div className="app-date-pill">{new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }).format(new Date())}</div>
+              </div>
+              <ThemeToggle />
             </div>
           </div>
         </header>

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, LogIn } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import ThemeToggle from '../components/ThemeToggle';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -26,6 +27,7 @@ export default function Login() {
 
   return (
     <div className="auth-shell min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+      <ThemeToggle className="auth-theme-toggle" />
       <div className="max-w-md w-full">
         <div className="auth-card bg-white rounded-2xl shadow-xl p-8">
           {/* Header */}

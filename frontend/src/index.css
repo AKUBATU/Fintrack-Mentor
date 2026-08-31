@@ -2072,6 +2072,157 @@ button:disabled { cursor: not-allowed; }
   background: white;
 }
 .app-icon-button:hover { color: #2563eb; border-color: #bfdbfe; background: #eff6ff; }
+.theme-toggle { flex: 0 0 auto; }
+.auth-theme-toggle {
+  position: absolute;
+  z-index: 3;
+  top: max(1rem, env(safe-area-inset-top));
+  right: max(1rem, env(safe-area-inset-right));
+}
+body,
+.app-shell,
+.app-sidebar,
+.app-topbar,
+.app-main .bg-white,
+.auth-shell,
+.auth-card {
+  transition: background-color .2s ease, border-color .2s ease, color .2s ease;
+}
+
+html.dark { color-scheme: dark; background: #080d18; }
+.dark body { background: #080d18; color: #dbe5f3; }
+.dark .app-shell {
+  background:
+    radial-gradient(circle at 82% 5%, rgba(37, 99, 235, .12), transparent 25rem),
+    linear-gradient(180deg, #0b1120 0%, #080d18 100%);
+}
+.dark .app-sidebar {
+  border-right-color: #253044;
+  background: rgba(15, 23, 42, .98);
+  box-shadow: 10px 0 35px rgba(0, 0, 0, .2);
+}
+.dark .app-sidebar-backdrop { background: rgba(2, 6, 23, .48); }
+.dark .app-brand { border-bottom-color: #253044; }
+.dark .app-sidebar .text-gray-900,
+.dark .app-topbar .text-gray-900 { color: #f1f5f9; }
+.dark .app-sidebar .text-gray-700 { color: #cbd5e1; }
+.dark .app-sidebar .text-gray-600,
+.dark .app-topbar .text-gray-600 { color: #a9b7ca; }
+.dark .app-sidebar .text-gray-500,
+.dark .app-topbar .text-gray-500 { color: #8998ad; }
+.dark .app-nav-link { color: #a9b7ca; }
+.dark .app-nav-link:hover { color: #dbeafe; background: #172033; }
+.dark .app-nav-active {
+  color: #93c5fd !important;
+  border-color: #274472;
+  background: linear-gradient(90deg, #172554, #172033) !important;
+}
+.dark .app-user-panel {
+  border-top-color: #253044;
+  background: linear-gradient(180deg, rgba(15, 23, 42, .7), #111827);
+}
+.dark .app-topbar {
+  border-bottom-color: rgba(51, 65, 85, .85);
+  background: rgba(15, 23, 42, .84);
+}
+.dark .app-date-pill,
+.dark .app-icon-button {
+  border-color: #334155;
+  background: #111827;
+  color: #a9b7ca;
+}
+.dark .app-icon-button:hover { color: #93c5fd; border-color: #3b82f6; background: #172554; }
+
+.dark .app-main h1,
+.dark .app-main h2,
+.dark .app-main h3,
+.dark .app-main .text-gray-900 { color: #f1f5f9; }
+.dark .app-main .text-gray-800 { color: #e2e8f0; }
+.dark .app-main .text-gray-700 { color: #cbd5e1; }
+.dark .app-main .text-gray-600 { color: #a9b7ca; }
+.dark .app-main .text-gray-500,
+.dark .app-main .text-gray-400 { color: #8998ad; }
+.dark .app-main .bg-white { background-color: #111827; }
+.dark .app-main .bg-gray-50 { background-color: #0f172a; }
+.dark .app-main .bg-gray-100 { background-color: #1e293b; }
+.dark .app-main .bg-gray-200 { background-color: #334155; }
+.dark .app-main .bg-blue-50 { background-color: #172554; }
+.dark .app-main .bg-blue-100 { background-color: #1e3a8a; }
+.dark .app-main .bg-green-50 { background-color: #052e22; }
+.dark .app-main .bg-green-100 { background-color: #14532d; }
+.dark .app-main .bg-red-50 { background-color: #3f1219; }
+.dark .app-main .bg-red-100 { background-color: #7f1d1d; }
+.dark .app-main .bg-yellow-50 { background-color: #35260c; }
+.dark .app-main .bg-yellow-100 { background-color: #713f12; }
+.dark .app-main .bg-purple-50 { background-color: #2e1748; }
+.dark .app-main .bg-purple-100 { background-color: #4c1d95; }
+.dark .app-main .bg-violet-50 { background-color: #2e1065; }
+.dark .app-main .text-blue-900 { color: #dbeafe; }
+.dark .app-main .text-blue-700,
+.dark .app-main .text-blue-600 { color: #93c5fd; }
+.dark .app-main .text-green-900,
+.dark .app-main .text-green-800 { color: #bbf7d0; }
+.dark .app-main .text-red-700,
+.dark .app-main .text-red-600 { color: #fca5a5; }
+.dark .app-main .text-yellow-900,
+.dark .app-main .text-yellow-700 { color: #fde68a; }
+.dark .app-main .border-gray-100,
+.dark .app-main .border-gray-200,
+.dark .app-main .border-gray-300 { border-color: #334155; }
+.dark .app-main .divide-gray-100 > :not(:last-child),
+.dark .app-main .divide-gray-200 > :not(:last-child) { border-color: #293548; }
+.dark .app-main input,
+.dark .app-main select,
+.dark .app-main textarea {
+  color: #e5edf8;
+  border-color: #3b475b;
+  background-color: #0f172a;
+}
+.dark .app-main input::placeholder,
+.dark .app-main textarea::placeholder { color: #64748b; }
+.dark .app-main input:focus,
+.dark .app-main select:focus,
+.dark .app-main textarea:focus { background: #111827; border-color: #60a5fa; }
+.dark .app-main input:disabled { background: #1e293b; color: #8998ad; }
+.dark .app-main table thead { background: #0f172a; }
+.dark .app-main table th { color: #94a3b8; }
+.dark .app-main table tbody tr:hover { background: rgba(30, 41, 59, .55); }
+.dark .app-main .shadow-sm { box-shadow: 0 6px 22px rgba(0, 0, 0, .18); }
+.dark .finance-flow-card,
+.dark .finance-history-row { border-color: #334155; background: #111827; }
+.dark .finance-history-row:hover { background: #172033; }
+.dark .finance-income-card { border-left-color: #22c55e; }
+.dark .finance-expense-card { border-left-color: #ef4444; }
+.dark .recharts-cartesian-axis-tick-value,
+.dark .recharts-pie-label-text { fill: #a9b7ca; }
+.dark .recharts-cartesian-grid line { stroke: #334155; }
+.dark .recharts-default-tooltip {
+  border-color: #334155 !important;
+  border-radius: .5rem;
+  background: #111827 !important;
+}
+.dark .recharts-tooltip-label,
+.dark .recharts-tooltip-item { color: #e2e8f0 !important; }
+.dark [data-sonner-toast] {
+  border-color: #334155 !important;
+  background: #111827 !important;
+  color: #e2e8f0 !important;
+}
+.dark ::-webkit-scrollbar { width: 10px; height: 10px; }
+.dark ::-webkit-scrollbar-track { background: #0b1120; }
+.dark ::-webkit-scrollbar-thumb { background: #334155; border: 2px solid #0b1120; border-radius: 999px; }
+.dark .auth-shell {
+  background:
+    radial-gradient(circle at 15% 15%, rgba(59, 130, 246, .18), transparent 24rem),
+    radial-gradient(circle at 85% 85%, rgba(99, 102, 241, .14), transparent 26rem),
+    #080d18;
+}
+.dark .auth-card { border-color: #263248; background: rgba(15, 23, 42, .94); }
+.dark .auth-card h1,
+.dark .auth-card label { color: #f1f5f9; }
+.dark .auth-card p { color: #a9b7ca; }
+.dark .auth-card input { color: #e5edf8; border-color: #3b475b; background: #111827; }
+.dark .auth-card input:focus { background: #0f172a; }
 
 .app-main {
   width: 100%;

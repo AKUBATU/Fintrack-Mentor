@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Eye, EyeOff, KeyRound } from 'lucide-react';
 import { toast } from 'sonner';
+import ThemeToggle from '../components/ThemeToggle';
 import { api } from '../services/api';
 
 export default function ResetPassword() {
@@ -60,6 +61,7 @@ export default function ResetPassword() {
 
   return (
     <div className="auth-shell min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+      <ThemeToggle className="auth-theme-toggle" />
       <div className="auth-card max-w-md w-full bg-white rounded-2xl shadow-xl p-8">
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-600 rounded-full mb-4">
