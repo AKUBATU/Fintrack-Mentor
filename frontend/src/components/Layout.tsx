@@ -9,15 +9,27 @@ import {
   LogOut,
   Menu,
   X,
-  WalletCards
+  WalletCards,
+  Moon,
+  Sun
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 export default function Layout() {
   const { user, logout } = useAuth();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [darkMode, setDarkMode] = useState(() => {
+    const savedTheme = localStorage.getItem('fintrack_theme');
+    if (savedTheme) return savedTheme === 'dark';
+    return window.matchMedia('(prefers-color-scheme: dark)').matches;
+  });
+
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', darkMode);
+    localStorage.setItem('fintrack_theme', darkMode ? 'dark' : 'light');
+  }, [darkMode]);
 
   const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -129,8 +141,19 @@ export default function Layout() {
               </h2>
               <p className="app-topbar-subtitle text-xs text-gray-500">Kelola finansial Anda dengan lebih terarah</p>
             </div>
-            <div className="app-topbar-meta">
-              <div className="app-date-pill">{new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }).format(new Date())}</div>
+            <div className="flex items-center gap-2">
+              <div className="app-topbar-meta">
+                <div className="app-date-pill">{new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }).format(new Date())}</div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setDarkMode((enabled) => !enabled)}
+                className="app-icon-button"
+                aria-label={darkMode ? 'Aktifkan mode terang' : 'Aktifkan mode gelap'}
+                title={darkMode ? 'Mode terang' : 'Mode gelap'}
+              >
+                {darkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+              </button>
             </div>
           </div>
         </header>
