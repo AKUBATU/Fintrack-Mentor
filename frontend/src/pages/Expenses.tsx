@@ -689,8 +689,8 @@ export default function Expenses() {
 
       {/* Add Budget Modal */}
       {showAddBudget && (
-        <div className="fixed inset-0 flex items-center justify-center z-50 p-4" style={{ backgroundColor: 'rgba(17, 24, 39, 0.22)', backdropFilter: 'blur(7px)', WebkitBackdropFilter: 'blur(7px)' }}>
-          <div className="bg-white rounded-xl max-w-md w-full p-6">
+        <div className="fixed inset-0 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4" style={{ backgroundColor: 'rgba(17, 24, 39, 0.22)', backdropFilter: 'blur(7px)', WebkitBackdropFilter: 'blur(7px)' }}>
+          <div className="bg-white rounded-t-2xl sm:rounded-xl max-w-md w-full p-4 sm:p-6 max-h-[calc(100dvh-1rem)] overflow-y-auto overscroll-contain">
             <h3 className="text-xl font-bold text-gray-900 mb-4">Atur Budget</h3>
 
             <div className="space-y-4">
@@ -731,16 +731,16 @@ export default function Expenses() {
               </div>
             </div>
 
-            <div className="flex gap-2 mt-6">
+            <div className="grid grid-cols-2 gap-2 mt-6 pb-[max(0px,env(safe-area-inset-bottom))]">
               <button
                 onClick={() => setShowAddBudget(false)}
-                className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200"
+                className="min-w-0 px-3 sm:px-4 py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200"
               >
                 Batal
               </button>
               <button
                 onClick={handleAddBudget}
-                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                className="min-w-0 px-3 sm:px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
               >
                 Simpan
               </button>

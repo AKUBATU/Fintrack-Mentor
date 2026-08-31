@@ -2134,6 +2134,23 @@ button:disabled { cursor: not-allowed; }
   .app-main { padding: 1rem; }
   .app-main h1 { font-size: 1.45rem; }
   .app-main > * { min-width: 0; }
+  .app-main form,
+  .app-main form > *,
+  .app-main input:not([type="checkbox"]):not([type="radio"]),
+  .app-main select,
+  .app-main textarea {
+    min-width: 0;
+    max-width: 100%;
+  }
+  .app-main input:not([type="checkbox"]):not([type="radio"]),
+  .app-main select,
+  .app-main textarea {
+    font-size: 16px;
+  }
+  .app-main input[type="date"] {
+    display: block;
+    width: 100%;
+  }
   .app-main .overflow-x-auto {
     width: 100%;
     max-width: calc(100vw - 2rem);
@@ -2238,6 +2255,16 @@ button:disabled { cursor: not-allowed; }
 .about-hero > div:last-child { position: relative; z-index: 1; max-width: 42rem; }
 
 @media (max-width: 640px) {
+  .app-main > div.fixed {
+    align-items: flex-end;
+    padding: 0;
+  }
+  .app-main > div.fixed > div.bg-white {
+    width: 100%;
+    max-width: 100%;
+    max-height: calc(100dvh - .5rem) !important;
+    border-radius: 1rem 1rem 0 0;
+  }
   .about-hero { align-items: flex-start; flex-direction: column; padding: 1.5rem; }
   .auth-shell { align-items: flex-start; padding: 1rem; overflow-y: auto; }
   .auth-card { padding: 1.25rem; margin-block: auto; }
@@ -2248,4 +2275,7 @@ button:disabled { cursor: not-allowed; }
   .finance-balance-footer { align-items: flex-start; flex-direction: column; }
   .finance-history-tools > * { width: 100%; }
   .finance-history-tools select { width: 100%; }
+  .settings-save-action,
+  .settings-save-action > button { width: 100%; }
+  .settings-save-action > button { justify-content: center; }
 }
