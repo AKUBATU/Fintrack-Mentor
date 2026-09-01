@@ -2419,6 +2419,19 @@ html.dark { color-scheme: dark; background: #080d18; }
 .about-hero > div:last-child { position: relative; z-index: 1; max-width: 42rem; }
 
 @media (max-width: 640px) {
+  .finance-transaction-overlay {
+    width: 100vw !important;
+    height: 100dvh;
+    min-height: 100dvh;
+  }
+
+  .app-main > div.fixed > .finance-transaction-dialog {
+    height: 100dvh;
+    min-height: 100dvh;
+    max-height: 100dvh !important;
+    border-radius: 0;
+  }
+
   .app-main > div.fixed {
     align-items: flex-end;
     padding: 0;
