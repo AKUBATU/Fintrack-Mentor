@@ -38,13 +38,26 @@ export default function Expenses() {
     if (!modalOpen) return;
 
     const previousBodyOverflow = document.body.style.overflow;
+    const previousBodyPosition = document.body.style.position;
+    const previousBodyTop = document.body.style.top;
+    const previousBodyWidth = document.body.style.width;
     const previousHtmlOverflow = document.documentElement.style.overflow;
+    const scrollY = window.scrollY;
+    document.documentElement.classList.add('modal-open');
     document.body.style.overflow = 'hidden';
+    document.body.style.position = 'fixed';
+    document.body.style.top = `-${scrollY}px`;
+    document.body.style.width = '100%';
     document.documentElement.style.overflow = 'hidden';
 
     return () => {
+      document.documentElement.classList.remove('modal-open');
       document.body.style.overflow = previousBodyOverflow;
+      document.body.style.position = previousBodyPosition;
+      document.body.style.top = previousBodyTop;
+      document.body.style.width = previousBodyWidth;
       document.documentElement.style.overflow = previousHtmlOverflow;
+      window.scrollTo(0, scrollY);
     };
   }, [showAddExpense, editingExpense, showAddBudget, selectedReceipt]);
 
@@ -507,7 +520,7 @@ export default function Expenses() {
 
       {/* Add/Edit Expense Modal */}
       {(showAddExpense || editingExpense) && (
-        <div className="finance-transaction-overlay fixed inset-0 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4" style={{ backgroundColor: 'rgba(17, 24, 39, 0.22)', backdropFilter: 'blur(7px)', WebkitBackdropFilter: 'blur(7px)' }}>
+        <div className="app-modal-overlay finance-transaction-overlay fixed inset-0 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4" style={{ backgroundColor: 'rgba(17, 24, 39, 0.22)', backdropFilter: 'blur(7px)', WebkitBackdropFilter: 'blur(7px)' }}>
           <div className="finance-transaction-dialog bg-white rounded-t-2xl sm:rounded-xl max-w-md w-full max-h-[calc(100dvh-1rem)] sm:max-h-[92vh] flex flex-col overflow-hidden">
             <div className="finance-transaction-scroll min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain px-4 pt-4 sm:px-6 sm:pt-6">
             <h3 className="text-xl font-bold text-gray-900 mb-4">
@@ -710,7 +723,7 @@ export default function Expenses() {
 
       {/* Add Budget Modal */}
       {showAddBudget && (
-        <div className="fixed inset-0 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4" style={{ backgroundColor: 'rgba(17, 24, 39, 0.22)', backdropFilter: 'blur(7px)', WebkitBackdropFilter: 'blur(7px)' }}>
+        <div className="app-modal-overlay fixed inset-0 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4" style={{ backgroundColor: 'rgba(17, 24, 39, 0.22)', backdropFilter: 'blur(7px)', WebkitBackdropFilter: 'blur(7px)' }}>
           <div className="bg-white rounded-t-2xl sm:rounded-xl max-w-md w-full p-4 sm:p-6 max-h-[calc(100dvh-1rem)] overflow-y-auto overscroll-contain">
             <h3 className="text-xl font-bold text-gray-900 mb-4">Atur Budget</h3>
 
@@ -859,7 +872,7 @@ export default function Expenses() {
       </div>
 
       {selectedReceipt && (
-        <div className="fixed inset-0 flex items-center justify-center z-50 p-4" style={{ backgroundColor: 'rgba(17, 24, 39, 0.35)', backdropFilter: 'blur(7px)', WebkitBackdropFilter: 'blur(7px)' }} onClick={() => setSelectedReceipt(null)}>
+        <div className="app-modal-overlay fixed inset-0 flex items-center justify-center z-50 p-4" style={{ backgroundColor: 'rgba(17, 24, 39, 0.35)', backdropFilter: 'blur(7px)', WebkitBackdropFilter: 'blur(7px)' }} onClick={() => setSelectedReceipt(null)}>
           <div className="relative max-w-3xl max-h-[90vh]" onClick={(event) => event.stopPropagation()}>
             <button onClick={() => setSelectedReceipt(null)} className="absolute -top-3 -right-3 p-2 bg-white rounded-full shadow-lg text-gray-700" aria-label="Tutup foto struk">
               <X className="w-5 h-5" />
