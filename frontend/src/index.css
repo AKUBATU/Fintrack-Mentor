@@ -2357,6 +2357,8 @@ html.dark { color-scheme: dark; background: #080d18; }
 
 .finance-transaction-scroll input[type="date"],
 .finance-date-input {
+  -webkit-appearance: none;
+  appearance: none;
   display: block;
   box-sizing: border-box;
   width: 100%;
@@ -2376,6 +2378,11 @@ html.dark { color-scheme: dark; background: #080d18; }
   min-width: 0;
   max-width: 100%;
   overflow: hidden;
+}
+
+.finance-date-input::-webkit-calendar-picker-indicator {
+  flex: 0 0 auto;
+  margin: 0;
 }
 
 .portfolio-form-dialog {
@@ -2627,6 +2634,14 @@ html.dark { color-scheme: dark; background: #080d18; }
 @media (max-width: 480px) {
   .finance-form-pair {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .finance-date-field,
+  .finance-date-input {
+    width: calc(100vw - 2rem) !important;
+    width: calc(100dvw - 2rem) !important;
+    max-width: calc(100vw - 2rem) !important;
+    max-width: calc(100dvw - 2rem) !important;
   }
 }
 
