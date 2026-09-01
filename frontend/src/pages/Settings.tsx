@@ -44,12 +44,12 @@ export default function Settings() {
       {/* User Profile Card */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
         <div className="flex items-center gap-4 mb-6">
-          <div className="w-16 h-16 rounded-full bg-blue-600 flex items-center justify-center text-white text-2xl font-bold">
+          <div className="w-16 h-16 shrink-0 rounded-full bg-blue-600 flex items-center justify-center text-white text-2xl font-bold">
             {user?.name?.[0]?.toUpperCase() || 'U'}
           </div>
-          <div>
-            <h3 className="text-xl font-semibold text-gray-900">{user?.name}</h3>
-            <p className="text-gray-600">{user?.email}</p>
+          <div className="min-w-0">
+            <h3 className="text-xl font-semibold text-gray-900 break-words">{user?.name}</h3>
+            <p className="text-gray-600 break-all">{user?.email}</p>
             <span className="inline-block mt-1 px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full">
               {user?.role}
             </span>

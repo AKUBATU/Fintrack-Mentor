@@ -2334,7 +2334,7 @@ html.dark { color-scheme: dark; background: #080d18; }
   .portfolio-history-row { align-items: flex-start; }
   .portfolio-history-row > * { min-width: 0; }
   .portfolio-history-row > :last-child { flex-shrink: 0; }
-  .chat-page { height: calc(100dvh - 7.25rem); min-height: 32rem; }
+  .chat-page { height: calc(100dvh - 7.25rem); min-height: 0; }
   .chat-messages { padding: 1rem; }
   .chat-input-area { padding: .75rem; }
   .chat-input-area input { min-width: 0; padding-inline: .75rem; }
@@ -2443,4 +2443,31 @@ html.dark { color-scheme: dark; background: #080d18; }
   .settings-save-action,
   .settings-save-action > button { width: 100%; }
   .settings-save-action > button { justify-content: center; }
+}
+
+@media (max-width: 359px) {
+  .finance-form-pair,
+  .portfolio-summary-grid,
+  .portfolio-health-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .portfolio-header-actions { grid-template-columns: minmax(0, 1fr); }
+
+  .dashboard-holding-row {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .dashboard-holding-value {
+    width: 100%;
+    text-align: left;
+  }
+
+  .about-hero { padding: 1.25rem; }
+}
+
+@media (max-height: 520px) and (max-width: 767px) {
+  .chat-page { height: calc(100dvh - 6.5rem); }
+  .chat-page > :first-child { display: none; }
 }

@@ -97,9 +97,9 @@ export default function Layout() {
               <div className="app-user-avatar w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center text-white font-semibold">
                 {user?.name?.[0]?.toUpperCase() || 'U'}
               </div>
-              <div className="ml-3 flex-1">
-                <p className="text-sm font-medium text-gray-900">{user?.name}</p>
-                <p className="text-xs text-gray-500">{user?.email}</p>
+              <div className="ml-3 flex-1 min-w-0">
+                <p className="text-sm font-medium text-gray-900 truncate">{user?.name}</p>
+                <p className="text-xs text-gray-500 truncate" title={user?.email}>{user?.email}</p>
               </div>
             </div>
             <button
@@ -120,12 +120,13 @@ export default function Layout() {
           <div className="app-topbar-inner flex items-center justify-between px-6 py-4">
             <button
               onClick={() => setSidebarOpen(true)}
-              className="lg:hidden"
+              className="lg:hidden shrink-0"
+              aria-label="Buka menu navigasi"
             >
               <Menu className="w-6 h-6 text-gray-600" />
             </button>
-            <div className="flex-1 lg:flex-none ml-3">
-              <h2 className="text-lg font-semibold text-gray-900">
+            <div className="flex-1 min-w-0 lg:flex-none ml-3">
+              <h2 className="text-lg font-semibold text-gray-900 truncate">
                 {navigation.find(item => isActive(item.href))?.name || 'FinTrack Mentor'}
               </h2>
               <p className="app-topbar-subtitle text-xs text-gray-500">Kelola finansial Anda dengan lebih terarah</p>

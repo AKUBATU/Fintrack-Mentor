@@ -276,14 +276,14 @@ export default function Dashboard() {
         <h3 className="font-semibold text-gray-900 mb-4">Top Holdings</h3>
         <div className="space-y-3">
           {(holdings ?? []).slice(0, 5).map((holding) => (
-            <div key={holding.ticker} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-              <div>
+            <div key={holding.ticker} className="dashboard-holding-row flex items-center justify-between gap-3 p-3 bg-gray-50 rounded-lg">
+              <div className="min-w-0">
                 <p className="font-medium text-gray-900">{holding.ticker}</p>
                 <p className="text-sm text-gray-600">
                   {holding.totalLots} lot ({holding.totalShares} lembar)
                 </p>
               </div>
-              <div className="text-right">
+              <div className="dashboard-holding-value text-right shrink-0">
                 <p className="font-medium text-gray-900">{formatCurrency(holding.marketValue)}</p>
                 <p className={`text-sm ${holding.unrealizedPL >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                   {holding.unrealizedPL >= 0 ? '+' : ''}

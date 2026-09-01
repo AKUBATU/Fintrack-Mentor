@@ -582,7 +582,7 @@ export default function Portfolio() {
             <div className="h-2 rounded-full" style={{ width: `${portfolioHealth?.score || 0}%`, backgroundColor: (portfolioHealth?.score || 0) >= 75 ? '#22c55e' : (portfolioHealth?.score || 0) >= 55 ? '#3b82f6' : (portfolioHealth?.score || 0) >= 35 ? '#eab308' : '#ef4444' }} />
           </div>
           <p className="font-semibold text-gray-900 mt-3">{portfolioHealth?.status || (assetLoading ? 'Menghitung…' : 'Belum dapat dinilai')}</p>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4 text-sm">
+          <div className="portfolio-health-grid grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4 text-sm">
             <div className="p-3 bg-gray-50 rounded-lg"><p className="text-gray-500">Diversifikasi</p><p className="font-semibold">{portfolioHealth?.diversification_score ?? 0}/100</p></div>
             <div className="p-3 bg-gray-50 rounded-lg"><p className="text-gray-500">Konsentrasi</p><p className="font-semibold">{portfolioHealth?.concentration_score ?? 0}/100</p></div>
             <div className="p-3 bg-gray-50 rounded-lg"><p className="text-gray-500">Likuiditas</p><p className="font-semibold">{portfolioHealth?.liquidity_score ?? 0}/100</p></div>
@@ -652,7 +652,7 @@ export default function Portfolio() {
       </div>
 
       {/* Portfolio Summary Cards */}
-      <div className="order-2 grid grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-6">
+      <div className="portfolio-summary-grid order-2 grid grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-6">
         <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 border border-gray-200 min-w-0">
           <p className="text-sm text-gray-600 mb-1">Nilai Portofolio</p>
           <p className="text-lg sm:text-2xl font-bold text-gray-900 break-words">{formatCurrency(portfolioMetrics.totalValue)}</p>

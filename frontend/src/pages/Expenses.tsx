@@ -598,7 +598,7 @@ export default function Expenses() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="finance-form-pair grid grid-cols-2 gap-3">
                 <div className="min-w-0">
                   <label className="block text-sm font-medium text-gray-700 mb-1">Tanggal</label>
                   <input
@@ -635,7 +635,7 @@ export default function Expenses() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="finance-form-pair grid grid-cols-2 gap-3">
                 <div className="min-w-0">
                   <div className="flex items-center justify-between gap-1 mb-1">
                     <label className="text-sm font-medium text-gray-700">Kategori</label>
