@@ -2523,6 +2523,13 @@ html.dark { color-scheme: dark; background: #080d18; }
 .dark .mentor-composer { border-color: #3b475b; background: #0f172a; }
 .dark .mentor-composer textarea { background: transparent; }
 
+@media (min-width: 641px) {
+  .finance-transaction-overlay {
+    top: -4rem !important;
+    bottom: -4rem !important;
+  }
+}
+
 @media (max-width: 767px) {
   .app-topbar { min-height: 66px; }
   .app-topbar-inner { padding: .875rem 1rem; }
