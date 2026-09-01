@@ -2287,34 +2287,6 @@ html.dark { color-scheme: dark; background: #080d18; }
   overscroll-behavior-y: contain;
 }
 
-html.modal-open,
-html.modal-open body {
-  overflow: hidden !important;
-  overscroll-behavior: none !important;
-}
-
-.app-modal-overlay {
-  position: fixed !important;
-  inset: -2px !important;
-  width: auto !important;
-  height: auto !important;
-  max-width: none !important;
-  overflow: hidden !important;
-  overscroll-behavior: none;
-  isolation: isolate;
-}
-
-.app-modal-overlay::before {
-  content: "";
-  position: absolute;
-  z-index: -1;
-  inset: -24px;
-  background: rgba(17, 24, 39, .22);
-  backdrop-filter: blur(7px);
-  -webkit-backdrop-filter: blur(7px);
-  pointer-events: none;
-}
-
 .portfolio-form-overlay {
   left: 0;
   right: 0;

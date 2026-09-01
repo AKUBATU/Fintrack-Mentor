@@ -140,26 +140,13 @@ export default function Portfolio() {
     if (!modalOpen) return;
 
     const previousBodyOverflow = document.body.style.overflow;
-    const previousBodyPosition = document.body.style.position;
-    const previousBodyTop = document.body.style.top;
-    const previousBodyWidth = document.body.style.width;
     const previousHtmlOverflow = document.documentElement.style.overflow;
-    const scrollY = window.scrollY;
-    document.documentElement.classList.add('modal-open');
     document.body.style.overflow = 'hidden';
-    document.body.style.position = 'fixed';
-    document.body.style.top = `-${scrollY}px`;
-    document.body.style.width = '100%';
     document.documentElement.style.overflow = 'hidden';
 
     return () => {
-      document.documentElement.classList.remove('modal-open');
       document.body.style.overflow = previousBodyOverflow;
-      document.body.style.position = previousBodyPosition;
-      document.body.style.top = previousBodyTop;
-      document.body.style.width = previousBodyWidth;
       document.documentElement.style.overflow = previousHtmlOverflow;
-      window.scrollTo(0, scrollY);
     };
   }, [showAssetModal, showAddTransaction, showAddDividend, showUpdatePrice]);
 
@@ -791,7 +778,7 @@ export default function Portfolio() {
 
       {/* Generic asset modal */}
       {showAssetModal && (
-        <div className="app-modal-overlay portfolio-form-overlay fixed inset-0 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4" style={{ backgroundColor: 'rgba(17, 24, 39, 0.22)', backdropFilter: 'blur(7px)', WebkitBackdropFilter: 'blur(7px)' }} onClick={() => setShowAssetModal(false)} role="dialog" aria-modal="true">
+        <div className="portfolio-form-overlay fixed inset-0 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4" style={{ backgroundColor: 'rgba(17, 24, 39, 0.22)', backdropFilter: 'blur(7px)', WebkitBackdropFilter: 'blur(7px)' }} onClick={() => setShowAssetModal(false)} role="dialog" aria-modal="true">
           <div className="portfolio-form-dialog relative bg-white rounded-t-2xl sm:rounded-xl max-w-md w-full p-4 sm:p-6 overflow-y-auto overscroll-contain max-h-[calc(100dvh-1rem)] sm:max-h-[90vh]" onClick={(event) => event.stopPropagation()}>
             <button onClick={() => setShowAssetModal(false)} className="absolute top-3 sm:top-4 right-3 sm:right-4 p-2 text-gray-500"><X className="w-5 h-5" /></button>
             <h3 className="text-xl font-bold text-gray-900 pr-8">{editingAssetId ? 'Edit Instrumen' : 'Tambah Instrumen Investasi'}</h3>
@@ -832,7 +819,7 @@ export default function Portfolio() {
       {/* Add Transaction Modal */}
       {showAddTransaction && (
         <div
-          className="app-modal-overlay portfolio-form-overlay fixed inset-0 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4"
+          className="portfolio-form-overlay fixed inset-0 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4"
           style={{ backgroundColor: 'rgba(17, 24, 39, 0.22)', backdropFilter: 'blur(7px)', WebkitBackdropFilter: 'blur(7px)' }}
           onClick={() => setShowAddTransaction(false)}
           role="dialog"
@@ -960,7 +947,7 @@ export default function Portfolio() {
       {/* Add Dividend Modal */}
       {showAddDividend && (
         <div
-          className="app-modal-overlay portfolio-form-overlay fixed inset-0 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4"
+          className="portfolio-form-overlay fixed inset-0 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4"
           style={{ backgroundColor: 'rgba(17, 24, 39, 0.22)', backdropFilter: 'blur(7px)', WebkitBackdropFilter: 'blur(7px)' }}
           onClick={() => setShowAddDividend(false)}
           role="dialog"
@@ -1056,7 +1043,7 @@ export default function Portfolio() {
 
       {/* Update Price Modal */}
       {showUpdatePrice && (
-        <div className="app-modal-overlay portfolio-form-overlay fixed inset-0 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4" style={{ backgroundColor: 'rgba(17, 24, 39, 0.22)', backdropFilter: 'blur(7px)', WebkitBackdropFilter: 'blur(7px)' }}>
+        <div className="portfolio-form-overlay fixed inset-0 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4" style={{ backgroundColor: 'rgba(17, 24, 39, 0.22)', backdropFilter: 'blur(7px)', WebkitBackdropFilter: 'blur(7px)' }}>
           <div className="portfolio-form-dialog bg-white rounded-t-2xl sm:rounded-xl max-w-md w-full p-4 sm:p-6 max-h-[calc(100dvh-1rem)] overflow-y-auto overscroll-contain">
             <h3 className="text-xl font-bold text-gray-900 mb-4">Update Harga Saham</h3>
             <div className="space-y-4">
