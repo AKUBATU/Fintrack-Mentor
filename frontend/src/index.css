@@ -2298,9 +2298,13 @@ html.dark { color-scheme: dark; background: #080d18; }
 }
 
 .finance-transaction-overlay {
+  top: 0;
+  bottom: 0;
   left: 0;
   right: 0;
   width: auto !important;
+  min-height: 100vh;
+  min-height: 100dvh;
   max-width: none;
   overflow-x: clip !important;
   overscroll-behavior: none;
@@ -2438,8 +2442,8 @@ html.dark { color-scheme: dark; background: #080d18; }
 }
 
 @keyframes fintrack-page-enter {
-  from { opacity: 0; transform: translateY(5px); }
-  to { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 /* Chat Mentor */
