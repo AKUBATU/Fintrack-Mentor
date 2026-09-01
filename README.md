@@ -1,10 +1,119 @@
 # FinTrack Mentor
 
-Aplikasi pencatatan keuangan berbasis akun dengan React, FastAPI, SQLAlchemy,
-JWT, dan SQLite untuk development. PostgreSQL dapat digunakan melalui
-`DATABASE_URL` tanpa mengubah kode aplikasi.
+FinTrack Mentor is a full-stack personal wealth management application for tracking cash flow, managing investments, scanning receipts, and reviewing financial data from a single account-based dashboard.
 
-## Menjalankan backend
+**Live application:** [fintrack-mentor.vercel.app](https://fintrack-mentor.vercel.app)
+
+## Highlights
+
+- Secure registration and JWT-based authentication
+- Protected application routes and user-isolated financial data
+- Forgot-password and email-based password reset flow
+- Income and expense tracking with search, filters, budgets, notes, and transaction history
+- Receipt attachments and local Tesseract OCR for extracting merchant, date, total, payment method, category, tax, discounts, line items, and raw text
+- Support for up to four receipt photos to improve recognition of folded or partially obscured receipts
+- Stock buy/sell history with editable and removable transactions
+- Dividend tracking and realized/unrealized profit and loss calculations
+- Unified portfolio for stocks, ETFs, mutual funds, bonds, deposits, cash, crypto, gold, property, forex, and other investment instruments
+- Manual IDR, USD, and EUR asset valuation with user-provided exchange rates
+- Educational portfolio health score based on diversification, concentration, liquidity, and risk balance
+- Account-aware Chat Mentor with per-user daily conversation history and automatic daily reset
+- Responsive layouts for desktop, tablet, and mobile
+- Light and dark themes
+
+## Technology Stack
+
+### Frontend
+
+- React 18
+- TypeScript
+- Vite
+- Tailwind CSS
+- React Router
+- Recharts
+- Lucide icons
+- Sonner notifications
+
+### Backend
+
+- FastAPI
+- SQLAlchemy
+- Alembic
+- PostgreSQL in production
+- SQLite for local development
+- JWT authentication
+- Tesseract OCR integration
+- Scikit-learn utilities for transaction categorization and anomaly analysis
+
+### Deployment
+
+- Frontend: Vercel
+- Backend API: Vercel
+- Production database: PostgreSQL
+
+## Application Areas
+
+### Dashboard
+
+Provides a quick overview of income, expenses, total cash flow, portfolio value, unrealized profit or loss, budget usage, expense trends, and active holdings.
+
+### Finance
+
+Records both income and expenses. Transactions support categories, payment methods, merchants, notes, budgets, receipt images, history search, and filtering.
+
+Receipt analysis runs through the FinTrack backend without sending images to an external generative AI service. Local OCR requires the `tesseract` executable to be available on the backend host.
+
+### Portfolio
+
+Combines stock holdings and other investment instruments into one portfolio. Stock transactions, dividends, current prices, cost basis, market value, currency conversion, realized P/L, and unrealized P/L remain distinct throughout the calculation flow.
+
+The portfolio health score is an educational indicator only and is not financial advice.
+
+### Chat Mentor
+
+Produces account-aware financial summaries using the authenticated user's stored finance and portfolio data. Messages are stored per user for the current Jakarta calendar day and automatically cleared when a new day begins, keeping storage bounded while preserving the user's underlying financial context.
+
+## Project Structure
+
+```text
+FinTrack-mentor/
+├── backend/
+│   ├── alembic/              # Database migrations
+│   ├── api/                  # Vercel serverless entry point
+│   ├── app/
+│   │   ├── api/              # FastAPI routes
+│   │   ├── core/             # Configuration, database, and security
+│   │   ├── models/           # SQLAlchemy models
+│   │   ├── schemas/          # Pydantic schemas
+│   │   └── services/         # Auth, email, OCR, ML, and portfolio services
+│   ├── ml/                   # Training scripts and sample data
+│   └── tests/                # Backend integration tests
+├── frontend/
+│   ├── src/
+│   │   ├── components/       # Shared layout and UI components
+│   │   ├── contexts/         # Authentication and account data state
+│   │   ├── pages/            # Application pages
+│   │   └── services/         # API client
+│   └── vercel.json
+└── README.md
+```
+
+## Local Development
+
+### Prerequisites
+
+- Python 3.11 or newer
+- Node.js 20 or newer
+- npm
+- Tesseract OCR, if receipt scanning is required
+
+On macOS, Tesseract can be installed with:
+
+```bash
+brew install tesseract
+```
+
+### 1. Backend
 
 ```bash
 cd backend
@@ -16,20 +125,11 @@ alembic upgrade head
 uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 ```
 
-Pastikan `http://127.0.0.1:8000/health` mengembalikan `{"ok": true, ...}`.
-Ganti `JWT_SECRET_KEY` di `.env` sebelum aplikasi digunakan di luar komputer
-lokal.
+Verify the backend at [http://127.0.0.1:8000/health](http://127.0.0.1:8000/health).
 
-Fitur lupa password mengirim link melalui SMTP. Isi `SMTP_HOST`, `SMTP_PORT`,
-`SMTP_USERNAME`, `SMTP_PASSWORD`, dan `SMTP_FROM_EMAIL` di `backend/.env`.
-`FRONTEND_URL` harus menunjuk ke alamat frontend yang dapat dibuka pengguna.
-Jika SMTP belum dikonfigurasi, halaman lupa password akan menampilkan bahwa
-layanan email belum siap alih-alih memberikan status pengiriman yang palsu.
-Untuk development lokal tanpa SMTP, set `PASSWORD_RESET_DEV_MODE=true`. Link
-reset kemudian ditampilkan langsung di halaman. Jangan aktifkan opsi ini pada
-deployment publik.
+### 2. Frontend
 
-## Menjalankan frontend
+In another terminal:
 
 ```bash
 cd frontend
@@ -38,42 +138,72 @@ cp .env.example .env
 npm run dev
 ```
 
-Buka `http://localhost:5173`, buat akun, lalu login. Pengeluaran, budget,
-transaksi saham, dividen, dan daily report disimpan di database dan hanya dapat
-diakses oleh pemilik akun.
+Open [http://localhost:5173](http://localhost:5173).
 
-Halaman Portofolio juga mendukung pencatatan instrumen generik seperti ETF,
-reksa dana, obligasi, deposito, kas, kripto, emas, komoditas, properti, bisnis,
-private equity, P2P lending, dana pensiun, koleksi, forex, dan derivatif. Nilai
-aset mata uang asing dinormalisasi ke IDR menggunakan kurs yang diisi user.
-Health score 0–100 dihitung secara deterministik dari diversifikasi,
-konsentrasi, likuiditas, dan keseimbangan risiko. Skor ini bersifat edukatif,
-bukan rekomendasi investasi.
+## Environment Variables
 
-Halaman Keuangan mendukung pemasukan, pengeluaran, pencarian history, filter,
-dan foto struk JPG/PNG/WebP hingga 5 MB. File struk disimpan di
-`backend/uploads/receipts` dan hanya diberikan melalui endpoint yang memeriksa
-token serta kepemilikan transaksi.
+### Backend
 
-Ketika foto dipilih, fitur scan struk membaca tanggal, total, merchant, metode
-pembayaran, kategori, item, pajak, diskon, dan teks yang terlihat menggunakan
-Tesseract OCR lokal lalu mengisi form secara otomatis. Foto struk tidak dikirim
-ke layanan AI eksternal. Server harus memiliki executable `tesseract`; pada
-macOS dapat dipasang dengan `brew install tesseract`.
-Untuk struk terlipat, user dapat memilih hingga empat foto dari struk yang sama
-(foto penuh dan close-up bagian yang tertutup/lipatan). Sistem menggabungkan
-semua foto menjadi satu hasil transaksi; foto pertama menjadi lampiran utama.
+| Variable | Purpose |
+| --- | --- |
+| `DATABASE_URL` | SQLite or PostgreSQL SQLAlchemy connection URL |
+| `DATABASE_SCHEMA` | Optional PostgreSQL schema name |
+| `JWT_SECRET_KEY` | Secret used to sign authentication tokens |
+| `CORS_ORIGINS` | Comma-separated allowed frontend origins |
+| `FRONTEND_URL` | Public frontend URL used in password-reset links |
+| `PASSWORD_RESET_EXPIRE_MINUTES` | Password-reset token lifetime |
+| `SMTP_HOST`, `SMTP_PORT` | SMTP server configuration |
+| `SMTP_USERNAME`, `SMTP_PASSWORD` | SMTP credentials |
+| `SMTP_FROM_EMAIL` | Sender address for reset emails |
+| `SMTP_USE_TLS` | Enables SMTP TLS |
+| `PASSWORD_RESET_DEV_MODE` | Returns a reset link directly during local development only |
+| `AUTO_CREATE_SCHEMA` | Optionally creates registered tables during application startup |
 
-## Verifikasi
+Use a long random value for `JWT_SECRET_KEY`. Never enable `PASSWORD_RESET_DEV_MODE` on a public deployment and never commit real credentials.
+
+### Frontend
+
+| Variable | Purpose |
+| --- | --- |
+| `VITE_API_URL` | Backend base URL, for example `http://127.0.0.1:8000` |
+
+## Database and Data Isolation
+
+Run migrations whenever the database schema changes:
 
 ```bash
 cd backend
 source .venv/bin/activate
-python -m unittest -v
+alembic upgrade head
 ```
+
+Expenses, budgets, stock transactions, dividends, investment assets, receipt access, and daily chat messages are associated with the authenticated user. API queries enforce ownership so one user cannot retrieve another user's records.
+
+## Verification
+
+Backend integration tests:
+
+```bash
+cd backend
+source .venv/bin/activate
+python -m unittest discover -s tests -v
+```
+
+Frontend checks:
 
 ```bash
 cd frontend
 npm run typecheck
 npm run build
 ```
+
+## Important Notes
+
+- Foreign-currency conversion uses the exchange rate entered by the user; no automatic market-rate service is currently used.
+- Stock and other asset prices are updated manually.
+- Receipt files stored on a local filesystem are suitable for local or persistent-server deployments. Serverless filesystems may be ephemeral, so production receipt storage should use persistent object storage when long-term retention is required.
+- Financial and portfolio health information is educational and does not replace professional financial advice.
+
+## License
+
+No open-source license has been added yet. All rights are reserved by the repository owner unless a license is provided later.
