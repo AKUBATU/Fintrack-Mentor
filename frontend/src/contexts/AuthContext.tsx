@@ -43,6 +43,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } catch (e) {
         localStorage.removeItem('access_token');
         localStorage.removeItem('user');
+        setUser(null);
       } finally {
         setLoading(false);
       }
@@ -59,6 +60,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
     window.addEventListener('auth:unauthorized', handleUnauthorized);
     return () => window.removeEventListener('auth:unauthorized', handleUnauthorized);
+  }, []);
+
+  useEffect(() => {
+    const validateSession = () => {
+      if (document.visibilityState !== 'visible' || !localStorage.getItem('access_token')) return;
+      // Respons 401 ditangani terpusat oleh request(); gangguan jaringan sementara
+      // tidak boleh langsung mengeluarkan pengguna dari sesi yang masih valid.
+      void api.me().catch(() => undefined);
+    };
+    document.addEventListener('visibilitychange', validateSession);
+    return () => document.removeEventListener('visibilitychange', validateSession);
   }, []);
 
   const login = async (email: string, password: string) => {
