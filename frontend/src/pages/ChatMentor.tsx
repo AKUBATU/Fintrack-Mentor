@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useData } from '../contexts/DataContext';
-import { Send, Bot, User, Loader } from 'lucide-react';
+import { Send, Bot, User, Loader, CalendarClock, ShieldCheck, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { api } from '../services/api';
 
@@ -391,32 +391,37 @@ Contoh pertanyaan:
   return (
     <div className="chat-page flex flex-col h-[calc(100vh-12rem)]">
       {/* Header Info */}
-      <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-4">
-        <div className="flex items-start gap-3">
-          <Bot className="w-6 h-6 text-blue-600 mt-0.5" />
-          <div>
-            <h3 className="font-semibold text-blue-900">Mentor Keuangan FinTrack</h3>
-            <p className="text-sm text-blue-700 mt-1">
-              Mentor lokal ini merangkum portofolio dan pengeluaran berdasarkan data akun Anda.
-              <br />
-              <span className="text-xs">
-                🔒 Analisis berjalan di server FinTrack tanpa mengirim data ke layanan kecerdasan buatan eksternal.
-              </span>
-            </p>
+      <div className="mentor-header mb-4">
+        <div className="mentor-header-main">
+          <div className="mentor-header-icon"><Sparkles className="w-5 h-5" /></div>
+          <div className="min-w-0">
+            <h1 className="text-xl font-bold text-gray-900">Chat Mentor</h1>
+            <p className="text-sm text-gray-600">Tanyakan kondisi keuangan dan portofolio berdasarkan data akun Anda.</p>
           </div>
+        </div>
+        <div className="mentor-status-list">
+          <span><ShieldCheck className="w-3.5 h-3.5" /> Data tetap di FinTrack</span>
+          <span><CalendarClock className="w-3.5 h-3.5" /> Riwayat direset harian</span>
         </div>
       </div>
 
       {/* Messages Area */}
-      <div className="flex-1 bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden flex flex-col">
+      <div className="mentor-conversation flex-1 bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden flex flex-col">
+        <div className="mentor-conversation-bar">
+          <div>
+            <p className="text-sm font-semibold text-gray-900">Percakapan hari ini</p>
+            <p className="text-xs text-gray-500">Konteks mengikuti data akun terbaru</p>
+          </div>
+          <span className="mentor-online"><span /> Aktif</span>
+        </div>
         <div className="chat-messages flex-1 overflow-y-auto p-6 space-y-4">
           {messages.map((message) => (
             <div
               key={message.id}
-              className={`flex gap-3 ${message.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}
+              className={`mentor-message flex gap-3 ${message.role === 'user' ? 'mentor-message-user flex-row-reverse' : 'mentor-message-assistant flex-row'}`}
             >
-              <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
-                message.role === 'user' ? 'bg-blue-600' : 'bg-green-600'
+              <div className={`mentor-avatar flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
+                message.role === 'user' ? 'bg-blue-600' : 'bg-gray-900'
               }`}>
                 {message.role === 'user' ? (
                   <User className="w-5 h-5 text-white" />
@@ -424,8 +429,8 @@ Contoh pertanyaan:
                   <Bot className="w-5 h-5 text-white" />
                 )}
               </div>
-              <div className={`flex-1 max-w-[80%] ${message.role === 'user' ? 'items-end' : 'items-start'}`}>
-                <div className={`rounded-2xl px-4 py-3 ${
+              <div className={`mentor-message-content flex-1 max-w-[80%] ${message.role === 'user' ? 'items-end' : 'items-start'}`}>
+                <div className={`mentor-bubble rounded-2xl px-4 py-3 ${
                   message.role === 'user'
                     ? 'bg-blue-600 text-white'
                     : 'bg-gray-100 text-gray-900'
@@ -439,8 +444,8 @@ Contoh pertanyaan:
             </div>
           ))}
           {loading && (
-            <div className="flex gap-3">
-              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-green-600 flex items-center justify-center">
+            <div className="mentor-message flex gap-3">
+              <div className="mentor-avatar flex-shrink-0 w-8 h-8 rounded-full bg-gray-900 flex items-center justify-center">
                 <Bot className="w-5 h-5 text-white" />
               </div>
               <div className="bg-gray-100 rounded-2xl px-4 py-3">
@@ -456,26 +461,26 @@ Contoh pertanyaan:
 
         {/* Input Area */}
         <div className="chat-input-area border-t border-gray-200 p-4">
-          <div className="flex gap-2">
-            <input
-              type="text"
+          <div className="mentor-composer flex gap-2">
+            <textarea
+              rows={1}
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              onKeyPress={handleKeyPress}
+              onKeyDown={handleKeyPress}
               placeholder="Tanyakan tentang portofolio, pengeluaran, atau strategi investasi..."
-              className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="flex-1 resize-none px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               disabled={loading || historyLoading}
             />
             <button
               onClick={handleSend}
               disabled={loading || historyLoading || !input.trim()}
-              className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="mentor-send-button px-5 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {historyLoading ? <Loader className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
             </button>
           </div>
-          <p className="text-xs text-gray-500 mt-2">
-            💡 Tips: Tanya "analisis portofolio saya" atau "review pengeluaran bulan ini"
+          <p className="text-xs text-gray-500 mt-2 px-1">
+            Enter untuk mengirim · Shift + Enter untuk baris baru
           </p>
         </div>
       </div>
