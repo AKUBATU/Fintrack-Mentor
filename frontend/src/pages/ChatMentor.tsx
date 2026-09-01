@@ -389,7 +389,7 @@ Contoh pertanyaan:
   };
 
   return (
-    <div className="chat-page flex flex-col h-[calc(100vh-12rem)]">
+    <div className="chat-page flex flex-col">
       {/* Header Info */}
       <div className="mentor-header mb-4">
         <div className="mentor-header-main">
@@ -406,7 +406,7 @@ Contoh pertanyaan:
       </div>
 
       {/* Messages Area */}
-      <div className="mentor-conversation flex-1 bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden flex flex-col">
+      <div className="mentor-conversation bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden flex flex-col">
         <div className="mentor-conversation-bar">
           <div>
             <p className="text-sm font-semibold text-gray-900">Percakapan hari ini</p>
@@ -414,7 +414,7 @@ Contoh pertanyaan:
           </div>
           <span className="mentor-online"><span /> Aktif</span>
         </div>
-        <div className="chat-messages flex-1 overflow-y-auto p-6 space-y-4">
+        <div className="chat-messages overflow-y-auto p-6 space-y-4">
           {messages.map((message) => (
             <div
               key={message.id}

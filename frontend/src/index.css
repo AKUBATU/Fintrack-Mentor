@@ -2481,6 +2481,10 @@ html.dark { color-scheme: dark; background: #080d18; }
   white-space: nowrap;
 }
 .mentor-conversation { min-height: 0; }
+.mentor-conversation .chat-messages {
+  min-height: 12rem;
+  max-height: min(58vh, 36rem);
+}
 .mentor-conversation-bar {
   display: flex;
   align-items: center;
@@ -2558,7 +2562,7 @@ html.dark { color-scheme: dark; background: #080d18; }
   .portfolio-history-row { align-items: flex-start; }
   .portfolio-history-row > * { min-width: 0; }
   .portfolio-history-row > :last-child { flex-shrink: 0; }
-  .chat-page { height: calc(100dvh - 7.25rem); min-height: 0; }
+  .chat-page { min-height: 0; }
   .chat-messages { padding: 1rem; }
   .chat-input-area { padding: .75rem; }
   .chat-input-area input { min-width: 0; padding-inline: .75rem; }
@@ -2570,6 +2574,10 @@ html.dark { color-scheme: dark; background: #080d18; }
   .mentor-message { gap: .55rem; }
   .mentor-message-content { max-width: calc(100% - 2.6rem); }
   .mentor-bubble { padding: .7rem .8rem; }
+  .mentor-conversation .chat-messages {
+    min-height: 10rem;
+    max-height: calc(100dvh - 22rem);
+  }
 }
 
 .auth-shell {
@@ -2743,6 +2751,6 @@ html.dark { color-scheme: dark; background: #080d18; }
 }
 
 @media (max-height: 520px) and (max-width: 767px) {
-  .chat-page { height: calc(100dvh - 6.5rem); }
   .chat-page > :first-child { display: none; }
+  .mentor-conversation .chat-messages { min-height: 7rem; max-height: calc(100dvh - 13rem); }
 }
