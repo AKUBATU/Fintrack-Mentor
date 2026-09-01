@@ -2347,14 +2347,35 @@ html.dark { color-scheme: dark; background: #080d18; }
   max-width: 100%;
 }
 
-.finance-transaction-scroll input[type="date"] {
+.finance-date-field {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.finance-transaction-scroll input[type="date"],
+.finance-date-input {
   display: block;
   box-sizing: border-box;
   width: 100%;
   min-width: 0;
   min-inline-size: 0;
   max-width: 100%;
+  max-inline-size: 100%;
   inline-size: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.finance-date-input::-webkit-date-and-time-value,
+.finance-date-input::-webkit-datetime-edit,
+.finance-date-input::-webkit-datetime-edit-fields-wrapper {
+  box-sizing: border-box;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 .portfolio-form-dialog {
