@@ -2265,6 +2265,30 @@ html.dark { color-scheme: dark; background: #080d18; }
   overflow-x: hidden;
   overscroll-behavior-y: contain;
 }
+
+.portfolio-form-overlay {
+  overflow: hidden;
+  overscroll-behavior: none;
+  touch-action: pan-y;
+}
+
+.portfolio-form-dialog {
+  box-sizing: border-box;
+  min-width: 0;
+  overflow-x: clip !important;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+}
+
+.portfolio-form-dialog > *,
+.portfolio-form-dialog .grid,
+.portfolio-form-dialog .flex,
+.portfolio-form-dialog input,
+.portfolio-form-dialog select,
+.portfolio-form-dialog textarea {
+  min-width: 0;
+  max-width: 100%;
+}
 .app-main input:focus,
 .app-main select:focus,
 .app-main textarea:focus {
@@ -2419,6 +2443,20 @@ html.dark { color-scheme: dark; background: #080d18; }
 .about-hero > div:last-child { position: relative; z-index: 1; max-width: 42rem; }
 
 @media (max-width: 640px) {
+  .portfolio-form-overlay {
+    width: 100vw !important;
+    height: 100dvh;
+    min-height: 100dvh;
+  }
+
+  .app-main > div.fixed > .portfolio-form-dialog {
+    width: 100vw;
+    max-width: 100vw;
+    max-height: 100dvh !important;
+    margin: 0;
+    border-radius: 1rem 1rem 0 0;
+  }
+
   .finance-transaction-overlay {
     width: 100vw !important;
     height: 100dvh;

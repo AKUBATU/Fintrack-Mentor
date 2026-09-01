@@ -778,8 +778,8 @@ export default function Portfolio() {
 
       {/* Generic asset modal */}
       {showAssetModal && (
-        <div className="fixed inset-0 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4" style={{ backgroundColor: 'rgba(17, 24, 39, 0.22)', backdropFilter: 'blur(7px)', WebkitBackdropFilter: 'blur(7px)' }} onClick={() => setShowAssetModal(false)} role="dialog" aria-modal="true">
-          <div className="relative bg-white rounded-t-2xl sm:rounded-xl max-w-md w-full p-4 sm:p-6 overflow-y-auto overscroll-contain max-h-[calc(100dvh-1rem)] sm:max-h-[90vh]" onClick={(event) => event.stopPropagation()}>
+        <div className="portfolio-form-overlay fixed inset-0 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4" style={{ backgroundColor: 'rgba(17, 24, 39, 0.22)', backdropFilter: 'blur(7px)', WebkitBackdropFilter: 'blur(7px)' }} onClick={() => setShowAssetModal(false)} role="dialog" aria-modal="true">
+          <div className="portfolio-form-dialog relative bg-white rounded-t-2xl sm:rounded-xl max-w-md w-full p-4 sm:p-6 overflow-y-auto overscroll-contain max-h-[calc(100dvh-1rem)] sm:max-h-[90vh]" onClick={(event) => event.stopPropagation()}>
             <button onClick={() => setShowAssetModal(false)} className="absolute top-3 sm:top-4 right-3 sm:right-4 p-2 text-gray-500"><X className="w-5 h-5" /></button>
             <h3 className="text-xl font-bold text-gray-900 pr-8">{editingAssetId ? 'Edit Instrumen' : 'Tambah Instrumen Investasi'}</h3>
             <p className="text-sm text-gray-500 mt-1 mb-5">Form akan menyesuaikan satuan dan nilai berdasarkan instrumen yang dipilih.</p>
@@ -819,14 +819,14 @@ export default function Portfolio() {
       {/* Add Transaction Modal */}
       {showAddTransaction && (
         <div
-          className="fixed inset-0 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4"
+          className="portfolio-form-overlay fixed inset-0 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4"
           style={{ backgroundColor: 'rgba(17, 24, 39, 0.22)', backdropFilter: 'blur(7px)', WebkitBackdropFilter: 'blur(7px)' }}
           onClick={() => setShowAddTransaction(false)}
           role="dialog"
           aria-modal="true"
           aria-labelledby="asset-modal-title"
         >
-          <div className="relative bg-white rounded-t-2xl sm:rounded-xl max-w-md w-full p-4 sm:p-6 max-h-[calc(100dvh-1rem)] sm:max-h-[90vh] overflow-y-auto overscroll-contain" onClick={(event) => event.stopPropagation()}>
+          <div className="portfolio-form-dialog relative bg-white rounded-t-2xl sm:rounded-xl max-w-md w-full p-4 sm:p-6 max-h-[calc(100dvh-1rem)] sm:max-h-[90vh] overflow-y-auto overscroll-contain" onClick={(event) => event.stopPropagation()}>
             <button type="button" onClick={() => setShowAddTransaction(false)} className="absolute top-3 sm:top-4 right-3 sm:right-4 p-2 text-gray-500 hover:text-gray-800" aria-label="Tutup popup catat aset">
               <X className="w-5 h-5" />
             </button>
@@ -947,14 +947,14 @@ export default function Portfolio() {
       {/* Add Dividend Modal */}
       {showAddDividend && (
         <div
-          className="fixed inset-0 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4"
+          className="portfolio-form-overlay fixed inset-0 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4"
           style={{ backgroundColor: 'rgba(17, 24, 39, 0.22)', backdropFilter: 'blur(7px)', WebkitBackdropFilter: 'blur(7px)' }}
           onClick={() => setShowAddDividend(false)}
           role="dialog"
           aria-modal="true"
           aria-labelledby="dividend-modal-title"
         >
-          <div className="relative bg-white rounded-t-2xl sm:rounded-xl max-w-md w-full p-4 sm:p-6 max-h-[calc(100dvh-1rem)] sm:max-h-[90vh] overflow-y-auto overscroll-contain" onClick={(event) => event.stopPropagation()}>
+          <div className="portfolio-form-dialog relative bg-white rounded-t-2xl sm:rounded-xl max-w-md w-full p-4 sm:p-6 max-h-[calc(100dvh-1rem)] sm:max-h-[90vh] overflow-y-auto overscroll-contain" onClick={(event) => event.stopPropagation()}>
             <button type="button" onClick={() => setShowAddDividend(false)} className="absolute top-3 sm:top-4 right-3 sm:right-4 p-2 text-gray-500 hover:text-gray-800" aria-label="Tutup popup dividen">
               <X className="w-5 h-5" />
             </button>
@@ -1043,8 +1043,8 @@ export default function Portfolio() {
 
       {/* Update Price Modal */}
       {showUpdatePrice && (
-        <div className="fixed inset-0 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4" style={{ backgroundColor: 'rgba(17, 24, 39, 0.22)', backdropFilter: 'blur(7px)', WebkitBackdropFilter: 'blur(7px)' }}>
-          <div className="bg-white rounded-t-2xl sm:rounded-xl max-w-md w-full p-4 sm:p-6 max-h-[calc(100dvh-1rem)] overflow-y-auto overscroll-contain">
+        <div className="portfolio-form-overlay fixed inset-0 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4" style={{ backgroundColor: 'rgba(17, 24, 39, 0.22)', backdropFilter: 'blur(7px)', WebkitBackdropFilter: 'blur(7px)' }}>
+          <div className="portfolio-form-dialog bg-white rounded-t-2xl sm:rounded-xl max-w-md w-full p-4 sm:p-6 max-h-[calc(100dvh-1rem)] overflow-y-auto overscroll-contain">
             <h3 className="text-xl font-bold text-gray-900 mb-4">Update Harga Saham</h3>
             <div className="space-y-4">
               <div>
