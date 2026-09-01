@@ -6,6 +6,7 @@ from .core.config import settings
 from .core.base import Base
 from .core.db import engine
 from . import models as _models  # noqa: F401 - register tables before create_all
+from .models.chat_message import ChatMessage
 from .api.router import api_router
 
 app = FastAPI(title=settings.APP_NAME)
@@ -13,6 +14,9 @@ app = FastAPI(title=settings.APP_NAME)
 
 @app.on_event("startup")
 def create_production_schema():
+    # Vercel does not run Alembic automatically. Keep the small chat-history
+    # table available independently from the legacy AUTO_CREATE_SCHEMA flag.
+    ChatMessage.__table__.create(bind=engine, checkfirst=True)
     if settings.AUTO_CREATE_SCHEMA:
         if engine.dialect.name == "postgresql" and settings.DATABASE_SCHEMA == "fintrack_app":
             with engine.begin() as connection:
