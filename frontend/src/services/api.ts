@@ -296,4 +296,7 @@ export const api = {
       body: JSON.stringify({ message }),
     });
   },
+  async chatHistory() {
+    return request<Array<{ id: number; role: 'user' | 'assistant'; content: string; created_at: string }>>(`/api/chat/history`);
+  },
 };

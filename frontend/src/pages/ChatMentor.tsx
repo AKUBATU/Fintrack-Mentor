@@ -52,6 +52,7 @@ Tanyakan apa saja tentang keuangan Anda!`,
   ]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const [historyLoading, setHistoryLoading] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -61,6 +62,23 @@ Tanyakan apa saja tentang keuangan Anda!`,
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  useEffect(() => {
+    let active = true;
+    api.chatHistory()
+      .then((history) => {
+        if (!active || history.length === 0) return;
+        setMessages(history.map((message) => ({
+          id: String(message.id),
+          role: message.role,
+          content: message.content,
+          timestamp: new Date(message.created_at),
+        })));
+      })
+      .catch((error) => console.error('Failed to load daily chat history:', error))
+      .finally(() => { if (active) setHistoryLoading(false); });
+    return () => { active = false; };
+  }, []);
 
   // Tool functions that chatbot can call
   const tools = {
@@ -313,7 +331,7 @@ Contoh pertanyaan:
   };
 
   const handleSend = async () => {
-    if (!input.trim() || loading) return;
+    if (!input.trim() || loading || historyLoading) return;
 
     const userMessage: Message = {
       id: Date.now().toString(),
@@ -446,14 +464,14 @@ Contoh pertanyaan:
               onKeyPress={handleKeyPress}
               placeholder="Tanyakan tentang portofolio, pengeluaran, atau strategi investasi..."
               className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              disabled={loading}
+              disabled={loading || historyLoading}
             />
             <button
               onClick={handleSend}
-              disabled={loading || !input.trim()}
+              disabled={loading || historyLoading || !input.trim()}
               className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <Send className="w-5 h-5" />
+              {historyLoading ? <Loader className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
             </button>
           </div>
           <p className="text-xs text-gray-500 mt-2">

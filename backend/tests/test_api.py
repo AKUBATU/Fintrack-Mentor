@@ -175,6 +175,11 @@ class ApiIntegrationTest(unittest.TestCase):
         chat = self.client.post("/api/chat", json={"message": "Ringkas data saya"}, headers=first)
         self.assertEqual(chat.status_code, 200, chat.text)
         self.assertTrue(chat.json()["reply"])
+        chat_history = self.client.get("/api/chat/history", headers=first)
+        self.assertEqual(chat_history.status_code, 200, chat_history.text)
+        self.assertEqual([item["role"] for item in chat_history.json()], ["user", "assistant"])
+        self.assertEqual(chat_history.json()[0]["content"], "Ringkas data saya")
+        self.assertEqual(self.client.get("/api/chat/history", headers=second).json(), [])
 
     def test_protected_data_requires_login(self):
         response = self.client.get("/api/expenses")

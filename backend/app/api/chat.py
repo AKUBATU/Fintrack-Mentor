@@ -1,13 +1,29 @@
+from datetime import datetime
+from zoneinfo import ZoneInfo
+
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from ..core.db import get_db
 from ..models.expense import Expense
-from ..schemas.chat import ChatIn, ChatOut
+from ..models.chat_message import ChatMessage
+from ..schemas.chat import ChatHistoryItem, ChatIn, ChatOut
 from ..services.portfolio_service import compute_portfolio_summary
 from .deps import get_current_user
 
 router = APIRouter(prefix="/chat", tags=["chat"])
+JAKARTA_TZ = ZoneInfo("Asia/Jakarta")
+
+
+def _today():
+    return datetime.now(JAKARTA_TZ).date()
+
+
+def _clear_old_messages(db: Session, user_id: int) -> None:
+    db.query(ChatMessage).filter(
+        ChatMessage.user_id == user_id,
+        ChatMessage.session_date < _today(),
+    ).delete(synchronize_session=False)
 
 
 def _expense_summary(db: Session, user_id: int) -> dict:
@@ -22,6 +38,21 @@ def _expense_summary(db: Session, user_id: int) -> dict:
         by_category[row.category] = by_category.get(row.category, 0) + float(row.amount)
     top_categories = sorted(by_category.items(), key=lambda item: item[1], reverse=True)[:3]
     return {"total": total, "count": len(rows), "top_categories": top_categories}
+
+
+@router.get("/history", response_model=list[ChatHistoryItem])
+def chat_history(
+    db: Session = Depends(get_db),
+    user=Depends(get_current_user),
+) -> list[ChatMessage]:
+    _clear_old_messages(db, user.id)
+    db.commit()
+    return (
+        db.query(ChatMessage)
+        .filter(ChatMessage.user_id == user.id, ChatMessage.session_date == _today())
+        .order_by(ChatMessage.created_at.asc(), ChatMessage.id.asc())
+        .all()
+    )
 
 
 @router.post("", response_model=ChatOut)
@@ -46,4 +77,11 @@ def chat(
         "dan pastikan dana darurat tersedia sebelum menambah investasi. Data di atas diolah "
         "langsung oleh server FinTrack tanpa dikirim ke layanan eksternal."
     )
+    _clear_old_messages(db, user.id)
+    session_date = _today()
+    db.add_all([
+        ChatMessage(user_id=user.id, session_date=session_date, role="user", content=payload.message),
+        ChatMessage(user_id=user.id, session_date=session_date, role="assistant", content=reply),
+    ])
+    db.commit()
     return ChatOut(reply=reply)
