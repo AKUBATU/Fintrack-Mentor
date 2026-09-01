@@ -509,7 +509,7 @@ export default function Expenses() {
       {(showAddExpense || editingExpense) && (
         <div className="finance-transaction-overlay fixed inset-0 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4" style={{ backgroundColor: 'rgba(17, 24, 39, 0.22)', backdropFilter: 'blur(7px)', WebkitBackdropFilter: 'blur(7px)' }}>
           <div className="finance-transaction-dialog bg-white rounded-t-2xl sm:rounded-xl max-w-md w-full max-h-[calc(100dvh-1rem)] sm:max-h-[92vh] flex flex-col overflow-hidden">
-            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pt-4 sm:px-6 sm:pt-6">
+            <div className="finance-transaction-scroll min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain px-4 pt-4 sm:px-6 sm:pt-6">
             <h3 className="text-xl font-bold text-gray-900 mb-4">
               {editingExpense ? 'Edit Transaksi' : 'Tambah Transaksi'}
             </h3>

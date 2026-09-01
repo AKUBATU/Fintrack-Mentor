@@ -2328,6 +2328,25 @@ html.dark { color-scheme: dark; background: #080d18; }
   max-width: 100%;
 }
 
+.finance-transaction-scroll {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: clip !important;
+  overscroll-behavior-x: none;
+  overscroll-behavior-y: contain;
+  touch-action: pan-y;
+}
+
+.finance-transaction-scroll > *,
+.finance-transaction-scroll > * > *,
+.finance-transaction-scroll .space-y-3,
+.finance-transaction-scroll .space-y-4 {
+  min-width: 0;
+  max-width: 100%;
+}
+
 .portfolio-form-dialog {
   box-sizing: border-box;
   min-width: 0;
