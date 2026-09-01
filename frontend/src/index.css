@@ -2311,7 +2311,7 @@ html.dark { color-scheme: dark; background: #080d18; }
   box-sizing: border-box;
   width: 100%;
   min-width: 0;
-  max-width: 100%;
+  max-width: min(28rem, calc(100vw - 2rem));
   overflow-x: clip !important;
   overscroll-behavior: contain;
   touch-action: pan-y;
@@ -2574,6 +2574,14 @@ html.dark { color-scheme: dark; background: #080d18; }
     width: auto !important;
     height: 100dvh;
     min-height: 100dvh;
+  }
+
+  .finance-transaction-dialog {
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
+    max-height: calc(100dvh - .5rem) !important;
+    border-radius: 1rem 1rem 0 0;
   }
 
   .app-main > div.fixed {
