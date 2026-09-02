@@ -77,7 +77,7 @@ export default function Expenses() {
   const expenseCategories = ['Makan', 'Transport', 'Belanja', 'Tagihan', 'Hiburan', 'Kesehatan', 'Pendidikan', 'Lainnya'];
   const incomeCategories = ['Gaji', 'Bonus', 'Usaha', 'Investasi', 'Hadiah', 'Lainnya'];
   const categories = formData.transactionType === 'income' ? incomeCategories : expenseCategories;
-  const paymentMethods = ['Cash', 'Debit Card', 'Credit Card', 'E-Wallet', 'Transfer Bank'];
+  const paymentMethods = ['Cash', 'QRIS', 'Debit Card', 'Credit Card', 'E-Wallet', 'Transfer Bank'];
 
   // ✅ when editing, prefill form
   useEffect(() => {
@@ -290,7 +290,11 @@ export default function Expenses() {
         receiptFile: receiptFile || undefined,
       });
 
-      toast.success('Transaksi berhasil ditambahkan!');
+      setHistoryDate(formData.date);
+      toast.success('Transaksi berhasil disimpan', {
+        description: `${formData.transactionType === 'income' ? 'Pemasukan' : 'Pengeluaran'} ${formatCurrency(amountNum)} langsung ditampilkan di riwayat.`,
+        duration: 4000,
+      });
       setShowAddExpense(false);
       setAutoPred(null);
       setEntryMode('scan');
@@ -328,7 +332,11 @@ export default function Expenses() {
         receiptFile: receiptFile || undefined,
       });
 
-      toast.success('Transaksi berhasil diupdate!');
+      setHistoryDate(formData.date);
+      toast.success('Perubahan berhasil disimpan', {
+        description: 'Transaksi yang diperbarui langsung ditampilkan di riwayat.',
+        duration: 4000,
+      });
       setEditingExpense(null);
       setAutoPred(null);
       void handleReceiptChange([]);
@@ -366,7 +374,10 @@ export default function Expenses() {
         period: budgetFormData.period,
       });
 
-      toast.success('Budget berhasil ditambahkan!');
+      toast.success('Budget berhasil disimpan', {
+        description: `${budgetFormData.category} · ${budgetPeriodLabels[budgetFormData.period]}`,
+        duration: 4000,
+      });
       setShowAddBudget(false);
       setBudgetFormData({
         category: 'Makan',

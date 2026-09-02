@@ -73,7 +73,7 @@ export default function App() {
       <AuthProvider>
         <DataProvider>
           <AppRoutes />
-          <Toaster position="top-right" />
+          <Toaster position="top-right" richColors closeButton />
         </DataProvider>
       </AuthProvider>
     </Router>
