@@ -62,7 +62,7 @@ export interface Budget {
   id: string
   category: string
   amount: number
-  period: 'monthly' | 'weekly'
+  period: 'daily' | 'weekly' | 'monthly' | 'yearly'
 }
 
 export interface StockTransaction {

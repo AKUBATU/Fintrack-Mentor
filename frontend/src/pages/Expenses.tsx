@@ -71,7 +71,7 @@ export default function Expenses() {
   const [budgetFormData, setBudgetFormData] = useState({
     category: 'Makan',
     amount: '',
-    period: 'monthly' as 'monthly' | 'weekly',
+    period: 'monthly' as 'daily' | 'monthly' | 'yearly',
   });
 
   const expenseCategories = ['Makan', 'Transport', 'Belanja', 'Tagihan', 'Hiburan', 'Kesehatan', 'Pendidikan', 'Lainnya'];
@@ -206,44 +206,60 @@ export default function Expenses() {
     }
   };
 
-  // Ringkasan utama memakai seluruh riwayat. Budget tetap dibandingkan dengan bulan berjalan.
+  // Ringkasan utama memakai seluruh riwayat.
   const monthlySummary = useMemo(() => {
-    const currentMonth = new Date().getMonth();
-    const currentYear = new Date().getFullYear();
-
-    const monthlyTransactions = expenses.filter(e => {
-      const date = new Date(e.date);
-      return date.getMonth() === currentMonth && date.getFullYear() === currentYear;
-    });
-
-    const monthlyExpenses = monthlyTransactions.filter(e => e.transactionType !== 'income');
     const allExpenses = expenses.filter(e => e.transactionType !== 'income');
     const allIncome = expenses.filter(e => e.transactionType === 'income');
     const totalExpense = allExpenses.reduce((sum, e) => sum + e.amount, 0);
     const totalIncome = allIncome.reduce((sum, e) => sum + e.amount, 0);
-
-    const byCategory = new Map<string, number>();
-    allExpenses.forEach(e => {
-      byCategory.set(e.category, (byCategory.get(e.category) || 0) + e.amount);
-    });
-    const monthlyByCategory = new Map<string, number>();
-    monthlyExpenses.forEach(e => {
-      monthlyByCategory.set(e.category, (monthlyByCategory.get(e.category) || 0) + e.amount);
-    });
 
     return {
       totalExpense,
       totalIncome,
       balance: totalIncome - totalExpense,
       count: expenses.length,
-      byCategory: Array.from(byCategory.entries()).map(([category, amount]) => ({
-        category,
-        amount,
-        budget: budgets.find(b => b.category === category)?.amount || 0,
-        budgetSpent: monthlyByCategory.get(category) || 0,
-      })),
     };
-  }, [expenses, budgets]);
+  }, [expenses]);
+
+  const budgetOverview = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const weekStart = new Date(today);
+    weekStart.setDate(today.getDate() - ((today.getDay() + 6) % 7));
+
+    const isInCurrentPeriod = (dateValue: string, period: string) => {
+      const date = new Date(`${dateValue}T00:00:00`);
+      if (period === 'daily') return dateValue === getLocalDateValue();
+      if (period === 'weekly') {
+        const weekEnd = new Date(weekStart);
+        weekEnd.setDate(weekStart.getDate() + 7);
+        return date >= weekStart && date < weekEnd;
+      }
+      if (period === 'yearly') return date.getFullYear() === today.getFullYear();
+      return date.getMonth() === today.getMonth() && date.getFullYear() === today.getFullYear();
+    };
+
+    return budgets.map((budget) => {
+      const spent = expenses
+        .filter((expense) => expense.transactionType === 'expense'
+          && expense.category === budget.category
+          && isInCurrentPeriod(expense.date, budget.period))
+        .reduce((sum, expense) => sum + expense.amount, 0);
+      return {
+        ...budget,
+        spent,
+        remaining: budget.amount - spent,
+        percentage: budget.amount > 0 ? (spent / budget.amount) * 100 : 0,
+      };
+    });
+  }, [budgets, expenses]);
+
+  const budgetPeriodLabels: Record<string, string> = {
+    daily: 'Harian',
+    weekly: 'Mingguan',
+    monthly: 'Bulanan',
+    yearly: 'Tahunan',
+  };
 
   const handleAddExpense = async () => {
     if (!formData.amount || !formData.merchant) {
@@ -473,49 +489,66 @@ export default function Expenses() {
         </div>
       </section>
 
-      {/* Category breakdown with budgets */}
+      {/* Budget */}
       <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-        <div className="space-y-3">
-          <div className="flex items-center justify-between mb-2">
-            <h4 className="font-medium text-gray-900">Per Kategori</h4>
+        <div className="space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <h3 className="font-semibold text-gray-900">Budget</h3>
+              <p className="text-sm text-gray-500">Pantau batas pengeluaran pada periode berjalan</p>
+            </div>
             <button
               onClick={() => setShowAddBudget(true)}
-              className="text-sm text-blue-600 hover:underline"
+              className="inline-flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100"
             >
-              Atur Budget
+              <Plus className="w-4 h-4" /> Atur Budget
             </button>
           </div>
 
-          {monthlySummary.byCategory.map(({ category, amount, budget, budgetSpent }) => {
-            const percentage = budget > 0 ? (budgetSpent / budget) * 100 : 0;
-            const isOverBudget = percentage > 100;
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+            {budgetOverview.map((budget) => {
+              const isOverBudget = budget.remaining < 0;
 
-            return (
-              <div key={category} className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-gray-700">{category}</span>
-                  <div className="text-right">
-                    <span className="text-sm font-medium text-gray-900">{formatCurrency(amount)}</span>
-                    {budget > 0 && (
-                      <p className="text-xs text-gray-500">Bulan ini: {formatCurrency(budgetSpent)} / {formatCurrency(budget)}</p>
-                    )}
-                    {isOverBudget && <AlertTriangle className="inline-block w-4 h-4 text-red-500 mt-1" />}
+              return (
+                <div key={budget.id} className="p-4 bg-gray-50 border border-gray-200 rounded-xl space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="font-medium text-gray-900">{budget.category}</span>
+                    <span className="px-2 py-1 text-xs font-medium text-blue-700 bg-blue-100 rounded-full">
+                      {budgetPeriodLabels[budget.period] || budget.period}
+                    </span>
+                  </div>
+                  <div>
+                    <div className="flex items-end justify-between gap-3 mb-2">
+                      <div>
+                        <p className="text-xs text-gray-500">Terpakai</p>
+                        <p className="font-semibold text-gray-900">{formatCurrency(budget.spent)}</p>
+                      </div>
+                      <p className="text-sm text-gray-500">dari {formatCurrency(budget.amount)}</p>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+                      <div
+                        className={`h-2 rounded-full ${isOverBudget ? 'bg-red-500' : budget.percentage >= 80 ? 'bg-amber-500' : 'bg-blue-500'}`}
+                        style={{ width: `${Math.min(budget.percentage, 100)}%` }}
+                      />
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between text-xs">
+                    <span className={isOverBudget ? 'text-red-600 font-medium' : 'text-gray-500'}>
+                      {isOverBudget ? `Melebihi ${formatCurrency(Math.abs(budget.remaining))}` : `Sisa ${formatCurrency(budget.remaining)}`}
+                    </span>
+                    <span className={isOverBudget ? 'text-red-600 font-medium' : 'text-gray-500'}>
+                      {Math.round(budget.percentage)}%
+                      {isOverBudget && <AlertTriangle className="inline-block w-3.5 h-3.5 ml-1" />}
+                    </span>
                   </div>
                 </div>
-                {budget > 0 && (
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div
-                      className={`h-2 rounded-full ${isOverBudget ? 'bg-red-500' : 'bg-blue-500'}`}
-                      style={{ width: `${Math.min(percentage, 100)}%` }}
-                    />
-                  </div>
-                )}
-              </div>
-            );
-          })}
-          {monthlySummary.byCategory.length === 0 && (
-            <div className="text-center py-6">
-              <p className="text-sm text-gray-500">Belum ada data pengeluaran.</p>
+              );
+            })}
+          </div>
+          {budgetOverview.length === 0 && (
+            <div className="text-center py-8 px-4 border border-dashed border-gray-300 rounded-xl">
+              <p className="font-medium text-gray-700">Belum ada budget</p>
+              <p className="text-sm text-gray-500 mt-1">Atur batas harian, bulanan, atau tahunan untuk kategori pengeluaran Anda.</p>
             </div>
           )}
         </div>
@@ -738,7 +771,7 @@ export default function Expenses() {
                   onChange={(e) => setBudgetFormData({ ...budgetFormData, category: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                 >
-                  {categories.map(cat => (
+                  {expenseCategories.map(cat => (
                     <option key={cat} value={cat}>{cat}</option>
                   ))}
                 </select>
@@ -759,11 +792,12 @@ export default function Expenses() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">Periode</label>
                 <select
                   value={budgetFormData.period}
-                  onChange={(e) => setBudgetFormData({ ...budgetFormData, period: e.target.value as 'monthly' | 'weekly' })}
+                  onChange={(e) => setBudgetFormData({ ...budgetFormData, period: e.target.value as 'daily' | 'monthly' | 'yearly' })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                 >
+                  <option value="daily">Harian</option>
                   <option value="monthly">Bulanan</option>
-                  <option value="weekly">Mingguan</option>
+                  <option value="yearly">Tahunan</option>
                 </select>
               </div>
             </div>
