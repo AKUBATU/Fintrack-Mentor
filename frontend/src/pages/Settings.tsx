@@ -68,7 +68,7 @@ export default function Settings() {
       <section>
         <h2 className="text-base font-semibold text-gray-900">Ringkasan akun</h2>
         <p className="text-sm text-gray-500 mb-3">Data yang tercatat pada akun Anda saat ini.</p>
-        <div className="grid grid-cols-2 xl:grid-cols-4 gap-3 xl:gap-6">
+        <div className="grid grid-cols-2 xl:grid-cols-[repeat(3,minmax(0,1fr))_18rem] gap-3 xl:gap-6">
           {accountStats.map(({ label, value, icon: Icon, color }) => (
             <div key={label} className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm min-w-0">
               <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${color}`}><Icon className="w-4 h-4" /></div>
@@ -79,7 +79,7 @@ export default function Settings() {
         </div>
       </section>
 
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 items-stretch">
+      <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_18rem] gap-6 items-start">
         <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 sm:p-6 min-w-0">
           <div className="flex items-center gap-3 mb-5">
             <div className="w-10 h-10 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center"><ChartNoAxesCombined className="w-5 h-5" /></div>
@@ -134,8 +134,8 @@ export default function Settings() {
           </div>
         </section>
 
-        <aside className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-1 xl:grid-rows-2 gap-6 min-w-0">
-          <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 sm:p-6 h-full">
+        <aside className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-1 gap-4 min-w-0">
+          <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 h-full">
             <div className="flex items-center gap-2 mb-3"><ShieldCheck className="w-5 h-5 text-green-700" /><h2 className="font-semibold text-gray-900">Keamanan & data</h2></div>
             <div className="space-y-3 text-sm text-gray-600">
               <div className="flex items-start gap-2"><BadgeCheck className="w-4 h-4 text-green-700 mt-0.5 shrink-0" /><span>Halaman akun dilindungi login.</span></div>
@@ -144,7 +144,7 @@ export default function Settings() {
             <p className="text-xs text-gray-500 border-t border-gray-200 mt-4 pt-4">Preferensi investasi di halaman ini disimpan pada browser yang sedang digunakan.</p>
           </section>
 
-          <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 sm:p-6 h-full">
+          <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 h-full">
             <h2 className="font-semibold text-gray-900">Akses cepat</h2>
             <p className="text-xs text-gray-500 mb-3">Lanjutkan pengelolaan akun Anda.</p>
             <div className="divide-y divide-gray-100">
