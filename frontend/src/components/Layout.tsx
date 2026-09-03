@@ -4,7 +4,7 @@ import {
   Wallet, 
   TrendingUp, 
   MessageSquare, 
-  Settings, 
+  UserRound,
   Info,
   LogOut,
   Menu,
@@ -25,7 +25,7 @@ export default function Layout() {
     { name: 'Keuangan', href: '/expenses', icon: Wallet },
     { name: 'Portofolio', href: '/portfolio', icon: TrendingUp },
     { name: 'Chat Mentor', href: '/chat', icon: MessageSquare },
-    { name: 'Pengaturan', href: '/settings', icon: Settings },
+    { name: 'Profil', href: '/settings', icon: UserRound },
     { name: 'Tentang', href: '/about', icon: Info },
   ];
 
