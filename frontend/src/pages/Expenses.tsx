@@ -41,6 +41,8 @@ export default function Expenses() {
   const [historyType, setHistoryType] = useState<'all' | 'income' | 'expense'>('all');
   const [historySearch, setHistorySearch] = useState('');
   const [historyDate, setHistoryDate] = useState(getLocalDateValue);
+  const [summaryMode, setSummaryMode] = useState<'all' | 'daily'>('all');
+  const [summaryDate, setSummaryDate] = useState(getLocalDateValue);
 
   useEffect(() => {
     const modalOpen = showAddExpense || Boolean(editingExpense) || showAddBudget || Boolean(selectedReceipt);
@@ -206,10 +208,12 @@ export default function Expenses() {
     }
   };
 
-  // Ringkasan utama memakai seluruh riwayat.
-  const monthlySummary = useMemo(() => {
-    const allExpenses = expenses.filter(e => e.transactionType !== 'income');
-    const allIncome = expenses.filter(e => e.transactionType === 'income');
+  const financeSummary = useMemo(() => {
+    const summaryTransactions = summaryMode === 'daily'
+      ? expenses.filter((transaction) => transaction.date === summaryDate)
+      : expenses;
+    const allExpenses = summaryTransactions.filter(e => e.transactionType !== 'income');
+    const allIncome = summaryTransactions.filter(e => e.transactionType === 'income');
     const totalExpense = allExpenses.reduce((sum, e) => sum + e.amount, 0);
     const totalIncome = allIncome.reduce((sum, e) => sum + e.amount, 0);
 
@@ -217,9 +221,15 @@ export default function Expenses() {
       totalExpense,
       totalIncome,
       balance: totalIncome - totalExpense,
-      count: expenses.length,
+      count: summaryTransactions.length,
     };
-  }, [expenses]);
+  }, [expenses, summaryDate, summaryMode]);
+
+  const summaryDateLabel = new Date(`${summaryDate}T00:00:00`).toLocaleDateString('id-ID', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  });
 
   const budgetOverview = useMemo(() => {
     const today = new Date();
@@ -457,12 +467,27 @@ export default function Expenses() {
         </div>
       </div>
 
-      {/* Monthly Summary */}
+      {/* Finance Summary */}
       <section>
-        <div className="flex items-center justify-between mb-3">
+        <div className="finance-summary-header mb-3">
           <div>
-            <h3 className="font-semibold text-gray-900">Ringkasan Keseluruhan</h3>
-            <p className="text-sm text-gray-500">Akumulasi seluruh transaksi Anda</p>
+            <h3 className="font-semibold text-gray-900">Ringkasan {summaryMode === 'all' ? 'Keseluruhan' : summaryDateLabel}</h3>
+            <p className="text-sm text-gray-500">{summaryMode === 'all' ? 'Akumulasi seluruh transaksi Anda' : 'Pemasukan dan pengeluaran pada hari yang dipilih'}</p>
+          </div>
+          <div className="finance-summary-controls">
+            <div className="finance-summary-mode">
+              <button type="button" onClick={() => setSummaryMode('all')} className={summaryMode === 'all' ? 'finance-summary-mode-active' : ''}>Keseluruhan</button>
+              <button type="button" onClick={() => setSummaryMode('daily')} className={summaryMode === 'daily' ? 'finance-summary-mode-active' : ''}>Per Hari</button>
+            </div>
+            {summaryMode === 'daily' && (
+              <input
+                type="date"
+                aria-label="Pilih tanggal ringkasan keuangan"
+                value={summaryDate}
+                onChange={(event) => setSummaryDate(event.target.value || getLocalDateValue())}
+                className="finance-summary-date px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white"
+              />
+            )}
           </div>
         </div>
 
@@ -474,27 +499,27 @@ export default function Expenses() {
               <div className="finance-balance-heading">
                 <div className="finance-balance-icon"><WalletCards className="w-5 h-5" /></div>
                 <div>
-                  <p className="finance-balance-label">Saldo keseluruhan</p>
+                  <p className="finance-balance-label">Saldo {summaryMode === 'all' ? 'keseluruhan' : 'harian'}</p>
                   <p className="finance-balance-period">Pemasukan dikurangi pengeluaran</p>
                 </div>
               </div>
-              <p className="finance-balance-value">{formatCurrency(monthlySummary.balance)}</p>
+              <p className="finance-balance-value">{formatCurrency(financeSummary.balance)}</p>
               <div className="finance-balance-footer">
-                <span className={`finance-cashflow-badge ${monthlySummary.balance >= 0 ? 'finance-cashflow-positive' : 'finance-cashflow-negative'}`}>
-                  {monthlySummary.balance >= 0 ? 'Arus kas positif' : 'Arus kas negatif'}
+                <span className={`finance-cashflow-badge ${financeSummary.balance >= 0 ? 'finance-cashflow-positive' : 'finance-cashflow-negative'}`}>
+                  {financeSummary.balance >= 0 ? 'Arus kas positif' : 'Arus kas negatif'}
                 </span>
-                <span className="finance-transaction-count">{monthlySummary.count} transaksi</span>
+                <span className="finance-transaction-count">{financeSummary.count} transaksi</span>
               </div>
             </div>
           </div>
           <div className="finance-flow-grid">
             <div className="finance-flow-card finance-income-card">
               <p className="text-sm text-gray-600">Pemasukan</p>
-              <p className="text-xl font-bold text-green-600">+{formatCurrency(monthlySummary.totalIncome)}</p>
+              <p className="text-xl font-bold text-green-600">+{formatCurrency(financeSummary.totalIncome)}</p>
             </div>
             <div className="finance-flow-card finance-expense-card">
               <p className="text-sm text-gray-600">Pengeluaran</p>
-              <p className="text-xl font-bold text-red-600">-{formatCurrency(monthlySummary.totalExpense)}</p>
+              <p className="text-xl font-bold text-red-600">-{formatCurrency(financeSummary.totalExpense)}</p>
             </div>
           </div>
         </div>
