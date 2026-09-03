@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useData } from '../contexts/DataContext';
-import { Plus, Trash2, Download, Upload, AlertTriangle, Camera, Search, X, WalletCards, CalendarDays } from 'lucide-react';
+import { Plus, Trash2, Download, Upload, AlertTriangle, Camera, Search, X, WalletCards, CalendarDays, Pencil } from 'lucide-react';
 import { toast } from 'sonner';
 import { api } from '../services/api';
 
@@ -22,10 +22,15 @@ export default function Expenses() {
     deleteExpense,
     budgets,
     addBudget,
+    updateBudget,
+    deleteBudget,
   } = useData();
 
   const [showAddExpense, setShowAddExpense] = useState(false);
   const [showAddBudget, setShowAddBudget] = useState(false);
+  const [editingBudget, setEditingBudget] = useState<string | null>(null);
+  const [savingBudget, setSavingBudget] = useState(false);
+  const [deletingBudget, setDeletingBudget] = useState<string | null>(null);
   const [editingExpense, setEditingExpense] = useState<string | null>(null);
 
   // ✅ missing states (fix crash)
@@ -73,7 +78,7 @@ export default function Expenses() {
   const [budgetFormData, setBudgetFormData] = useState({
     category: 'Makan',
     amount: '',
-    period: 'monthly' as 'daily' | 'monthly' | 'yearly',
+    period: 'monthly' as 'daily' | 'weekly' | 'monthly' | 'yearly',
   });
 
   const expenseCategories = ['Makan', 'Transport', 'Belanja', 'Tagihan', 'Hiburan', 'Kesehatan', 'Pendidikan', 'Lainnya'];
@@ -365,7 +370,27 @@ export default function Expenses() {
     }
   };
 
-  const handleAddBudget = async () => {
+  const resetBudgetForm = () => {
+    setEditingBudget(null);
+    setBudgetFormData({ category: 'Makan', amount: '', period: 'monthly' });
+  };
+
+  const openAddBudget = () => {
+    resetBudgetForm();
+    setShowAddBudget(true);
+  };
+
+  const openEditBudget = (budget: typeof budgets[number]) => {
+    setEditingBudget(budget.id);
+    setBudgetFormData({
+      category: budget.category,
+      amount: String(budget.amount),
+      period: budget.period,
+    });
+    setShowAddBudget(true);
+  };
+
+  const handleSaveBudget = async () => {
     if (!budgetFormData.amount) {
       toast.error('Mohon masukkan jumlah budget!');
       return;
@@ -377,25 +402,39 @@ export default function Expenses() {
       return;
     }
 
+    setSavingBudget(true);
     try {
-      await addBudget({
+      const payload = {
         category: budgetFormData.category,
         amount: amountNum,
         period: budgetFormData.period,
-      });
+      };
+      if (editingBudget) await updateBudget(editingBudget, payload);
+      else await addBudget(payload);
 
-      toast.success('Budget berhasil disimpan', {
+      toast.success(editingBudget ? 'Budget berhasil diperbarui' : 'Budget berhasil disimpan', {
         description: `${budgetFormData.category} · ${budgetPeriodLabels[budgetFormData.period]}`,
         duration: 4000,
       });
       setShowAddBudget(false);
-      setBudgetFormData({
-        category: 'Makan',
-        amount: '',
-        period: 'monthly',
-      });
+      resetBudgetForm();
     } catch (e: any) {
-      toast.error(e?.message || 'Gagal menambahkan budget');
+      toast.error(e?.message || 'Gagal menyimpan budget');
+    } finally {
+      setSavingBudget(false);
+    }
+  };
+
+  const handleDeleteBudget = async (id: string) => {
+    if (!confirm('Yakin ingin menghapus budget ini?')) return;
+    setDeletingBudget(id);
+    try {
+      await deleteBudget(id);
+      toast.success('Budget berhasil dihapus');
+    } catch (e: any) {
+      toast.error(e?.message || 'Gagal menghapus budget');
+    } finally {
+      setDeletingBudget(null);
     }
   };
 
@@ -534,7 +573,7 @@ export default function Expenses() {
               <p className="text-sm text-gray-500">Pantau batas pengeluaran pada periode berjalan</p>
             </div>
             <button
-              onClick={() => setShowAddBudget(true)}
+              onClick={openAddBudget}
               className="inline-flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100"
             >
               <Plus className="w-4 h-4" /> Atur Budget
@@ -576,6 +615,23 @@ export default function Expenses() {
                       {Math.round(budget.percentage)}%
                       {isOverBudget && <AlertTriangle className="inline-block w-3.5 h-3.5 ml-1" />}
                     </span>
+                  </div>
+                  <div className="flex justify-end gap-2 pt-3 border-t border-gray-200">
+                    <button
+                      type="button"
+                      onClick={() => openEditBudget(budget)}
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100"
+                    >
+                      <Pencil className="w-3.5 h-3.5" /> Edit
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteBudget(budget.id)}
+                      disabled={deletingBudget === budget.id}
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-red-600 bg-red-50 rounded-lg hover:bg-red-100 disabled:opacity-50"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" /> {deletingBudget === budget.id ? 'Menghapus…' : 'Hapus'}
+                    </button>
                   </div>
                 </div>
               );
@@ -797,7 +853,7 @@ export default function Expenses() {
       {showAddBudget && (
         <div className="fixed inset-0 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4" style={{ backgroundColor: 'rgba(17, 24, 39, 0.22)', backdropFilter: 'blur(7px)', WebkitBackdropFilter: 'blur(7px)' }}>
           <div className="bg-white rounded-t-2xl sm:rounded-xl max-w-md w-full p-4 sm:p-6 max-h-[calc(100dvh-1rem)] overflow-y-auto overscroll-contain">
-            <h3 className="text-xl font-bold text-gray-900 mb-4">Atur Budget</h3>
+            <h3 className="text-xl font-bold text-gray-900 mb-4">{editingBudget ? 'Edit Budget' : 'Atur Budget'}</h3>
 
             <div className="space-y-4">
               <div>
@@ -828,10 +884,11 @@ export default function Expenses() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">Periode</label>
                 <select
                   value={budgetFormData.period}
-                  onChange={(e) => setBudgetFormData({ ...budgetFormData, period: e.target.value as 'daily' | 'monthly' | 'yearly' })}
+                  onChange={(e) => setBudgetFormData({ ...budgetFormData, period: e.target.value as 'daily' | 'weekly' | 'monthly' | 'yearly' })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="daily">Harian</option>
+                  <option value="weekly">Mingguan</option>
                   <option value="monthly">Bulanan</option>
                   <option value="yearly">Tahunan</option>
                 </select>
@@ -840,16 +897,18 @@ export default function Expenses() {
 
             <div className="grid grid-cols-2 gap-2 mt-6 pb-[max(0px,env(safe-area-inset-bottom))]">
               <button
-                onClick={() => setShowAddBudget(false)}
+                onClick={() => { setShowAddBudget(false); resetBudgetForm(); }}
+                disabled={savingBudget}
                 className="min-w-0 px-3 sm:px-4 py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200"
               >
                 Batal
               </button>
               <button
-                onClick={handleAddBudget}
-                className="min-w-0 px-3 sm:px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                onClick={handleSaveBudget}
+                disabled={savingBudget}
+                className="min-w-0 px-3 sm:px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
               >
-                Simpan
+                {savingBudget ? 'Menyimpan…' : editingBudget ? 'Simpan Perubahan' : 'Simpan'}
               </button>
             </div>
           </div>

@@ -148,6 +148,8 @@ interface DataContextType {
   updateExpense(id: string, expense: ExpenseInput): Promise<void>
   deleteExpense(id: string): Promise<void>
   addBudget(budget: Omit<Budget, 'id'>): Promise<void>
+  updateBudget(id: string, budget: Omit<Budget, 'id'>): Promise<void>
+  deleteBudget(id: string): Promise<void>
   addStockTransaction(
     transaction: Omit<StockTransaction, 'id' | 'shares'> & { lots: number }
   ): Promise<void>
@@ -521,6 +523,16 @@ export function DataProvider({ children }: { children: ReactNode }) {
     setBudgets((p) => [{ ...b, id: String(created.id) }, ...p])
   }
 
+  const updateBudget = async (id: string, b: Omit<Budget, 'id'>) => {
+    await api.updateBudget(Number(id), b)
+    setBudgets((items) => items.map((item) => item.id === id ? { ...b, id } : item))
+  }
+
+  const deleteBudget = async (id: string) => {
+    await api.deleteBudget(Number(id))
+    setBudgets((items) => items.filter((item) => item.id !== id))
+  }
+
   const addDividend = async (d: Omit<Dividend, 'id'>) => {
     const created = await api.addDividend(d)
     setDividends((p) => [{ ...d, id: String(created.id) }, ...p])
@@ -556,6 +568,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
         updateExpense,
         deleteExpense,
         addBudget,
+        updateBudget,
+        deleteBudget,
         addStockTransaction,
         updateStockTransaction,
         deleteStockTransaction,
