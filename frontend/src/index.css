@@ -1810,7 +1810,6 @@ html {
 .finance-history-date,
 .finance-history-date input[type="date"] {
   box-sizing: border-box;
-  width: 100%;
   min-width: 0;
   min-inline-size: 0;
   max-width: 100%;
@@ -1818,9 +1817,14 @@ html {
 }
 
 .finance-history-date {
+  width: 11rem;
+  flex: 0 0 11rem;
   overflow: hidden;
   contain: inline-size;
 }
+
+.finance-history-date input[type="date"] { width: 100%; }
+.finance-summary-date { width: 11rem; }
 
 .finance-summary-date,
 .finance-history-date input[type="date"] {
@@ -1979,6 +1983,54 @@ html {
   gap: 1rem;
 }
 
+.finance-history-tools {
+  display: grid;
+  grid-template-columns: minmax(12rem, 14rem) 11rem minmax(8rem, auto);
+  align-items: center;
+  flex-wrap: initial;
+}
+
+.finance-history-tools > *,
+.finance-history-tools input,
+.finance-history-tools select {
+  width: 100% !important;
+  min-width: 0;
+}
+
+.finance-history-empty {
+  display: flex;
+  min-height: 9rem;
+  padding: 1.5rem;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  text-align: center;
+}
+
+.finance-history-empty-icon {
+  display: flex;
+  width: 2.5rem;
+  height: 2.5rem;
+  margin-bottom: .65rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: .75rem;
+  color: #64748b;
+  background: #f1f5f9;
+}
+
+.dark .finance-history-empty-icon { color: #94a3b8; background: #1e293b; }
+
+@media (min-width: 768px) and (max-width: 1100px) {
+  .finance-history-header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .finance-history-tools {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(8rem, .65fr);
+  }
+}
+
 .finance-history-row {
   padding: 1rem;
   border: 1px solid #e5e7eb;
@@ -2021,7 +2073,14 @@ html {
   .finance-overview-grid { grid-template-columns: 1fr; }
   .finance-balance-card { min-height: 140px; }
   .finance-history-tools { flex-direction: column; }
-  .finance-history-tools { width: 100%; min-width: 0; overflow: hidden; }
+  .finance-history-tools {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    width: 100%;
+    min-width: 0;
+    overflow: hidden;
+  }
+  .finance-history-date { width: 100%; max-width: 100%; flex-basis: auto; }
   .finance-summary-header { align-items: stretch; }
   .finance-summary-controls { justify-content: stretch; }
   .finance-summary-mode { flex: 1 1 auto; }

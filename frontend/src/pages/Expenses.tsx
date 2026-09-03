@@ -1008,7 +1008,11 @@ export default function Expenses() {
             ))}
 
             {filteredTransactions.length === 0 && (
-              <p className="text-center text-gray-500 py-8">Belum ada transaksi pada {selectedHistoryDateLabel}</p>
+              <div className="finance-history-empty">
+                <div className="finance-history-empty-icon"><CalendarDays className="w-5 h-5" /></div>
+                <p className="font-medium text-gray-700">Belum ada transaksi</p>
+                <p className="text-sm text-gray-500 mt-1">Tidak ada transaksi pada {selectedHistoryDateLabel}</p>
+              </div>
             )}
           </div>
         </div>
