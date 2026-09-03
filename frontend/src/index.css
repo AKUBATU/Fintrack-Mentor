@@ -1985,7 +1985,8 @@ html {
 
 .finance-history-tools {
   display: grid;
-  grid-template-columns: minmax(12rem, 14rem) 11rem minmax(8rem, auto);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  width: min(100%, 39rem);
   align-items: center;
   flex-wrap: initial;
 }
@@ -1995,6 +1996,13 @@ html {
 .finance-history-tools select {
   width: 100% !important;
   min-width: 0;
+}
+
+.finance-history-tools input,
+.finance-history-tools select {
+  box-sizing: border-box;
+  height: 42px;
+  min-height: 42px;
 }
 
 .finance-history-empty {
@@ -2027,7 +2035,8 @@ html {
     flex-direction: column;
   }
   .finance-history-tools {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(8rem, .65fr);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    width: 100%;
   }
 }
 
