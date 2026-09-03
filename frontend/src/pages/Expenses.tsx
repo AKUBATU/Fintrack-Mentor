@@ -83,6 +83,7 @@ export default function Expenses() {
 
   const expenseCategories = ['Makan', 'Transport', 'Belanja', 'Tagihan', 'Hiburan', 'Kesehatan', 'Pendidikan', 'Lainnya'];
   const incomeCategories = ['Gaji', 'Bonus', 'Usaha', 'Investasi', 'Hadiah', 'Lainnya'];
+  const budgetCategories = ['Keseluruhan', ...expenseCategories];
   const categories = formData.transactionType === 'income' ? incomeCategories : expenseCategories;
   const paymentMethods = ['Cash', 'QRIS', 'Debit Card', 'Credit Card', 'E-Wallet', 'Transfer Bank'];
 
@@ -257,7 +258,7 @@ export default function Expenses() {
     return budgets.map((budget) => {
       const spent = expenses
         .filter((expense) => expense.transactionType === 'expense'
-          && expense.category === budget.category
+          && (budget.category === 'Keseluruhan' || expense.category === budget.category)
           && isInCurrentPeriod(expense.date, budget.period))
         .reduce((sum, expense) => sum + expense.amount, 0);
       return {
@@ -863,7 +864,7 @@ export default function Expenses() {
                   onChange={(e) => setBudgetFormData({ ...budgetFormData, category: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                 >
-                  {expenseCategories.map(cat => (
+                  {budgetCategories.map(cat => (
                     <option key={cat} value={cat}>{cat}</option>
                   ))}
                 </select>
