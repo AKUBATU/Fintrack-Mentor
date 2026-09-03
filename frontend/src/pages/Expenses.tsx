@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useData } from '../contexts/DataContext';
-import { Plus, Trash2, Download, Upload, AlertTriangle, Camera, Search, X, WalletCards, CalendarDays, Pencil } from 'lucide-react';
+import { Plus, Trash2, Download, Upload, AlertTriangle, Camera, Search, X, WalletCards, CalendarDays, Pencil, ChevronDown } from 'lucide-react';
 import { toast } from 'sonner';
 import { api } from '../services/api';
 
@@ -939,11 +939,14 @@ export default function Expenses() {
                   className="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500"
                 />
               </div>
-              <select value={historyType} onChange={(event) => setHistoryType(event.target.value as typeof historyType)} className="px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white">
-                <option value="all">Semua jenis</option>
-                <option value="income">Pemasukan</option>
-                <option value="expense">Pengeluaran</option>
-              </select>
+              <div className="relative">
+                <select value={historyType} onChange={(event) => setHistoryType(event.target.value as typeof historyType)} className="finance-history-type pl-3 pr-10 py-2 border border-gray-200 rounded-lg text-sm bg-white">
+                  <option value="all">Semua jenis</option>
+                  <option value="income">Pemasukan</option>
+                  <option value="expense">Pengeluaran</option>
+                </select>
+                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+              </div>
             </div>
           </div>
           <div className="space-y-3">
