@@ -597,7 +597,7 @@ export default function Portfolio() {
           <div><h3 className="font-semibold text-gray-900">Portofolio Saya</h3><p className="text-sm text-gray-500">Seluruh saham dan instrumen investasi Anda dalam satu tempat.</p></div>
           <span className="px-2 py-1 bg-blue-50 text-blue-700 text-xs rounded-full">{portfolioAssetCount} aset</span>
         </div>
-        <div className="space-y-3 md:hidden">
+        <div className="portfolio-mobile-list space-y-3 md:hidden">
           {visibleHoldings.length > 0 && <div className="flex items-center justify-between pt-1"><p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Saham</p><span className="text-xs text-gray-400">{visibleHoldings.length} aset</span></div>}
           {visibleHoldings.map((holding: any) => <div key={`mobile-stock-${holding.ticker}`} className="rounded-xl border border-gray-200 p-4">
             <div className="flex items-start justify-between gap-3"><div><p className="font-semibold text-gray-900">{holding.ticker}</p><p className="text-xs text-gray-500 mt-0.5">{holding.totalLots} lot · {holding.totalShares} lembar</p></div><span className="px-2 py-1 bg-blue-50 text-blue-700 text-xs rounded-full">Saham</span></div>

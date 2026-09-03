@@ -1951,7 +1951,8 @@ html {
 
 body {
   margin: 0;
-  min-width: 320px;
+  width: 100%;
+  min-width: 0;
   min-height: 100vh;
   background: #f4f7fb;
   color: #172033;
@@ -1959,7 +1960,22 @@ body {
   overflow-x: hidden;
 }
 
-#root { min-width: 0; min-height: 100vh; }
+html,
+body,
+#root {
+  max-width: 100%;
+  overflow-x: clip;
+}
+
+#root { width: 100%; min-width: 0; min-height: 100vh; }
+
+.app-content,
+.app-topbar-inner,
+.app-main {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+}
 
 button, input, select, textarea { font: inherit; }
 button { cursor: pointer; }
@@ -2420,6 +2436,26 @@ html.dark { color-scheme: dark; background: #080d18; }
   min-width: 0;
   max-width: 100%;
 }
+
+.portfolio-form-dialog input[type="date"] {
+  -webkit-appearance: none;
+  appearance: none;
+  box-sizing: border-box;
+  display: block;
+  width: 100%;
+  min-width: 0;
+  min-inline-size: 0;
+  max-width: 100%;
+  max-inline-size: 100%;
+}
+
+.portfolio-form-dialog input[type="date"]::-webkit-date-and-time-value,
+.portfolio-form-dialog input[type="date"]::-webkit-datetime-edit,
+.portfolio-form-dialog input[type="date"]::-webkit-datetime-edit-fields-wrapper {
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+}
 .app-main input:focus,
 .app-main select:focus,
 .app-main textarea:focus {
@@ -2534,7 +2570,7 @@ html.dark { color-scheme: dark; background: #080d18; }
   .app-topbar { min-height: 66px; }
   .app-topbar-inner { padding: .875rem 1rem; }
   .app-topbar-meta, .app-topbar-subtitle { display: none; }
-  .app-main { padding: 1rem; }
+  .app-main { padding: 1rem; overflow-x: clip; }
   .app-main h1 { font-size: 1.45rem; }
   .app-main > * { min-width: 0; }
   .app-main form,
@@ -2562,6 +2598,23 @@ html.dark { color-scheme: dark; background: #080d18; }
   .app-main table { min-width: 640px; }
   .app-main .bg-white.rounded-xl.p-6,
   .app-main .bg-white.rounded-xl > .p-6 { padding: 1rem; }
+  .finance-header-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+  }
+  .finance-header-actions > button {
+    width: 100%;
+    min-width: 0;
+  }
+  .finance-header-actions > button:last-child { grid-column: 1 / -1; }
+  .finance-history-row > *,
+  .dashboard-holding-row > *,
+  .portfolio-mobile-list > * { min-width: 0; max-width: 100%; }
+  .finance-history-row p,
+  .dashboard-holding-row p,
+  .portfolio-mobile-list p { overflow-wrap: anywhere; }
+  .app-main .text-2xl.font-bold { overflow-wrap: anywhere; }
   .app-main > div.fixed { padding: .75rem; }
   .app-main > div.fixed > div.bg-white {
     padding: 1rem;
@@ -2587,7 +2640,7 @@ html.dark { color-scheme: dark; background: #080d18; }
   .mentor-bubble { padding: .7rem .8rem; }
   .mentor-conversation .chat-messages {
     min-height: 10rem;
-    max-height: calc(100dvh - 22rem);
+    max-height: clamp(10rem, calc(100dvh - 22rem), 32rem);
   }
 }
 
@@ -2725,6 +2778,33 @@ html.dark { color-scheme: dark; background: #080d18; }
   .settings-save-action > button { justify-content: center; }
 }
 
+@media (max-width: 479px) {
+  .app-main { padding: .75rem; }
+  .app-main .space-y-6 { gap: 1rem; }
+  .app-main .bg-white.rounded-xl.p-6,
+  .app-main .bg-white.rounded-xl > .p-6 { padding: .875rem; }
+  .portfolio-summary-grid { gap: .65rem; }
+  .portfolio-summary-grid .text-2xl {
+    font-size: 1.1rem;
+    line-height: 1.45;
+    overflow-wrap: anywhere;
+  }
+  .portfolio-health-grid { gap: .65rem; }
+  .portfolio-mobile-list .grid > *,
+  .portfolio-mobile-list .flex > * { min-width: 0; }
+  .portfolio-mobile-list p { overflow-wrap: anywhere; }
+  .mentor-composer { gap: .35rem; }
+  .mentor-send-button {
+    width: 2.75rem;
+    min-width: 2.75rem;
+    padding-inline: 0;
+  }
+  .auth-theme-toggle {
+    top: max(.65rem, env(safe-area-inset-top));
+    right: max(.65rem, env(safe-area-inset-right));
+  }
+}
+
 @media (max-width: 359px) {
   .finance-form-pair,
   .portfolio-summary-grid,
@@ -2754,10 +2834,28 @@ html.dark { color-scheme: dark; background: #080d18; }
 
   .finance-date-field,
   .finance-date-input {
-    width: calc(100vw - 2rem) !important;
-    width: calc(100dvw - 2rem) !important;
-    max-width: calc(100vw - 2rem) !important;
-    max-width: calc(100dvw - 2rem) !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+}
+
+@media (max-height: 560px) and (orientation: landscape) {
+  .portfolio-form-overlay,
+  .finance-transaction-overlay,
+  .app-main > div.fixed {
+    align-items: stretch;
+  }
+  .portfolio-form-dialog,
+  .finance-transaction-dialog,
+  .app-main > div.fixed > div.bg-white {
+    max-height: 100dvh !important;
+    border-radius: 0;
+  }
+  .mentor-header { margin-bottom: .5rem; }
+  .mentor-status-list { display: none; }
+  .mentor-conversation .chat-messages {
+    min-height: 7rem;
+    max-height: calc(100dvh - 13rem);
   }
 }
 
