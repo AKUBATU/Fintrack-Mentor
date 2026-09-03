@@ -113,6 +113,16 @@ function normalizeReportPayload(payload: any) {
 }
 
 export const api = {
+  async accountData() {
+    return request<{
+      expenses: any[];
+      budgets: any[];
+      transactions: any[];
+      dividends: any[];
+      reports: any[];
+    }>(`/api/account-data`);
+  },
+
   async register(name: string, email: string, password: string) {
     return request<{ id: number; email: string; name: string }>(`/api/auth/register`, {
       method: 'POST',

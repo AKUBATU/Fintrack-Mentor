@@ -95,6 +95,22 @@ class ApiIntegrationTest(unittest.TestCase):
             self.assertEqual(len(self.client.get(path, headers=first).json()), 1)
             self.assertEqual(self.client.get(path, headers=second).json(), [])
 
+        account_data = self.client.get("/api/account-data", headers=first)
+        self.assertEqual(account_data.status_code, 200, account_data.text)
+        self.assertEqual(
+            {key: len(value) for key, value in account_data.json().items()},
+            {
+                "expenses": 1,
+                "budgets": 1,
+                "transactions": 1,
+                "dividends": 1,
+                "reports": 1,
+            },
+        )
+        second_account_data = self.client.get("/api/account-data", headers=second)
+        self.assertEqual(second_account_data.status_code, 200, second_account_data.text)
+        self.assertTrue(all(not rows for rows in second_account_data.json().values()))
+
         previous_budget = self.client.post(
             "/api/budgets",
             json={

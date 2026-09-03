@@ -283,17 +283,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
     const load = async () => {
       setAccountDataLoading(true)
       try {
-        const results = await Promise.allSettled([
-          api.listExpenses(),
-          api.listBudgets(),
-          api.listTransactions(),
-          api.listDividends(),
-          api.listReports(),
-        ])
+        const data = await api.accountData()
 
-        const [expenseResult, budgetResult, transactionResult, dividendResult, reportResult] = results
-
-      if (expenseResult.status === 'fulfilled') setExpenses(expenseResult.value.map((row) => ({
+      setExpenses(data.expenses.map((row) => ({
         id: String(row.id),
         date: row.date,
         amount: Number(row.amount),
@@ -306,14 +298,14 @@ export function DataProvider({ children }: { children: ReactNode }) {
         confidence: row.confidence ?? undefined,
         hasReceipt: Boolean(row.has_receipt),
       })))
-      if (budgetResult.status === 'fulfilled') setBudgets(budgetResult.value.map((row) => ({
+      setBudgets(data.budgets.map((row) => ({
         id: String(row.id),
         category: row.category,
         amount: Number(row.amount),
         period: row.period,
         referenceDate: row.reference_date,
       })))
-      if (transactionResult.status === 'fulfilled') setStockTransactions(transactionResult.value.map((row) => ({
+      setStockTransactions(data.transactions.map((row) => ({
         id: String(row.id),
         ticker: row.ticker,
         type: row.type,
@@ -322,26 +314,23 @@ export function DataProvider({ children }: { children: ReactNode }) {
         price: Number(row.price),
         date: row.date,
       })))
-      if (dividendResult.status === 'fulfilled') setDividends(dividendResult.value.map((row) => ({
+      setDividends(data.dividends.map((row) => ({
         id: String(row.id),
         ticker: row.ticker,
         amount: Number(row.amount),
         recordDate: row.record_date,
         paymentDate: row.payment_date,
       })))
-      if (reportResult.status === 'fulfilled') setDailyReports(reportResult.value.map((row) => ({
+      setDailyReports(data.reports.map((row) => ({
         id: String(row.id),
         date: row.date,
         portfolioValue: Number(row.portfolio_value),
         notes: row.notes || '',
         screenshotUrl: row.screenshot_url || undefined,
       })))
-
-        const failures = results.filter((result) => result.status === 'rejected')
-        if (failures.length > 0) {
-          console.error('Failed account data requests:', failures)
-          toast.error(`${failures.length} bagian data gagal dimuat. Silakan coba login kembali.`)
-        }
+      } catch (error) {
+        console.error('Failed to load account data:', error)
+        toast.error('Data akun gagal dimuat. Silakan coba login kembali.')
       } finally {
         setAccountDataLoading(false)
       }
