@@ -68,7 +68,7 @@ export default function Settings() {
       <section>
         <h2 className="text-base font-semibold text-gray-900">Ringkasan akun</h2>
         <p className="text-sm text-gray-500 mb-3">Data yang tercatat pada akun Anda saat ini.</p>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 xl:grid-cols-4 gap-3 xl:gap-6">
           {accountStats.map(({ label, value, icon: Icon, color }) => (
             <div key={label} className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm min-w-0">
               <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${color}`}><Icon className="w-4 h-4" /></div>
