@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy import text
+from sqlalchemy import inspect, text
 
 from .core.config import settings
 from .core.base import Base
@@ -39,6 +39,25 @@ def create_production_schema():
                         "ALTER TABLE fintrack_app.expenses ADD COLUMN IF NOT EXISTS "
                         f"{column_definition}"
                     ))
+
+    # Vercel does not execute Alembic migrations. Keep existing budget tables
+    # compatible while preserving the creation date as their initial period.
+    schema = settings.DATABASE_SCHEMA if engine.dialect.name == "postgresql" else None
+    inspector = inspect(engine)
+    if "budgets" in inspector.get_table_names(schema=schema):
+        budget_columns = {column["name"] for column in inspector.get_columns("budgets", schema=schema)}
+        if "reference_date" not in budget_columns:
+            preparer = engine.dialect.identifier_preparer
+            table_name = preparer.quote("budgets")
+            if schema:
+                table_name = f"{preparer.quote_schema(schema)}.{table_name}"
+            with engine.begin() as connection:
+                if engine.dialect.name == "postgresql":
+                    connection.execute(text(f"ALTER TABLE {table_name} ADD COLUMN IF NOT EXISTS reference_date DATE"))
+                    connection.execute(text(f"UPDATE {table_name} SET reference_date = CAST(created_at AS DATE) WHERE reference_date IS NULL"))
+                else:
+                    connection.execute(text(f"ALTER TABLE {table_name} ADD COLUMN reference_date DATE"))
+                    connection.execute(text(f"UPDATE {table_name} SET reference_date = DATE(created_at) WHERE reference_date IS NULL"))
 
 # Origin yang diperbolehkan saat development
 default_origins = [

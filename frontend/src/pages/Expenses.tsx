@@ -80,6 +80,7 @@ export default function Expenses() {
     category: 'Makan',
     amount: '',
     period: 'monthly' as 'daily' | 'weekly' | 'monthly' | 'yearly',
+    referenceDate: getLocalDateValue(),
   });
 
   const expenseCategories = ['Makan', 'Transport', 'Belanja', 'Tagihan', 'Hiburan', 'Kesehatan', 'Pendidikan', 'Lainnya'];
@@ -243,6 +244,19 @@ export default function Expenses() {
     const weekStart = new Date(selectedDate);
     weekStart.setDate(selectedDate.getDate() - ((selectedDate.getDay() + 6) % 7));
 
+    const isBudgetForSelectedPeriod = (referenceDateValue: string, period: string) => {
+      const referenceDate = new Date(`${referenceDateValue}T00:00:00`);
+      if (period === 'daily') return referenceDateValue === budgetDate;
+      if (period === 'weekly') {
+        const referenceWeekStart = new Date(referenceDate);
+        referenceWeekStart.setDate(referenceDate.getDate() - ((referenceDate.getDay() + 6) % 7));
+        return referenceWeekStart.getTime() === weekStart.getTime();
+      }
+      if (period === 'yearly') return referenceDate.getFullYear() === selectedDate.getFullYear();
+      return referenceDate.getMonth() === selectedDate.getMonth()
+        && referenceDate.getFullYear() === selectedDate.getFullYear();
+    };
+
     const isInCurrentPeriod = (dateValue: string, period: string) => {
       const date = new Date(`${dateValue}T00:00:00`);
       if (period === 'daily') return dateValue === budgetDate;
@@ -255,7 +269,7 @@ export default function Expenses() {
       return date.getMonth() === selectedDate.getMonth() && date.getFullYear() === selectedDate.getFullYear();
     };
 
-    return budgets.map((budget) => {
+    return budgets.filter((budget) => isBudgetForSelectedPeriod(budget.referenceDate, budget.period)).map((budget) => {
       const spent = expenses
         .filter((expense) => expense.transactionType === 'expense'
           && (budget.category === 'Keseluruhan' || expense.category === budget.category)
@@ -379,7 +393,7 @@ export default function Expenses() {
 
   const resetBudgetForm = () => {
     setEditingBudget(null);
-    setBudgetFormData({ category: 'Makan', amount: '', period: 'monthly' });
+    setBudgetFormData({ category: 'Makan', amount: '', period: 'monthly', referenceDate: budgetDate });
   };
 
   const openAddBudget = () => {
@@ -393,6 +407,7 @@ export default function Expenses() {
       category: budget.category,
       amount: String(budget.amount),
       period: budget.period,
+      referenceDate: budget.referenceDate,
     });
     setShowAddBudget(true);
   };
@@ -415,6 +430,7 @@ export default function Expenses() {
         category: budgetFormData.category,
         amount: amountNum,
         period: budgetFormData.period,
+        referenceDate: budgetFormData.referenceDate,
       };
       if (editingBudget) await updateBudget(editingBudget, payload);
       else await addBudget(payload);
@@ -911,6 +927,16 @@ export default function Expenses() {
                   <option value="monthly">Bulanan</option>
                   <option value="yearly">Tahunan</option>
                 </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Tanggal Acuan</label>
+                <input
+                  type="date"
+                  value={budgetFormData.referenceDate}
+                  onChange={(e) => setBudgetFormData({ ...budgetFormData, referenceDate: e.target.value })}
+                  className="w-full min-w-0 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                />
+                <p className="text-xs text-gray-500 mt-1">Budget akan tersimpan khusus untuk periode yang mencakup tanggal ini.</p>
               </div>
             </div>
 

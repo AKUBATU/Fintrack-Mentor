@@ -63,6 +63,7 @@ export interface Budget {
   category: string
   amount: number
   period: 'daily' | 'weekly' | 'monthly' | 'yearly'
+  referenceDate: string
 }
 
 export interface StockTransaction {
@@ -310,6 +311,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         category: row.category,
         amount: Number(row.amount),
         period: row.period,
+        referenceDate: row.reference_date,
       })))
       if (transactionResult.status === 'fulfilled') setStockTransactions(transactionResult.value.map((row) => ({
         id: String(row.id),

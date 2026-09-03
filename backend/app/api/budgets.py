@@ -10,7 +10,7 @@ router = APIRouter(prefix="/budgets", tags=["budgets"])
 @router.get("", response_model=list[BudgetOut])
 def list_budgets(db: Session = Depends(get_db), user=Depends(get_current_user)):
     rows = db.query(Budget).filter(Budget.user_id==user.id).order_by(Budget.id.desc()).all()
-    return [BudgetOut(id=r.id, category=r.category, amount=r.amount, period=r.period) for r in rows]
+    return [BudgetOut(id=r.id, category=r.category, amount=r.amount, period=r.period, reference_date=r.reference_date) for r in rows]
 
 @router.post("", response_model=BudgetOut)
 def create_budget(payload: BudgetCreate, db: Session = Depends(get_db), user=Depends(get_current_user)):
@@ -27,7 +27,7 @@ def update_budget(budget_id: int, payload: BudgetUpdate, db: Session = Depends(g
     for k,v in data.items():
         setattr(r, k, v)
     db.commit(); db.refresh(r)
-    return BudgetOut(id=r.id, category=r.category, amount=r.amount, period=r.period)
+    return BudgetOut(id=r.id, category=r.category, amount=r.amount, period=r.period, reference_date=r.reference_date)
 
 @router.delete("/{budget_id}")
 def delete_budget(budget_id: int, db: Session = Depends(get_db), user=Depends(get_current_user)):

@@ -15,6 +15,30 @@ import {
   ResponsiveContainer,
 } from 'recharts'
 
+const getLocalDateValue = () => {
+  const today = new Date()
+  const year = today.getFullYear()
+  const month = String(today.getMonth() + 1).padStart(2, '0')
+  const day = String(today.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+const isInBudgetPeriod = (dateValue: string, referenceDateValue: string, period: string) => {
+  const date = new Date(`${dateValue}T00:00:00`)
+  const referenceDate = new Date(`${referenceDateValue}T00:00:00`)
+  if (period === 'daily') return dateValue === referenceDateValue
+  if (period === 'weekly') {
+    const weekStart = (value: Date) => {
+      const start = new Date(value)
+      start.setDate(value.getDate() - ((value.getDay() + 6) % 7))
+      return start.getTime()
+    }
+    return weekStart(date) === weekStart(referenceDate)
+  }
+  if (period === 'yearly') return date.getFullYear() === referenceDate.getFullYear()
+  return date.getMonth() === referenceDate.getMonth() && date.getFullYear() === referenceDate.getFullYear()
+}
+
 export default function Dashboard() {
   const { accountDataLoading, expenses, holdings, budgets } = useData()
   const [investmentAssets, setInvestmentAssets] = useState<any[]>([])
@@ -34,22 +58,12 @@ export default function Dashboard() {
 
   // Calculate metrics
   const metrics = useMemo(() => {
-    const currentMonth = new Date().getMonth()
-    const currentYear = new Date().getFullYear()
-
-    const monthlyExpenses = (expenses ?? []).filter((e) => {
-      const date = new Date(e.date)
-      return e.transactionType !== 'income' && date.getMonth() === currentMonth && date.getFullYear() === currentYear
-    })
-
     const totalExpenses = (expenses ?? [])
       .filter((e) => e.transactionType !== 'income')
       .reduce((sum, e) => sum + e.amount, 0)
     const totalIncome = (expenses ?? [])
       .filter((e) => e.transactionType === 'income')
       .reduce((sum, e) => sum + e.amount, 0)
-    const currentMonthExpenses = monthlyExpenses.reduce((sum, e) => sum + e.amount, 0)
-
     const stockPortfolioValue = (holdings ?? []).reduce((sum, h) => sum + (h.marketValue ?? 0), 0)
     const stockTotalCost = (holdings ?? []).reduce((sum, h) => sum + (h.costBasis ?? 0), 0)
     const otherPortfolioValue = investmentAssets.reduce((sum, asset) => sum + Number(asset.market_value || 0), 0)
@@ -59,9 +73,25 @@ export default function Dashboard() {
     const unrealizedPL = portfolioValue - totalCost
     const unrealizedPLPercent = totalCost > 0 ? (unrealizedPL / totalCost) * 100 : 0
 
-    // Budget tracking
-    const totalBudget = (budgets ?? []).reduce((sum, b) => sum + b.amount, 0)
-    const budgetUsage = totalBudget > 0 ? (currentMonthExpenses / totalBudget) * 100 : 0
+    // Use the newest overall budget for today's period to avoid mixing daily,
+    // monthly, and category budgets into a misleading aggregate.
+    const todayValue = getLocalDateValue()
+    const budgetsForToday = (budgets ?? []).filter((budget) =>
+      isInBudgetPeriod(todayValue, budget.referenceDate || todayValue, budget.period)
+    )
+    const activeBudget = budgetsForToday.find((budget) => budget.category === 'Keseluruhan') ?? budgetsForToday[0]
+    const budgetSpent = activeBudget
+      ? (expenses ?? [])
+          .filter((expense) => expense.transactionType !== 'income'
+            && (activeBudget.category === 'Keseluruhan' || expense.category === activeBudget.category)
+            && isInBudgetPeriod(expense.date, activeBudget.referenceDate || todayValue, activeBudget.period))
+          .reduce((sum, expense) => sum + expense.amount, 0)
+      : 0
+    const totalBudget = activeBudget?.amount ?? 0
+    const budgetUsage = totalBudget > 0 ? (budgetSpent / totalBudget) * 100 : 0
+    const budgetPeriodLabel = activeBudget
+      ? ({ daily: 'hari ini', weekly: 'minggu ini', monthly: 'bulan ini', yearly: 'tahun ini' }[activeBudget.period] || 'periode ini')
+      : ''
 
     return {
       totalExpenses,
@@ -71,7 +101,10 @@ export default function Dashboard() {
       unrealizedPL,
       unrealizedPLPercent,
       totalBudget,
+      budgetSpent,
       budgetUsage,
+      budgetPeriodLabel,
+      budgetCategory: activeBudget?.category ?? '',
     }
   }, [expenses, holdings, budgets, investmentAssets])
 
@@ -140,14 +173,21 @@ export default function Dashboard() {
           <p className="text-2xl font-bold text-gray-900">{formatCurrency(metrics.totalExpenses)}</p>
           <div className="mt-2">
             <div className="flex items-center text-sm">
-              <span className="text-gray-600">Budget bulan ini: {formatCurrency(metrics.totalBudget)}</span>
+              <span className="text-gray-600">
+                {metrics.totalBudget > 0
+                  ? `Budget ${metrics.budgetCategory === 'Keseluruhan' ? '' : `${metrics.budgetCategory} `}${metrics.budgetPeriodLabel}: ${formatCurrency(metrics.totalBudget)}`
+                  : 'Belum ada budget untuk hari ini'}
+              </span>
             </div>
-            <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
-              <div
-                className={`h-2 rounded-full ${metrics.budgetUsage > 90 ? 'bg-red-500' : 'bg-blue-500'}`}
-                style={{ width: `${Math.min(metrics.budgetUsage, 100)}%` }}
-              />
-            </div>
+            {metrics.totalBudget > 0 && <>
+              <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
+                <div
+                  className={`h-2 rounded-full ${metrics.budgetUsage > 90 ? 'bg-red-500' : 'bg-blue-500'}`}
+                  style={{ width: `${Math.min(metrics.budgetUsage, 100)}%` }}
+                />
+              </div>
+              <p className="text-xs text-gray-500 mt-1">Terpakai {formatCurrency(metrics.budgetSpent)} ({metrics.budgetUsage.toFixed(1)}%)</p>
+            </>}
           </div>
         </div>
 
@@ -214,13 +254,13 @@ export default function Dashboard() {
       </div>
 
       {/* Budget Alert */}
-      {metrics.budgetUsage > 80 && (
+      {metrics.totalBudget > 0 && metrics.budgetUsage > 80 && (
         <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 flex items-start">
           <AlertCircle className="w-5 h-5 text-yellow-600 mr-3 mt-0.5" />
           <div>
             <p className="font-medium text-yellow-900">Perhatian Budget!</p>
             <p className="text-sm text-yellow-700 mt-1">
-              Anda telah menggunakan {metrics.budgetUsage.toFixed(1)}% dari budget bulanan.
+              Anda telah menggunakan {metrics.budgetUsage.toFixed(1)}% dari budget {metrics.budgetPeriodLabel}.
             </p>
           </div>
         </div>

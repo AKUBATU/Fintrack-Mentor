@@ -63,7 +63,10 @@ class ApiIntegrationTest(unittest.TestCase):
                 "date": "2026-08-29", "amount": 25000, "category": "Makan",
                 "payment_method": "QRIS", "merchant": "Warung", "notes": "Makan siang",
             }),
-            ("/api/budgets", {"category": "Makan", "amount": 1000000, "period": "monthly"}),
+            ("/api/budgets", {
+                "category": "Makan", "amount": 1000000, "period": "monthly",
+                "reference_date": "2026-08-01",
+            }),
             ("/api/portfolio/transactions", {
                 "ticker": "bbri", "type": "BUY", "shares": 100,
                 "price": 4500, "date": "2026-08-29",
@@ -91,6 +94,35 @@ class ApiIntegrationTest(unittest.TestCase):
         for path in list_paths:
             self.assertEqual(len(self.client.get(path, headers=first).json()), 1)
             self.assertEqual(self.client.get(path, headers=second).json(), [])
+
+        previous_budget = self.client.post(
+            "/api/budgets",
+            json={
+                "category": "Keseluruhan", "amount": 700000,
+                "period": "daily", "reference_date": "2026-08-28",
+            },
+            headers=first,
+        )
+        current_budget = self.client.post(
+            "/api/budgets",
+            json={
+                "category": "Keseluruhan", "amount": 700000,
+                "period": "daily", "reference_date": "2026-08-29",
+            },
+            headers=first,
+        )
+        self.assertEqual(previous_budget.status_code, 200, previous_budget.text)
+        self.assertEqual(current_budget.status_code, 200, current_budget.text)
+        self.assertEqual(
+            self.client.delete(f"/api/budgets/{current_budget.json()['id']}", headers=first).status_code,
+            200,
+        )
+        remaining_budget_dates = {
+            row["reference_date"] for row in self.client.get("/api/budgets", headers=first).json()
+        }
+        self.assertIn("2026-08-28", remaining_budget_dates)
+        self.assertNotIn("2026-08-29", remaining_budget_dates)
+        self.client.delete(f"/api/budgets/{previous_budget.json()['id']}", headers=first)
 
         income = self.client.post(
             "/api/expenses",

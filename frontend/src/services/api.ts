@@ -80,11 +80,11 @@ function normalizeExpensePayload(payload: any) {
 }
 
 function normalizeBudgetPayload(payload: any) {
-  // BE biasanya: category, amount, period
   return {
     category: payload.category,
     amount: payload.amount,
     period: payload.period ?? 'monthly',
+    reference_date: payload.referenceDate ?? payload.reference_date,
   };
 }
 
