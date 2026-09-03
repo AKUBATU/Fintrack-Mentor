@@ -48,6 +48,7 @@ export default function Expenses() {
   const [historyDate, setHistoryDate] = useState(getLocalDateValue);
   const [summaryMode, setSummaryMode] = useState<'all' | 'daily'>('all');
   const [summaryDate, setSummaryDate] = useState(getLocalDateValue);
+  const [budgetDate, setBudgetDate] = useState(getLocalDateValue);
 
   useEffect(() => {
     const modalOpen = showAddExpense || Boolean(editingExpense) || showAddBudget || Boolean(selectedReceipt);
@@ -238,21 +239,20 @@ export default function Expenses() {
   });
 
   const budgetOverview = useMemo(() => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const weekStart = new Date(today);
-    weekStart.setDate(today.getDate() - ((today.getDay() + 6) % 7));
+    const selectedDate = new Date(`${budgetDate}T00:00:00`);
+    const weekStart = new Date(selectedDate);
+    weekStart.setDate(selectedDate.getDate() - ((selectedDate.getDay() + 6) % 7));
 
     const isInCurrentPeriod = (dateValue: string, period: string) => {
       const date = new Date(`${dateValue}T00:00:00`);
-      if (period === 'daily') return dateValue === getLocalDateValue();
+      if (period === 'daily') return dateValue === budgetDate;
       if (period === 'weekly') {
         const weekEnd = new Date(weekStart);
         weekEnd.setDate(weekStart.getDate() + 7);
         return date >= weekStart && date < weekEnd;
       }
-      if (period === 'yearly') return date.getFullYear() === today.getFullYear();
-      return date.getMonth() === today.getMonth() && date.getFullYear() === today.getFullYear();
+      if (period === 'yearly') return date.getFullYear() === selectedDate.getFullYear();
+      return date.getMonth() === selectedDate.getMonth() && date.getFullYear() === selectedDate.getFullYear();
     };
 
     return budgets.map((budget) => {
@@ -268,7 +268,13 @@ export default function Expenses() {
         percentage: budget.amount > 0 ? (spent / budget.amount) * 100 : 0,
       };
     });
-  }, [budgets, expenses]);
+  }, [budgetDate, budgets, expenses]);
+
+  const budgetDateLabel = new Date(`${budgetDate}T00:00:00`).toLocaleDateString('id-ID', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  });
 
   const budgetPeriodLabels: Record<string, string> = {
     daily: 'Harian',
@@ -568,17 +574,29 @@ export default function Expenses() {
       {/* Budget */}
       <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
         <div className="space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="finance-budget-header">
             <div>
               <h3 className="font-semibold text-gray-900">Budget</h3>
-              <p className="text-sm text-gray-500">Pantau batas pengeluaran pada periode berjalan</p>
+              <p className="text-sm text-gray-500">Perhitungan periode yang mencakup {budgetDateLabel}</p>
             </div>
-            <button
-              onClick={openAddBudget}
-              className="inline-flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100"
-            >
-              <Plus className="w-4 h-4" /> Atur Budget
-            </button>
+            <div className="finance-budget-actions">
+              <div className="finance-budget-date relative">
+                <CalendarDays className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                <input
+                  type="date"
+                  aria-label="Pilih tanggal acuan budget"
+                  value={budgetDate}
+                  onChange={(event) => setBudgetDate(event.target.value || getLocalDateValue())}
+                  className="pl-9 pr-3 py-2 border border-gray-200 rounded-lg text-sm bg-white"
+                />
+              </div>
+              <button
+                onClick={openAddBudget}
+                className="inline-flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100"
+              >
+                <Plus className="w-4 h-4" /> Atur Budget
+              </button>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
