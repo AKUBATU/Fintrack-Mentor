@@ -602,7 +602,11 @@ export default function Expenses() {
                   type="date"
                   aria-label="Pilih tanggal acuan budget"
                   value={budgetDate}
-                  onChange={(event) => setBudgetDate(event.target.value || getLocalDateValue())}
+                  onChange={(event) => {
+                    const selectedDate = event.target.value || getLocalDateValue();
+                    setBudgetDate(selectedDate);
+                    setHistoryDate(selectedDate);
+                  }}
                   className="pl-9 pr-3 py-2 border border-gray-200 rounded-lg text-sm bg-white"
                 />
               </div>
