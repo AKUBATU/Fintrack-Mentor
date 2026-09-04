@@ -9,7 +9,6 @@ import {
   LogOut,
   Menu,
   X,
-  WalletCards
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useState } from 'react';
@@ -52,7 +51,7 @@ export default function Layout() {
           {/* Logo */}
           <div className="app-brand flex items-center justify-between px-6 py-5 border-b border-gray-200">
             <div className="flex items-center gap-3">
-              <div className="app-brand-mark"><WalletCards className="w-5 h-5" /></div>
+              <img src="/fintrack-mark.svg" alt="" className="app-brand-mark" />
               <div>
                 <h1 className="text-lg font-bold text-gray-900">FinTrack</h1>
                 <p className="text-xs text-gray-500">Personal wealth manager</p>
