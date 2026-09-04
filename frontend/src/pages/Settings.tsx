@@ -135,7 +135,7 @@ export default function Settings() {
         </section>
 
         <aside className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-1 gap-4 min-w-0">
-          <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 h-full">
+          <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
             <div className="flex items-center gap-2 mb-3"><ShieldCheck className="w-5 h-5 text-green-700" /><h2 className="font-semibold text-gray-900">Keamanan & data</h2></div>
             <div className="space-y-3 text-sm text-gray-600">
               <div className="flex items-start gap-2"><BadgeCheck className="w-4 h-4 text-green-700 mt-0.5 shrink-0" /><span>Halaman akun dilindungi login.</span></div>
@@ -144,7 +144,7 @@ export default function Settings() {
             <p className="text-xs text-gray-500 border-t border-gray-200 mt-4 pt-4">Preferensi investasi di halaman ini disimpan pada browser yang sedang digunakan.</p>
           </section>
 
-          <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 h-full">
+          <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
             <h2 className="font-semibold text-gray-900">Akses cepat</h2>
             <p className="text-xs text-gray-500 mb-3">Lanjutkan pengelolaan akun Anda.</p>
             <div className="divide-y divide-gray-100">
