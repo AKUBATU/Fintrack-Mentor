@@ -58,6 +58,37 @@ def create_production_schema():
                 else:
                     connection.execute(text(f"ALTER TABLE {table_name} ADD COLUMN reference_date DATE"))
                     connection.execute(text(f"UPDATE {table_name} SET reference_date = DATE(created_at) WHERE reference_date IS NULL"))
+        if "fund_source" not in budget_columns:
+            preparer = engine.dialect.identifier_preparer
+            table_name = preparer.quote("budgets")
+            if schema:
+                table_name = f"{preparer.quote_schema(schema)}.{table_name}"
+            with engine.begin() as connection:
+                if engine.dialect.name == "postgresql":
+                    connection.execute(text(
+                        f"ALTER TABLE {table_name} ADD COLUMN IF NOT EXISTS fund_source VARCHAR(20) NOT NULL DEFAULT 'all'"
+                    ))
+                else:
+                    connection.execute(text(
+                        f"ALTER TABLE {table_name} ADD COLUMN fund_source VARCHAR(20) NOT NULL DEFAULT 'all'"
+                    ))
+
+    if "expenses" in inspector.get_table_names(schema=schema):
+        expense_columns = {column["name"] for column in inspector.get_columns("expenses", schema=schema)}
+        if "fund_source" not in expense_columns:
+            preparer = engine.dialect.identifier_preparer
+            table_name = preparer.quote("expenses")
+            if schema:
+                table_name = f"{preparer.quote_schema(schema)}.{table_name}"
+            with engine.begin() as connection:
+                if engine.dialect.name == "postgresql":
+                    connection.execute(text(
+                        f"ALTER TABLE {table_name} ADD COLUMN IF NOT EXISTS fund_source VARCHAR(20) NOT NULL DEFAULT 'bank'"
+                    ))
+                else:
+                    connection.execute(text(
+                        f"ALTER TABLE {table_name} ADD COLUMN fund_source VARCHAR(20) NOT NULL DEFAULT 'bank'"
+                    ))
 
 # Origin yang diperbolehkan saat development
 default_origins = [

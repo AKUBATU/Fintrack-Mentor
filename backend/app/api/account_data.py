@@ -56,6 +56,7 @@ def get_account_data(db: Session = Depends(get_db), user=Depends(get_current_use
                 "category": row.category,
                 "amount": row.amount,
                 "period": row.period,
+                "fund_source": row.fund_source,
                 "reference_date": row.reference_date,
             }
             for row in budgets

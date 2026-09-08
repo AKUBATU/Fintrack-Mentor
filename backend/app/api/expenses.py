@@ -33,6 +33,7 @@ def to_expense_out(row: Expense):
         transaction_type=row.transaction_type,
         category=row.category,
         payment_method=row.payment_method,
+        fund_source=row.fund_source,
         merchant=row.merchant,
         notes=row.notes,
         predicted_category=row.predicted_category,

@@ -49,6 +49,7 @@ export interface ExpenseTransaction {
   amount: number
   category: string
   paymentMethod: string
+  fundSource: 'bank' | 'cash'
   merchant: string
   notes: string
   predictedCategory?: string
@@ -63,6 +64,7 @@ export interface Budget {
   category: string
   amount: number
   period: 'daily' | 'weekly' | 'monthly' | 'yearly'
+  fundSource: 'all' | 'bank' | 'cash'
   referenceDate: string
 }
 
@@ -292,6 +294,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         transactionType: row.transaction_type === 'income' ? 'income' : 'expense',
         category: row.category,
         paymentMethod: row.payment_method,
+        fundSource: row.fund_source === 'cash' ? 'cash' : 'bank',
         merchant: row.merchant || '',
         notes: row.notes || '',
         predictedCategory: row.predicted_category || undefined,
@@ -303,6 +306,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         category: row.category,
         amount: Number(row.amount),
         period: row.period,
+        fundSource: row.fund_source === 'bank' || row.fund_source === 'cash' ? row.fund_source : 'all',
         referenceDate: row.reference_date,
       })))
       setStockTransactions(data.transactions.map((row) => ({

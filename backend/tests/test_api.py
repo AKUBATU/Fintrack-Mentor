@@ -61,10 +61,12 @@ class ApiIntegrationTest(unittest.TestCase):
         payloads = [
             ("/api/expenses", {
                 "date": "2026-08-29", "amount": 25000, "category": "Makan",
-                "payment_method": "QRIS", "merchant": "Warung", "notes": "Makan siang",
+                "payment_method": "QRIS", "fund_source": "cash",
+                "merchant": "Warung", "notes": "Makan siang",
             }),
             ("/api/budgets", {
                 "category": "Makan", "amount": 1000000, "period": "monthly",
+                "fund_source": "bank",
                 "reference_date": "2026-08-01",
             }),
             ("/api/portfolio/transactions", {
@@ -110,6 +112,8 @@ class ApiIntegrationTest(unittest.TestCase):
         second_account_data = self.client.get("/api/account-data", headers=second)
         self.assertEqual(second_account_data.status_code, 200, second_account_data.text)
         self.assertTrue(all(not rows for rows in second_account_data.json().values()))
+        self.assertEqual(account_data.json()["expenses"][0]["fund_source"], "cash")
+        self.assertEqual(account_data.json()["budgets"][0]["fund_source"], "bank")
 
         previous_budget = self.client.post(
             "/api/budgets",

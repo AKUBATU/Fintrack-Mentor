@@ -47,6 +47,7 @@ export default function Expenses() {
   const [historySearch, setHistorySearch] = useState('');
   const [historyDate, setHistoryDate] = useState(getLocalDateValue);
   const [summaryMode, setSummaryMode] = useState<'all' | 'daily'>('all');
+  const [summarySource, setSummarySource] = useState<'all' | 'bank' | 'cash'>('all');
   const [summaryDate, setSummaryDate] = useState(getLocalDateValue);
   const [budgetDate, setBudgetDate] = useState(getLocalDateValue);
 
@@ -72,6 +73,7 @@ export default function Expenses() {
     amount: '',
     category: 'Makan',
     paymentMethod: 'Cash',
+    fundSource: 'bank' as 'bank' | 'cash',
     merchant: '',
     notes: '',
   });
@@ -80,6 +82,7 @@ export default function Expenses() {
     category: 'Makan',
     amount: '',
     period: 'monthly' as 'daily' | 'weekly' | 'monthly' | 'yearly',
+    fundSource: 'all' as 'all' | 'bank' | 'cash',
     referenceDate: getLocalDateValue(),
   });
 
@@ -101,6 +104,7 @@ export default function Expenses() {
       amount: String(exp.amount),
       category: exp.category,
       paymentMethod: exp.paymentMethod,
+      fundSource: exp.fundSource,
       merchant: exp.merchant,
       notes: exp.notes || '',
     });
@@ -159,6 +163,7 @@ export default function Expenses() {
         amount: result.amount != null ? String(result.amount) : current.amount,
         category: result.category || current.category,
         paymentMethod: result.payment_method || current.paymentMethod,
+        fundSource: (result.payment_method || current.paymentMethod) === 'Cash' ? 'cash' : current.fundSource,
         merchant: result.merchant || current.merchant,
         notes: result.notes || current.notes,
       }));
@@ -217,9 +222,12 @@ export default function Expenses() {
   };
 
   const financeSummary = useMemo(() => {
-    const summaryTransactions = summaryMode === 'daily'
+    const transactionsInPeriod = summaryMode === 'daily'
       ? expenses.filter((transaction) => transaction.date === summaryDate)
       : expenses;
+    const summaryTransactions = summarySource === 'all'
+      ? transactionsInPeriod
+      : transactionsInPeriod.filter((transaction) => transaction.fundSource === summarySource);
     const allExpenses = summaryTransactions.filter(e => e.transactionType !== 'income');
     const allIncome = summaryTransactions.filter(e => e.transactionType === 'income');
     const totalExpense = allExpenses.reduce((sum, e) => sum + e.amount, 0);
@@ -231,7 +239,7 @@ export default function Expenses() {
       balance: totalIncome - totalExpense,
       count: summaryTransactions.length,
     };
-  }, [expenses, summaryDate, summaryMode]);
+  }, [expenses, summaryDate, summaryMode, summarySource]);
 
   const summaryDateLabel = new Date(`${summaryDate}T00:00:00`).toLocaleDateString('id-ID', {
     day: 'numeric',
@@ -273,6 +281,7 @@ export default function Expenses() {
       const spent = expenses
         .filter((expense) => expense.transactionType === 'expense'
           && (budget.category === 'Keseluruhan' || expense.category === budget.category)
+          && (budget.fundSource === 'all' || expense.fundSource === budget.fundSource)
           && isInCurrentPeriod(expense.date, budget.period))
         .reduce((sum, expense) => sum + expense.amount, 0);
       return {
@@ -297,6 +306,12 @@ export default function Expenses() {
     yearly: 'Tahunan',
   };
 
+  const fundSourceLabels: Record<string, string> = {
+    all: 'Keduanya',
+    bank: 'Rekening Mandiri',
+    cash: 'Cash',
+  };
+
   const handleAddExpense = async () => {
     if (!formData.amount || !formData.merchant) {
       toast.error('Mohon lengkapi semua field!');
@@ -319,6 +334,7 @@ export default function Expenses() {
         amount: amountNum,
         category: formData.category,
         paymentMethod: formData.paymentMethod,
+        fundSource: formData.fundSource,
         merchant: formData.merchant,
         notes: formData.notes,
         predictedCategory,
@@ -341,6 +357,7 @@ export default function Expenses() {
         amount: '',
         category: 'Makan',
         paymentMethod: 'Cash',
+        fundSource: 'bank',
         merchant: '',
         notes: '',
       });
@@ -363,6 +380,7 @@ export default function Expenses() {
         amount: amountNum,
         category: formData.category,
         paymentMethod: formData.paymentMethod,
+        fundSource: formData.fundSource,
         merchant: formData.merchant,
         notes: formData.notes,
         receiptFile: receiptFile || undefined,
@@ -393,7 +411,7 @@ export default function Expenses() {
 
   const resetBudgetForm = () => {
     setEditingBudget(null);
-    setBudgetFormData({ category: 'Makan', amount: '', period: 'monthly', referenceDate: budgetDate });
+    setBudgetFormData({ category: 'Makan', amount: '', period: 'monthly', fundSource: 'all', referenceDate: budgetDate });
   };
 
   const openAddBudget = () => {
@@ -407,6 +425,7 @@ export default function Expenses() {
       category: budget.category,
       amount: String(budget.amount),
       period: budget.period,
+      fundSource: budget.fundSource,
       referenceDate: budget.referenceDate,
     });
     setShowAddBudget(true);
@@ -430,6 +449,7 @@ export default function Expenses() {
         category: budgetFormData.category,
         amount: amountNum,
         period: budgetFormData.period,
+        fundSource: budgetFormData.fundSource,
         referenceDate: budgetFormData.referenceDate,
       };
       if (editingBudget) await updateBudget(editingBudget, payload);
@@ -467,9 +487,9 @@ export default function Expenses() {
 
   const handleExportCSV = () => {
     const csvContent = [
-      ['Tanggal', 'Jenis', 'Kategori', 'Sumber/Merchant', 'Metode', 'Jumlah', 'Catatan'].join(','),
+      ['Tanggal', 'Jenis', 'Kategori', 'Sumber/Merchant', 'Metode', 'Sumber Saldo', 'Jumlah', 'Catatan'].join(','),
       ...expenses.map(e =>
-        [e.date, e.transactionType, e.category, e.merchant, e.paymentMethod, e.amount, e.notes].join(',')
+        [e.date, e.transactionType, e.category, e.merchant, e.paymentMethod, fundSourceLabels[e.fundSource], e.amount, e.notes].join(',')
       ),
     ].join('\n');
 
@@ -537,6 +557,16 @@ export default function Expenses() {
             <p className="text-sm text-gray-500">{summaryMode === 'all' ? 'Akumulasi seluruh transaksi Anda' : 'Pemasukan dan pengeluaran pada hari yang dipilih'}</p>
           </div>
           <div className="finance-summary-controls">
+            <select
+              value={summarySource}
+              onChange={(event) => setSummarySource(event.target.value as typeof summarySource)}
+              aria-label="Pilih sumber saldo"
+              className="finance-summary-date px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white"
+            >
+              <option value="all">Semua saldo</option>
+              <option value="bank">Rekening Mandiri</option>
+              <option value="cash">Cash</option>
+            </select>
             <div className="finance-summary-mode">
               <button type="button" onClick={() => setSummaryMode('all')} className={summaryMode === 'all' ? 'finance-summary-mode-active' : ''}>Keseluruhan</button>
               <button type="button" onClick={() => setSummaryMode('daily')} className={summaryMode === 'daily' ? 'finance-summary-mode-active' : ''}>Per Hari</button>
@@ -561,7 +591,7 @@ export default function Expenses() {
               <div className="finance-balance-heading">
                 <div className="finance-balance-icon"><WalletCards className="w-5 h-5" /></div>
                 <div>
-                  <p className="finance-balance-label">Saldo {summaryMode === 'all' ? 'keseluruhan' : 'harian'}</p>
+                  <p className="finance-balance-label">Saldo {fundSourceLabels[summarySource]}</p>
                   <p className="finance-balance-period">Pemasukan dikurangi pengeluaran</p>
                 </div>
               </div>
@@ -625,11 +655,12 @@ export default function Expenses() {
 
               return (
                 <div key={budget.id} className="p-4 bg-gray-50 border border-gray-200 rounded-xl space-y-3">
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-start justify-between gap-3">
                     <span className="font-medium text-gray-900">{budget.category}</span>
-                    <span className="px-2 py-1 text-xs font-medium text-blue-700 bg-blue-100 rounded-full">
-                      {budgetPeriodLabels[budget.period] || budget.period}
-                    </span>
+                    <div className="flex flex-wrap justify-end gap-1.5">
+                      <span className="px-2 py-1 text-xs font-medium text-gray-700 bg-gray-100 rounded-full">{fundSourceLabels[budget.fundSource]}</span>
+                      <span className="px-2 py-1 text-xs font-medium text-blue-700 bg-blue-100 rounded-full">{budgetPeriodLabels[budget.period] || budget.period}</span>
+                    </div>
                   </div>
                   <div>
                     <div className="flex items-end justify-between gap-3 mb-2">
@@ -815,6 +846,14 @@ export default function Expenses() {
                 />
               </div>
 
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Sumber Saldo</label>
+                <div className="grid grid-cols-2 gap-2 p-1 bg-gray-100 rounded-lg">
+                  <button type="button" onClick={() => setFormData({ ...formData, fundSource: 'bank' })} className={`min-w-0 px-3 py-2 text-sm font-medium rounded-md transition-colors ${formData.fundSource === 'bank' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-600'}`}>Rekening Mandiri</button>
+                  <button type="button" onClick={() => setFormData({ ...formData, fundSource: 'cash' })} className={`min-w-0 px-3 py-2 text-sm font-medium rounded-md transition-colors ${formData.fundSource === 'cash' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-600'}`}>Cash</button>
+                </div>
+              </div>
+
               <div className="finance-form-pair grid grid-cols-2 gap-3">
                 <div className="min-w-0">
                   <div className="flex items-center justify-between gap-1 mb-1">
@@ -933,6 +972,19 @@ export default function Expenses() {
                 </select>
               </div>
               <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Sumber Saldo</label>
+                <select
+                  value={budgetFormData.fundSource}
+                  onChange={(e) => setBudgetFormData({ ...budgetFormData, fundSource: e.target.value as 'all' | 'bank' | 'cash' })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="all">Keduanya</option>
+                  <option value="bank">Rekening Mandiri</option>
+                  <option value="cash">Cash</option>
+                </select>
+                <p className="text-xs text-gray-500 mt-1">Pemakaian budget hanya dihitung dari sumber saldo yang dipilih.</p>
+              </div>
+              <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Tanggal Acuan</label>
                 <input
                   type="date"
@@ -1019,7 +1071,7 @@ export default function Expenses() {
                     )}
                   </div>
                   <p className="text-sm text-gray-600">
-                    {new Date(expense.date).toLocaleDateString('id-ID')} • {expense.paymentMethod}
+                    {new Date(expense.date).toLocaleDateString('id-ID')} • {expense.paymentMethod} • {fundSourceLabels[expense.fundSource]}
                   </p>
                   {expense.notes && <p className="text-sm text-gray-500 mt-1">{expense.notes}</p>}
                 </div>

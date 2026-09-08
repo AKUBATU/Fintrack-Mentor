@@ -71,6 +71,7 @@ function normalizeExpensePayload(payload: any) {
     transaction_type: payload.transactionType ?? payload.transaction_type ?? 'expense',
     category: payload.category,
     payment_method: payload.paymentMethod ?? payload.payment_method ?? '',
+    fund_source: payload.fundSource ?? payload.fund_source ?? 'bank',
     merchant,
     notes,
     predicted_category: payload.predictedCategory ?? payload.predicted_category,
@@ -84,6 +85,7 @@ function normalizeBudgetPayload(payload: any) {
     category: payload.category,
     amount: payload.amount,
     period: payload.period ?? 'monthly',
+    fund_source: payload.fundSource ?? payload.fund_source ?? 'all',
     reference_date: payload.referenceDate ?? payload.reference_date,
   };
 }

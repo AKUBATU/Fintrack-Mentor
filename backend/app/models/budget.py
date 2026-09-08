@@ -11,6 +11,7 @@ class Budget(Base):
     category: Mapped[str] = mapped_column(String(80), nullable=False)
     amount: Mapped[float] = mapped_column(Float, nullable=False)
     period: Mapped[str] = mapped_column(String(20), default="monthly", nullable=False)
+    fund_source: Mapped[str] = mapped_column(String(20), default="all", nullable=False)
     reference_date: Mapped[date] = mapped_column(Date, default=date.today, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
 
