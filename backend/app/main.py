@@ -18,6 +18,11 @@ app = FastAPI(title=settings.APP_NAME)
 
 @app.on_event("startup")
 def create_production_schema():
+    # Schema changes belong to Alembic/deployment setup. Running multiple
+    # metadata checks against a remote database on every serverless cold start
+    # adds seconds before even lightweight routes such as /health can respond.
+    if not settings.AUTO_CREATE_SCHEMA:
+        return
     if engine.dialect.name == "postgresql" and settings.DATABASE_SCHEMA == "fintrack_app":
         with engine.begin() as connection:
             connection.execute(text("CREATE SCHEMA IF NOT EXISTS fintrack_app"))
@@ -28,25 +33,24 @@ def create_production_schema():
     UserPreference.__table__.create(bind=engine, checkfirst=True)
     FundAccount.__table__.create(bind=engine, checkfirst=True)
     FundTransfer.__table__.create(bind=engine, checkfirst=True)
-    if settings.AUTO_CREATE_SCHEMA:
-        Base.metadata.create_all(bind=engine)
-        if engine.dialect.name == "postgresql" and settings.DATABASE_SCHEMA == "fintrack_app":
-            with engine.begin() as connection:
-                expense_columns = (
-                    "transaction_type VARCHAR(10) NOT NULL DEFAULT 'expense'",
-                    "merchant VARCHAR(120) NOT NULL DEFAULT ''",
-                    "notes VARCHAR(500) NOT NULL DEFAULT ''",
-                    "receipt_path VARCHAR(500)",
-                    "predicted_category VARCHAR(80)",
-                    "confidence DOUBLE PRECISION",
-                    "model_used VARCHAR(40)",
-                    "created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP",
-                )
-                for column_definition in expense_columns:
-                    connection.execute(text(
-                        "ALTER TABLE fintrack_app.expenses ADD COLUMN IF NOT EXISTS "
-                        f"{column_definition}"
-                    ))
+    Base.metadata.create_all(bind=engine)
+    if engine.dialect.name == "postgresql" and settings.DATABASE_SCHEMA == "fintrack_app":
+        with engine.begin() as connection:
+            expense_columns = (
+                "transaction_type VARCHAR(10) NOT NULL DEFAULT 'expense'",
+                "merchant VARCHAR(120) NOT NULL DEFAULT ''",
+                "notes VARCHAR(500) NOT NULL DEFAULT ''",
+                "receipt_path VARCHAR(500)",
+                "predicted_category VARCHAR(80)",
+                "confidence DOUBLE PRECISION",
+                "model_used VARCHAR(40)",
+                "created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP",
+            )
+            for column_definition in expense_columns:
+                connection.execute(text(
+                    "ALTER TABLE fintrack_app.expenses ADD COLUMN IF NOT EXISTS "
+                    f"{column_definition}"
+                ))
 
     # Vercel does not execute Alembic migrations. Keep existing budget tables
     # compatible while preserving the creation date as their initial period.
