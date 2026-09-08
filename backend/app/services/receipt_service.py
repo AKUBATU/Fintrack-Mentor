@@ -1,7 +1,10 @@
 import re
 import shutil
 import subprocess
+import base64
+import httpx
 from datetime import date
+from ..core.config import settings
 
 
 RECEIPT_CATEGORIES = [
@@ -28,7 +31,37 @@ def _parse_number(value: str) -> float | None:
         return None
 
 
-def _ocr_image(content: bytes) -> str:
+def _ocr_space(content: bytes, mime_type: str) -> str:
+    encoded = base64.b64encode(content).decode("ascii")
+    response = httpx.post(
+        "https://api.ocr.space/parse/image",
+        data={
+            "apikey": settings.OCR_SPACE_API_KEY,
+            "language": "eng",
+            "isOverlayRequired": "false",
+            "OCREngine": "2",
+            "scale": "true",
+            "base64Image": f"data:{mime_type};base64,{encoded}",
+        },
+        timeout=60,
+    )
+    response.raise_for_status()
+    payload = response.json()
+    if payload.get("IsErroredOnProcessing"):
+        raise RuntimeError("Layanan OCR tidak dapat membaca foto")
+    text = "\n".join(item.get("ParsedText", "") for item in payload.get("ParsedResults", []))
+    if not text.strip():
+        raise RuntimeError("OCR tidak menemukan teks")
+    return text.strip()
+
+
+def _ocr_image(content: bytes, mime_type: str) -> str:
+    if settings.OCR_SPACE_API_KEY:
+        try:
+            return _ocr_space(content, mime_type)
+        except Exception:
+            if not shutil.which("tesseract"):
+                raise RuntimeError("Layanan OCR sedang tidak tersedia. Silakan coba lagi.")
     executable = shutil.which("tesseract")
     if not executable:
         raise RuntimeError("Tesseract OCR belum terpasang pada server")
@@ -176,7 +209,7 @@ def _line_items(lines: list[str]) -> list[dict]:
 
 
 def scan_receipts(images: list[tuple[bytes, str]]) -> dict:
-    texts = [_ocr_image(content) for content, _mime_type in images]
+    texts = [_ocr_image(content, mime_type) for content, mime_type in images]
     # Pertahankan teks unik dari setiap close-up agar area lipatan saling melengkapi.
     lines = []
     seen = set()

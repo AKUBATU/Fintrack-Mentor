@@ -1,5 +1,7 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
+from collections import defaultdict
+from math import sqrt
 from ..core.db import get_db
 from ..schemas.ml import PredictCategoryIn, PredictCategoryOut, FeedbackIn, AnomalyOut
 from ..models.expense import Expense
@@ -23,37 +25,36 @@ def feedback(payload: FeedbackIn, user=Depends(get_current_user)):
 
 @router.get("/anomalies", response_model=list[AnomalyOut])
 def anomalies(db: Session = Depends(get_db), user=Depends(get_current_user)):
-    import numpy as np
-    import pandas as pd
-
     rows = db.query(Expense).filter(
         Expense.user_id==user.id,
         Expense.transaction_type=="expense",
     ).all()
     if not rows:
         return []
-    # z-score within category
-    data = [{"id": r.id, "date": r.date.isoformat(), "amount": float(r.amount), "category": r.category} for r in rows]
-    df = pd.DataFrame(data)
+    # Population z-score within each category, implemented without heavy
+    # scientific dependencies so serverless cold starts remain lightweight.
+    grouped = defaultdict(list)
+    for row in rows:
+        grouped[row.category].append(row)
     out: list[AnomalyOut] = []
-    for cat, g in df.groupby("category"):
-        if len(g) < 5:
+    for category, items in grouped.items():
+        if len(items) < 5:
             continue
-        mu = g["amount"].mean()
-        sd = g["amount"].std(ddof=0)
+        amounts = [float(item.amount) for item in items]
+        mean = sum(amounts) / len(amounts)
+        sd = sqrt(sum((amount - mean) ** 2 for amount in amounts) / len(amounts))
         if sd <= 1e-9:
             continue
-        z = (g["amount"] - mu) / sd
-        for idx, zz in zip(g.index, z):
-            if abs(float(zz)) >= 3.0:
-                r = df.loc[idx]
+        for row, amount in zip(items, amounts):
+            z_score = (amount - mean) / sd
+            if abs(z_score) >= 3.0:
                 out.append(AnomalyOut(
-                    expense_id=int(r["id"]),
-                    date=r["date"],
-                    amount=float(r["amount"]),
-                    category=str(r["category"]),
-                    reason=f"z-score anomaly in {cat}",
-                    z_score=float(zz),
+                    expense_id=row.id,
+                    date=row.date,
+                    amount=amount,
+                    category=category,
+                    reason=f"z-score anomaly in {category}",
+                    z_score=z_score,
                 ))
     # sort by abs score desc
     out.sort(key=lambda a: abs(a.z_score or 0), reverse=True)

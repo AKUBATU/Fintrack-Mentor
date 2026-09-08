@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { Eye, EyeOff, KeyRound, LoaderCircle } from 'lucide-react';
+import { Eye, EyeOff, LoaderCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import ThemeToggle from '../components/ThemeToggle';
 import { api } from '../services/api';
@@ -46,6 +46,7 @@ export default function ResetPassword() {
       <div className="relative">
         <input
           type={visible ? 'text' : 'password'}
+          autoComplete="new-password"
           value={value}
           onChange={(event) => setValue(event.target.value)}
           className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -66,9 +67,7 @@ export default function ResetPassword() {
       <ThemeToggle className="auth-theme-toggle" />
       <div className="auth-card max-w-md w-full bg-white rounded-2xl shadow-xl p-8">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-600 rounded-full mb-4">
-            <KeyRound className="w-8 h-8 text-white" />
-          </div>
+          <img src="/fintrack-mark.svg" alt="Logo FinTrack" className="inline-block w-16 h-16 mb-4 rounded-2xl shadow-lg" />
           <h1 className="text-3xl font-bold text-gray-900">Buat Password Baru</h1>
         </div>
 

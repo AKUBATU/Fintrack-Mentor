@@ -4,6 +4,7 @@ import { Eye, EyeOff, LoaderCircle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import ThemeToggle from '../components/ThemeToggle';
 import ProcessingOverlay from '../components/ProcessingOverlay';
+import { toast } from 'sonner';
 
 export default function Register() {
   const [name, setName] = useState('');
@@ -20,7 +21,7 @@ export default function Register() {
     e.preventDefault();
     
     if (password !== confirmPassword) {
-      alert('Password tidak cocok!');
+      toast.error('Konfirmasi password tidak cocok');
       return;
     }
 
@@ -45,7 +46,7 @@ export default function Register() {
           <div className="text-center mb-8">
             <img src="/fintrack-mark.svg" alt="Logo FinTrack" className="inline-block w-16 h-16 mb-4 rounded-2xl shadow-lg" />
             <h1 className="text-3xl font-bold text-gray-900">FinTrack Mentor</h1>
-            <p className="text-gray-500 mt-2">Buat akun baru</p>
+            <p className="text-gray-500 mt-2">Mulai catat keuangan dan investasi Anda</p>
           </div>
 
           {/* Form */}
@@ -59,7 +60,7 @@ export default function Register() {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="John Doe"
+                placeholder="Nama lengkap Anda"
                 required
               />
             </div>
@@ -70,6 +71,7 @@ export default function Register() {
               </label>
               <input
                 type="email"
+                autoComplete="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -85,6 +87,7 @@ export default function Register() {
               <div className="relative">
                 <input
                   type={showPassword ? 'text' : 'password'}
+                  autoComplete="new-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -105,6 +108,7 @@ export default function Register() {
               <div className="relative">
                 <input
                   type={showConfirmPassword ? 'text' : 'password'}
+                  autoComplete="new-password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"

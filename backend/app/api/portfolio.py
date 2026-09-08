@@ -3,11 +3,12 @@ from sqlalchemy.orm import Session
 from ..core.db import get_db
 from ..schemas.portfolio import (
     StockTransactionCreate, StockTransactionOut, StockTransactionUpdate,
-    DividendCreate, DividendOut,
+    DividendCreate, DividendOut, StockPriceOut, StockPriceUpdate,
     PortfolioSummaryOut
 )
 from ..models.stock_transaction import StockTransaction
 from ..models.dividend import Dividend
+from ..models.stock_price import StockPrice
 from ..services.portfolio_service import compute_portfolio_summary
 from .deps import get_current_user
 
@@ -65,6 +66,29 @@ def delete_transaction(
     db.delete(transaction)
     db.commit()
     return {"ok": True}
+
+@router.put("/prices/{ticker}", response_model=StockPriceOut)
+def update_stock_price(
+    ticker: str,
+    payload: StockPriceUpdate,
+    db: Session = Depends(get_db),
+    user=Depends(get_current_user),
+):
+    normalized_ticker = ticker.strip().upper()
+    if not normalized_ticker:
+        raise HTTPException(400, "Ticker wajib diisi")
+    price = db.query(StockPrice).filter(
+        StockPrice.user_id == user.id,
+        StockPrice.ticker == normalized_ticker,
+    ).first()
+    if price:
+        price.price = payload.price
+    else:
+        price = StockPrice(user_id=user.id, ticker=normalized_ticker, price=payload.price)
+        db.add(price)
+    db.commit()
+    db.refresh(price)
+    return StockPriceOut(ticker=price.ticker, price=price.price)
 
 @router.get("/dividends", response_model=list[DividendOut])
 def list_dividends(db: Session = Depends(get_db), user=Depends(get_current_user)):

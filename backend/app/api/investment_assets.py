@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from ..core.db import get_db
 from ..models.investment_asset import InvestmentAsset
 from ..models.stock_transaction import StockTransaction
+from ..models.stock_price import StockPrice
 from ..schemas.investment_asset import (
     AllocationOut, InvestmentAssetCreate, InvestmentAssetOut,
     InvestmentAssetUpdate, PortfolioHealthOut,
@@ -67,7 +68,7 @@ def delete_asset(asset_id: int, db: Session = Depends(get_db), user=Depends(get_
     return {"ok": True}
 
 
-def stock_position_values(db: Session, user_id: int) -> list[float]:
+def stock_position_values(db: Session, user_id: int) -> list[tuple[float, float]]:
     transactions = db.query(StockTransaction).filter(StockTransaction.user_id == user_id).order_by(StockTransaction.date, StockTransaction.id).all()
     positions = {}
     for transaction in transactions:
@@ -81,7 +82,15 @@ def stock_position_values(db: Session, user_id: int) -> list[float]:
             sold = min(transaction.shares, current["shares"])
             current["shares"] -= sold
             current["cost"] -= sold * average
-    return [position["shares"] * position["price"] for position in positions.values() if position["shares"] > 0]
+    saved_prices = {
+        row.ticker: row.price
+        for row in db.query(StockPrice).filter(StockPrice.user_id == user_id).all()
+    }
+    return [
+        (position["shares"] * saved_prices.get(ticker, position["price"]), position["cost"])
+        for ticker, position in positions.items()
+        if position["shares"] > 0
+    ]
 
 
 @router.get("/health/summary", response_model=PortfolioHealthOut)
@@ -89,9 +98,9 @@ def portfolio_health(db: Session = Depends(get_db), user=Depends(get_current_use
     assets = db.query(InvestmentAsset).filter(InvestmentAsset.user_id == user.id).all()
     values = [(asset.asset_type, asset.quantity * asset.current_price * asset.exchange_rate_to_idr) for asset in assets]
     costs = [asset.quantity * asset.average_price * asset.exchange_rate_to_idr for asset in assets]
-    stock_values = stock_position_values(db, user.id)
-    values.extend(("stock", value) for value in stock_values)
-    costs.extend(stock_values)
+    stock_positions = stock_position_values(db, user.id)
+    values.extend(("stock", value) for value, _cost in stock_positions)
+    costs.extend(cost for _value, cost in stock_positions)
     total_value = sum(value for _, value in values)
     total_cost = sum(costs)
 

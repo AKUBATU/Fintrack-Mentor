@@ -2705,6 +2705,23 @@ html.dark { color-scheme: dark; background: #080d18; }
 }
 
 /* Chat Mentor */
+.dashboard-balance-card { order: 1; }
+.dashboard-portfolio-card { order: 2; }
+.dashboard-expense-card { order: 3; }
+.dashboard-income-card { order: 4; }
+.dashboard-profit-card { order: 5; }
+.dashboard-assets-card { order: 6; }
+
+@media (min-width: 768px) {
+  .dashboard-balance-card,
+  .dashboard-portfolio-card { grid-column: span 2; }
+}
+
+@media (min-width: 1024px) {
+  .dashboard-balance-card,
+  .dashboard-portfolio-card { grid-column: span 2; }
+}
+
 .mentor-header {
   display: flex;
   align-items: center;
@@ -2781,18 +2798,11 @@ html.dark { color-scheme: dark; background: #080d18; }
 .dark .mentor-composer { border-color: #3b475b; background: #0f172a; }
 .dark .mentor-composer textarea { background: transparent; }
 
-@media (min-width: 641px) {
-  .finance-transaction-overlay {
-    top: -4rem !important;
-    bottom: -4rem !important;
-  }
-}
-
 @media (max-width: 767px) {
   .app-topbar { min-height: 66px; }
   .app-topbar-inner { padding: .875rem 1rem; }
   .app-topbar-meta, .app-topbar-subtitle { display: none; }
-  .app-main { padding: 1rem; overflow-x: clip; }
+  .app-main { padding: 1rem; }
   .app-main h1 { font-size: 1.45rem; }
   .app-main > * { min-width: 0; }
   .app-main form,
@@ -2829,7 +2839,6 @@ html.dark { color-scheme: dark; background: #080d18; }
     width: 100%;
     min-width: 0;
   }
-  .finance-header-actions > button:last-child { grid-column: 1 / -1; }
   .finance-history-row > *,
   .dashboard-holding-row > *,
   .portfolio-mobile-list > * { min-width: 0; max-width: 100%; }

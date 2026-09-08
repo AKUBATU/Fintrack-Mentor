@@ -6,7 +6,7 @@ import React, {
   ReactNode,
   useMemo,
 } from 'react'
-import { api } from '../services/api'
+import { api, type InvestmentAssetResponse } from '../services/api'
 import { useAuth } from './AuthContext'
 import { toast } from 'sonner'
 
@@ -110,6 +110,8 @@ export interface Dividend {
   paymentDate: string
 }
 
+export type InvestmentAsset = InvestmentAssetResponse
+
 export interface DailyReportEntry {
   id: string
   date: string
@@ -125,6 +127,22 @@ export interface UserProfile {
   focusStocks: string[]
   compoundingDividends: boolean
   bonusWeekRule: string
+}
+
+export interface FundAccount {
+  source: 'bank' | 'cash'
+  name: string
+  openingBalance: number
+  balance: number
+}
+
+export interface FundTransfer {
+  id: string
+  fromSource: 'bank' | 'cash'
+  toSource: 'bank' | 'cash'
+  amount: number
+  date: string
+  notes: string
 }
 
 const defaultUserProfile: UserProfile = {
@@ -144,8 +162,11 @@ interface DataContextType {
   stockHoldings: StockHolding[]
   holdings: DashboardHolding[]
   dividends: Dividend[]
+  investmentAssets: InvestmentAsset[]
   dailyReports: DailyReportEntry[]
   userProfile: UserProfile
+  fundAccounts: FundAccount[]
+  fundTransfers: FundTransfer[]
 
   addExpense(expense: ExpenseInput): Promise<void>
   updateExpense(id: string, expense: ExpenseInput): Promise<void>
@@ -164,9 +185,13 @@ interface DataContextType {
   addDividend(dividend: Omit<Dividend, 'id'>): Promise<void>
   addDailyReport(report: Omit<DailyReportEntry, 'id'>): Promise<void>
 
-  updateHoldingPrice(ticker: string, price: number): void
+  updateHoldingPrice(ticker: string, price: number): Promise<void>
+  refreshInvestmentAssets(): Promise<void>
   refreshCalculations(): void
-  updateUserProfile(profile: UserProfile): void
+  updateUserProfile(profile: UserProfile): Promise<void>
+  updateFundAccount(source: 'bank' | 'cash', data: { name: string; openingBalance: number }): Promise<void>
+  addFundTransfer(transfer: Omit<FundTransfer, 'id'>): Promise<void>
+  deleteFundTransfer(id: string): Promise<void>
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined)
@@ -176,7 +201,8 @@ const DataContext = createContext<DataContextType | undefined>(undefined)
 ===================================================== */
 function buildHoldingsFromTransactions(
   txs: StockTransaction[],
-  prevHoldings: StockHolding[]
+  prevHoldings: StockHolding[],
+  persistedPrices: Record<string, number> = {},
 ): StockHolding[] {
   // map currentPrice dari holdings lama (biar gak reset ke 0)
   const prevPriceMap = new Map<string, number>()
@@ -230,7 +256,7 @@ function buildHoldingsFromTransactions(
 
     // Harga yang pernah diubah di sesi aktif dipertahankan. Setelah login/reload,
     // gunakan harga transaksi terakhir agar nilai aset tidak kembali menjadi Rp0.
-    const currentPrice = prevPriceMap.get(ticker) || latestPrice.get(ticker) || v.avg
+    const currentPrice = persistedPrices[ticker] || prevPriceMap.get(ticker) || latestPrice.get(ticker) || v.avg
     const lots = Math.floor(v.shares / 100)
     const costBasis = v.shares * v.avg
     const marketValue = v.shares * currentPrice
@@ -266,8 +292,12 @@ export function DataProvider({ children }: { children: ReactNode }) {
     useState<StockTransaction[]>([])
   const [stockHoldings, setStockHoldings] = useState<StockHolding[]>([])
   const [dividends, setDividends] = useState<Dividend[]>([])
+  const [investmentAssets, setInvestmentAssets] = useState<InvestmentAsset[]>([])
+  const [stockPrices, setStockPrices] = useState<Record<string, number>>({})
   const [dailyReports, setDailyReports] = useState<DailyReportEntry[]>([])
   const [userProfile, setUserProfile] = useState<UserProfile>(defaultUserProfile)
+  const [fundAccounts, setFundAccounts] = useState<FundAccount[]>([])
+  const [fundTransfers, setFundTransfers] = useState<FundTransfer[]>([])
 
   /* ================= Load account data from backend ================= */
   useEffect(() => {
@@ -278,7 +308,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
       setStockTransactions([])
       setStockHoldings([])
       setDividends([])
+      setInvestmentAssets([])
+      setStockPrices({})
       setDailyReports([])
+      setFundAccounts([])
+      setFundTransfers([])
       return
     }
 
@@ -332,6 +366,41 @@ export function DataProvider({ children }: { children: ReactNode }) {
         notes: row.notes || '',
         screenshotUrl: row.screenshot_url || undefined,
       })))
+      setInvestmentAssets((data.investment_assets ?? []).map((row) => ({
+        ...row,
+        quantity: Number(row.quantity), average_price: Number(row.average_price),
+        current_price: Number(row.current_price), exchange_rate_to_idr: Number(row.exchange_rate_to_idr),
+        cost_basis: Number(row.cost_basis), market_value: Number(row.market_value),
+        unrealized_pl: Number(row.unrealized_pl), unrealized_pl_percent: Number(row.unrealized_pl_percent),
+      })))
+      setStockPrices(data.stock_prices ?? {})
+      const preferences = data.preferences
+      let loadedProfile = preferences ? {
+        dcaStrategy: preferences.dca_strategy,
+        dcaAmount: Number(preferences.dca_amount),
+        dcaFrequency: preferences.dca_frequency,
+        focusStocks: preferences.focus_stocks ?? [],
+        compoundingDividends: Boolean(preferences.compounding_dividends),
+        bonusWeekRule: preferences.bonus_week_rule,
+      } : defaultUserProfile
+      if (!data.preferences_persisted) {
+        const localProfile = storageGet(`userProfile:${user.id}`, loadedProfile)
+        loadedProfile = localProfile
+        await api.updatePreferences({
+          dca_strategy: localProfile.dcaStrategy, dca_amount: localProfile.dcaAmount,
+          dca_frequency: localProfile.dcaFrequency, focus_stocks: localProfile.focusStocks,
+          compounding_dividends: localProfile.compoundingDividends, bonus_week_rule: localProfile.bonusWeekRule,
+        })
+      }
+      setUserProfile(loadedProfile)
+      setFundAccounts((data.fund_accounts ?? []).map((row) => ({
+        source: row.source, name: row.name,
+        openingBalance: Number(row.opening_balance), balance: Number(row.balance),
+      })))
+      setFundTransfers((data.fund_transfers ?? []).map((row) => ({
+        id: String(row.id), fromSource: row.from_source, toSource: row.to_source,
+        amount: Number(row.amount), date: row.date, notes: row.notes || '',
+      })))
       } catch (error) {
         console.error('Failed to load account data:', error)
         toast.error('Data akun gagal dimuat. Silakan coba login kembali.')
@@ -343,15 +412,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
     load().catch((error) => console.error('Failed to load account data:', error))
   }, [isAuthenticated, user?.id])
 
-  useEffect(() => {
-    if (!user) return
-    setUserProfile(storageGet(`userProfile:${user.id}`, defaultUserProfile))
-  }, [user?.id])
-
   /* ================= Auto rebuild holdings when transactions change ================= */
   useEffect(() => {
-    setStockHoldings((prev) => buildHoldingsFromTransactions(stockTransactions, prev))
-  }, [stockTransactions])
+    setStockHoldings((prev) => buildHoldingsFromTransactions(stockTransactions, prev, stockPrices))
+  }, [stockTransactions, stockPrices])
 
   /* ================= Dashboard Holdings ================= */
   const holdings = useMemo<DashboardHolding[]>(() => {
@@ -450,35 +514,33 @@ export function DataProvider({ children }: { children: ReactNode }) {
   }
 
   /* ================= Update Holding Price (INI FIX UTAMANYA) ================= */
-  const updateHoldingPrice = (ticker: string, price: number) => {
+  const updateHoldingPrice = async (ticker: string, price: number) => {
     const p = Number(price)
     const t = String(ticker || '').toUpperCase()
 
     if (!t) throw new Error('Ticker wajib diisi')
     if (!Number.isFinite(p) || p <= 0) throw new Error('Harga harus > 0')
 
-    setStockHoldings((prev) =>
-      prev.map((h) => {
-        if (h.ticker.toUpperCase() !== t) return h
-        const shares = h.shares || 0
-        const costBasis = shares * (h.avgPrice || 0)
-        const marketValue = shares * p
-        const unreal = marketValue - costBasis
-        return {
-          ...h,
-          ticker: t,
-          currentPrice: p,
-          marketValue,
-          unrealizedPL: unreal,
-        }
-      })
-    )
+    const updated = await api.updateStockPrice(t, p)
+    setStockPrices((current) => ({ ...current, [updated.ticker]: Number(updated.price) }))
+  }
+
+  const refreshInvestmentAssets = async () => {
+    const rows = await api.listInvestmentAssets()
+    setInvestmentAssets(rows.map((row) => ({
+      ...row,
+      quantity: Number(row.quantity), average_price: Number(row.average_price),
+      current_price: Number(row.current_price), exchange_rate_to_idr: Number(row.exchange_rate_to_idr),
+      cost_basis: Number(row.cost_basis), market_value: Number(row.market_value),
+      unrealized_pl: Number(row.unrealized_pl), unrealized_pl_percent: Number(row.unrealized_pl_percent),
+    })))
   }
 
   /* ================= Others ================= */
   const addExpense = async (e: ExpenseInput) => {
     const { receiptFile, ...payload } = e
     const created = await api.createExpense(payload)
+    await refreshFundAccounts()
     let hasReceipt = false
     if (receiptFile) {
       try {
@@ -495,6 +557,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const updateExpense = async (id: string, e: ExpenseInput) => {
     const { receiptFile, ...payload } = e
     await api.updateExpense(Number(id), payload)
+    await refreshFundAccounts()
     if (receiptFile) {
       try {
         await api.uploadReceipt(Number(id), receiptFile)
@@ -511,6 +574,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const deleteExpense = async (id: string) => {
     await api.deleteExpense(Number(id))
     setExpenses((items) => items.filter((item) => item.id !== id))
+    await refreshFundAccounts()
   }
 
   const addBudget = async (b: Omit<Budget, 'id'>) => {
@@ -538,13 +602,43 @@ export function DataProvider({ children }: { children: ReactNode }) {
     setDailyReports((p) => [{ ...r, id: String(created.id) }, ...p])
   }
 
-  const updateUserProfile = (profile: UserProfile) => {
+  const updateUserProfile = async (profile: UserProfile) => {
+    await api.updatePreferences({
+      dca_strategy: profile.dcaStrategy, dca_amount: profile.dcaAmount,
+      dca_frequency: profile.dcaFrequency, focus_stocks: profile.focusStocks,
+      compounding_dividends: profile.compoundingDividends, bonus_week_rule: profile.bonusWeekRule,
+    })
     setUserProfile(profile)
     if (user) storageSet(`userProfile:${user.id}`, profile)
   }
 
+  const refreshFundAccounts = async () => {
+    const rows = await api.listFundAccounts()
+    setFundAccounts(rows.map((row) => ({ source: row.source, name: row.name, openingBalance: Number(row.opening_balance), balance: Number(row.balance) })))
+  }
+
+  const updateFundAccount = async (source: 'bank' | 'cash', data: { name: string; openingBalance: number }) => {
+    await api.updateFundAccount(source, { name: data.name, opening_balance: data.openingBalance })
+    await refreshFundAccounts()
+  }
+
+  const addFundTransfer = async (transfer: Omit<FundTransfer, 'id'>) => {
+    const created = await api.addFundTransfer({
+      from_source: transfer.fromSource, to_source: transfer.toSource,
+      amount: transfer.amount, date: transfer.date, notes: transfer.notes,
+    })
+    setFundTransfers((items) => [{ id: String(created.id), ...transfer }, ...items])
+    await refreshFundAccounts()
+  }
+
+  const deleteFundTransfer = async (id: string) => {
+    await api.deleteFundTransfer(Number(id))
+    setFundTransfers((items) => items.filter((item) => item.id !== id))
+    await refreshFundAccounts()
+  }
+
   const refreshCalculations = () => {
-    setStockHoldings((prev) => buildHoldingsFromTransactions(stockTransactions, prev))
+    setStockHoldings((prev) => buildHoldingsFromTransactions(stockTransactions, prev, stockPrices))
   }
 
   return (
@@ -557,8 +651,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
         stockHoldings,
         holdings,
         dividends,
+        investmentAssets,
         dailyReports,
         userProfile,
+        fundAccounts,
+        fundTransfers,
         addExpense,
         updateExpense,
         deleteExpense,
@@ -571,8 +668,12 @@ export function DataProvider({ children }: { children: ReactNode }) {
         addDividend,
         addDailyReport,
         updateHoldingPrice,
+        refreshInvestmentAssets,
         refreshCalculations,
         updateUserProfile,
+        updateFundAccount,
+        addFundTransfer,
+        deleteFundTransfer,
       }}
     >
       {children}

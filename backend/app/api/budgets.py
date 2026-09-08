@@ -14,6 +14,13 @@ def list_budgets(db: Session = Depends(get_db), user=Depends(get_current_user)):
 
 @router.post("", response_model=BudgetOut)
 def create_budget(payload: BudgetCreate, db: Session = Depends(get_db), user=Depends(get_current_user)):
+    duplicate = db.query(Budget).filter(
+        Budget.user_id == user.id, Budget.category == payload.category,
+        Budget.period == payload.period, Budget.fund_source == payload.fund_source,
+        Budget.reference_date == payload.reference_date,
+    ).first()
+    if duplicate:
+        raise HTTPException(409, "Budget dengan pengaturan yang sama sudah ada")
     r = Budget(user_id=user.id, **payload.model_dump())
     db.add(r); db.commit(); db.refresh(r)
     return BudgetOut(id=r.id, **payload.model_dump())
@@ -24,6 +31,18 @@ def update_budget(budget_id: int, payload: BudgetUpdate, db: Session = Depends(g
     if not r:
         raise HTTPException(404, "Budget not found")
     data = payload.model_dump(exclude_unset=True)
+    candidate = {
+        "category": data.get("category", r.category), "period": data.get("period", r.period),
+        "fund_source": data.get("fund_source", r.fund_source),
+        "reference_date": data.get("reference_date", r.reference_date),
+    }
+    duplicate = db.query(Budget).filter(
+        Budget.user_id == user.id, Budget.id != budget_id,
+        Budget.category == candidate["category"], Budget.period == candidate["period"],
+        Budget.fund_source == candidate["fund_source"], Budget.reference_date == candidate["reference_date"],
+    ).first()
+    if duplicate:
+        raise HTTPException(409, "Budget dengan pengaturan yang sama sudah ada")
     for k,v in data.items():
         setattr(r, k, v)
     db.commit(); db.refresh(r)

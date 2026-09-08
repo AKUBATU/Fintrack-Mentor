@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useData } from '../contexts/DataContext';
-import { Plus, Trash2, Download, Upload, AlertTriangle, Camera, Search, X, WalletCards, CalendarDays, Pencil, ChevronDown, LoaderCircle } from 'lucide-react';
+import { Plus, Trash2, Download, AlertTriangle, Camera, Search, X, WalletCards, CalendarDays, Pencil, ChevronDown, LoaderCircle, ArrowRightLeft, Landmark, Banknote } from 'lucide-react';
 import { toast } from 'sonner';
 import { api } from '../services/api';
 import ProcessingOverlay from '../components/ProcessingOverlay';
+import { formatCurrency } from '../utils/formatters';
 
 type AutoPred = { category: string; confidence: number } | null;
 
@@ -25,6 +26,11 @@ export default function Expenses() {
     addBudget,
     updateBudget,
     deleteBudget,
+    fundAccounts,
+    fundTransfers,
+    updateFundAccount,
+    addFundTransfer,
+    deleteFundTransfer,
   } = useData();
 
   const [showAddExpense, setShowAddExpense] = useState(false);
@@ -52,21 +58,82 @@ export default function Expenses() {
   const [summarySource, setSummarySource] = useState<'all' | 'bank' | 'cash'>('all');
   const [summaryDate, setSummaryDate] = useState(getLocalDateValue);
   const [budgetDate, setBudgetDate] = useState(getLocalDateValue);
+  const [accountDialog, setAccountDialog] = useState<'bank' | 'cash' | null>(null);
+  const [transferDialog, setTransferDialog] = useState(false);
+  const [savingFunds, setSavingFunds] = useState(false);
+  const [accountForm, setAccountForm] = useState({ name: '', openingBalance: '' });
+  const [transferForm, setTransferForm] = useState({ fromSource: 'bank' as 'bank' | 'cash', toSource: 'cash' as 'bank' | 'cash', amount: '', date: getLocalDateValue(), notes: '' });
 
   useEffect(() => {
-    const modalOpen = showAddExpense || Boolean(editingExpense) || showAddBudget || Boolean(selectedReceipt);
+    const modalOpen = showAddExpense || Boolean(editingExpense) || showAddBudget || Boolean(selectedReceipt) || Boolean(accountDialog) || transferDialog;
     if (!modalOpen) return;
 
     const previousBodyOverflow = document.body.style.overflow;
     const previousHtmlOverflow = document.documentElement.style.overflow;
     document.body.style.overflow = 'hidden';
     document.documentElement.style.overflow = 'hidden';
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape' || savingExpense || savingBudget || receiptScanning) return;
+      setShowAddExpense(false);
+      setEditingExpense(null);
+      setShowAddBudget(false);
+      setSelectedReceipt(null);
+      setAccountDialog(null);
+      setTransferDialog(false);
+    };
+    window.addEventListener('keydown', closeOnEscape);
 
     return () => {
       document.body.style.overflow = previousBodyOverflow;
       document.documentElement.style.overflow = previousHtmlOverflow;
+      window.removeEventListener('keydown', closeOnEscape);
     };
-  }, [showAddExpense, editingExpense, showAddBudget, selectedReceipt]);
+  }, [showAddExpense, editingExpense, showAddBudget, selectedReceipt, accountDialog, transferDialog, savingExpense, savingBudget, receiptScanning]);
+
+  const openAccountDialog = (source: 'bank' | 'cash') => {
+    const account = fundAccounts.find((item) => item.source === source);
+    setAccountForm({ name: account?.name || (source === 'bank' ? 'Rekening Mandiri' : 'Cash'), openingBalance: String(account?.openingBalance || '') });
+    setAccountDialog(source);
+  };
+
+  const handleSaveAccount = async () => {
+    if (!accountDialog) return;
+    const openingBalance = Number(accountForm.openingBalance || 0);
+    if (!accountForm.name.trim() || !Number.isFinite(openingBalance) || openingBalance < 0) return toast.error('Nama dan saldo awal harus valid');
+    setSavingFunds(true);
+    try {
+      await updateFundAccount(accountDialog, { name: accountForm.name.trim(), openingBalance });
+      setAccountDialog(null);
+      toast.success('Sumber saldo berhasil diperbarui');
+    } catch (error) { toast.error(error instanceof Error ? error.message : 'Sumber saldo gagal disimpan'); }
+    finally { setSavingFunds(false); }
+  };
+
+  const handleSaveTransfer = async () => {
+    const amount = Number(transferForm.amount);
+    if (!Number.isFinite(amount) || amount <= 0) return toast.error('Nominal transfer harus lebih dari 0');
+    setSavingFunds(true);
+    try {
+      await addFundTransfer({ ...transferForm, amount });
+      setTransferDialog(false);
+      setTransferForm({ fromSource: 'bank', toSource: 'cash', amount: '', date: getLocalDateValue(), notes: '' });
+      toast.success('Transfer saldo berhasil dicatat');
+    } catch (error) { toast.error(error instanceof Error ? error.message : 'Transfer gagal disimpan'); }
+    finally { setSavingFunds(false); }
+  };
+
+  const handleDeleteTransfer = async (id: string) => {
+    if (!window.confirm('Hapus catatan transfer ini?')) return;
+    setSavingFunds(true);
+    try {
+      await deleteFundTransfer(id);
+      toast.success('Catatan transfer dihapus');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Transfer gagal dihapus');
+    } finally {
+      setSavingFunds(false);
+    }
+  };
 
   // Form states
   const [formData, setFormData] = useState({
@@ -489,15 +556,12 @@ export default function Expenses() {
     }
   };
 
-  const handleImportCSV = () => {
-    toast.info('Fitur import CSV akan segera hadir!');
-  };
-
   const handleExportCSV = () => {
+    const escapeCsv = (value: unknown) => `"${String(value ?? '').replace(/"/g, '""')}"`;
     const csvContent = [
-      ['Tanggal', 'Jenis', 'Kategori', 'Sumber/Merchant', 'Metode', 'Sumber Saldo', 'Jumlah', 'Catatan'].join(','),
+      ['Tanggal', 'Jenis', 'Kategori', 'Sumber/Merchant', 'Metode', 'Sumber Saldo', 'Jumlah', 'Catatan'].map(escapeCsv).join(','),
       ...expenses.map(e =>
-        [e.date, e.transactionType, e.category, e.merchant, e.paymentMethod, fundSourceLabels[e.fundSource], e.amount, e.notes].join(',')
+        [e.date, e.transactionType, e.category, e.merchant, e.paymentMethod, fundSourceLabels[e.fundSource], e.amount, e.notes].map(escapeCsv).join(',')
       ),
     ].join('\n');
 
@@ -507,21 +571,15 @@ export default function Expenses() {
     a.href = url;
     a.download = 'financial-transactions.csv';
     a.click();
+    a.remove();
+    window.URL.revokeObjectURL(url);
     toast.success('Data berhasil diekspor!');
-  };
-
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      minimumFractionDigits: 0,
-    }).format(value);
   };
 
   return (
     <div className="space-y-6">
-      {(savingExpense || savingBudget || receiptScanning) && (
-        <ProcessingOverlay message={receiptScanning ? 'Sedang membaca struk…' : savingBudget ? 'Sedang menyimpan budget…' : editingExpense ? 'Sedang menyimpan perubahan…' : 'Sedang menyimpan transaksi…'} />
+      {(savingExpense || savingBudget || receiptScanning || savingFunds) && (
+        <ProcessingOverlay message={savingFunds ? 'Sedang menyimpan saldo…' : receiptScanning ? 'Sedang membaca struk…' : savingBudget ? 'Sedang menyimpan budget…' : editingExpense ? 'Sedang menyimpan perubahan…' : 'Sedang menyimpan transaksi…'} />
       )}
       {/* Header */}
       <div className="finance-page-header">
@@ -530,13 +588,6 @@ export default function Expenses() {
           <p className="text-gray-600">Kelola pemasukan, pengeluaran, dan budget Anda</p>
         </div>
         <div className="finance-header-actions">
-          <button
-            onClick={handleImportCSV}
-            className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
-          >
-            <Upload className="w-4 h-4" />
-            <span>Import</span>
-          </button>
           <button
             onClick={handleExportCSV}
             className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
@@ -626,6 +677,24 @@ export default function Expenses() {
             </div>
           </div>
         </div>
+      </section>
+
+      <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+          <div><h3 className="font-semibold text-gray-900">Sumber Saldo</h3><p className="text-sm text-gray-500">Saldo rekening dan cash dihitung dari saldo awal, transaksi, serta transfer.</p></div>
+          <button type="button" onClick={() => setTransferDialog(true)} className="inline-flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100"><ArrowRightLeft className="w-4 h-4" /> Transfer Saldo</button>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {fundAccounts.map((account) => {
+            const Icon = account.source === 'bank' ? Landmark : Banknote;
+            return <button key={account.source} type="button" onClick={() => openAccountDialog(account.source)} className="text-left min-w-0 rounded-xl border border-gray-200 p-4 hover:border-blue-300 hover:bg-blue-50/30 transition-colors">
+              <div className="flex items-center justify-between gap-3"><span className="inline-flex items-center gap-2 text-sm text-gray-600"><Icon className="w-4 h-4" />{account.name}</span><Pencil className="w-4 h-4 text-gray-400" /></div>
+              <p className={`mt-3 text-xl font-semibold tabular-nums ${account.balance < 0 ? 'text-red-600' : 'text-gray-900'}`}>{formatCurrency(account.balance)}</p>
+              <p className="text-xs text-gray-500 mt-1">Saldo awal {formatCurrency(account.openingBalance)}</p>
+            </button>;
+          })}
+        </div>
+        {fundTransfers.length > 0 && <div className="mt-4 pt-4 border-t border-gray-200"><p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Transfer terbaru</p>{fundTransfers.slice(0, 3).map((transfer) => <div key={transfer.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 py-2 text-sm"><span className="min-w-0 text-gray-600">{fundSourceLabels[transfer.fromSource]} → {fundSourceLabels[transfer.toSource]} · {new Date(`${transfer.date}T00:00:00`).toLocaleDateString('id-ID')}</span><div className="flex items-center justify-between sm:justify-end gap-2 shrink-0"><span className="font-medium tabular-nums">{formatCurrency(transfer.amount)}</span><button aria-label="Hapus transfer" onClick={() => void handleDeleteTransfer(transfer.id)} className="p-1.5 text-red-500 rounded-md hover:bg-red-50"><Trash2 className="w-4 h-4" /></button></div></div>)}</div>}
       </section>
 
       {/* Budget */}
@@ -729,10 +798,10 @@ export default function Expenses() {
 
       {/* Add/Edit Expense Modal */}
       {(showAddExpense || editingExpense) && (
-        <div className="finance-transaction-overlay fixed inset-0 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4" style={{ backgroundColor: 'rgba(17, 24, 39, 0.22)', backdropFilter: 'blur(7px)', WebkitBackdropFilter: 'blur(7px)' }}>
+        <div className="finance-transaction-overlay fixed inset-0 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4" style={{ backgroundColor: 'rgba(17, 24, 39, 0.22)', backdropFilter: 'blur(7px)', WebkitBackdropFilter: 'blur(7px)' }} role="dialog" aria-modal="true" aria-labelledby="transaction-dialog-title">
           <div className="finance-transaction-dialog bg-white rounded-t-2xl sm:rounded-xl max-w-md w-full max-h-[calc(100dvh-1rem)] sm:max-h-[92vh] flex flex-col overflow-hidden">
             <div className="finance-transaction-scroll min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain px-4 pt-4 sm:px-6 sm:pt-6">
-            <h3 className="finance-transaction-title text-xl font-bold text-gray-900 mb-4">
+            <h3 id="transaction-dialog-title" className="finance-transaction-title text-xl font-bold text-gray-900 mb-4">
               {editingExpense ? 'Edit Transaksi' : 'Tambah Transaksi'}
             </h3>
 
@@ -942,9 +1011,9 @@ export default function Expenses() {
 
       {/* Add Budget Modal */}
       {showAddBudget && (
-        <div className="fixed inset-0 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4" style={{ backgroundColor: 'rgba(17, 24, 39, 0.22)', backdropFilter: 'blur(7px)', WebkitBackdropFilter: 'blur(7px)' }}>
-          <div className="bg-white rounded-t-2xl sm:rounded-xl max-w-md w-full p-4 sm:p-6 max-h-[calc(100dvh-1rem)] overflow-y-auto overscroll-contain">
-            <h3 className="text-xl font-bold text-gray-900 mb-4">{editingBudget ? 'Edit Budget' : 'Atur Budget'}</h3>
+        <div className="finance-transaction-overlay fixed inset-0 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4" style={{ backgroundColor: 'rgba(17, 24, 39, 0.22)', backdropFilter: 'blur(7px)', WebkitBackdropFilter: 'blur(7px)' }} role="dialog" aria-modal="true" aria-labelledby="budget-dialog-title">
+          <div className="finance-transaction-dialog bg-white rounded-t-2xl sm:rounded-xl max-w-md w-full p-4 sm:p-6 max-h-[calc(100dvh-1rem)] overflow-y-auto overscroll-contain">
+            <h3 id="budget-dialog-title" className="text-xl font-bold text-gray-900 mb-4">{editingBudget ? 'Edit Budget' : 'Atur Budget'}</h3>
 
             <div className="space-y-4">
               <div>
@@ -1029,6 +1098,37 @@ export default function Expenses() {
         </div>
       )}
 
+      {accountDialog && (
+        <div className="finance-transaction-overlay fixed inset-0 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4" style={{ backgroundColor: 'rgba(17, 24, 39, 0.22)', backdropFilter: 'blur(7px)', WebkitBackdropFilter: 'blur(7px)' }} role="dialog" aria-modal="true" aria-labelledby="account-dialog-title">
+          <div className="finance-transaction-dialog bg-white rounded-t-2xl sm:rounded-xl max-w-md w-full p-4 sm:p-6">
+            <h3 id="account-dialog-title" className="text-xl font-bold text-gray-900">Atur Sumber Saldo</h3>
+            <p className="text-sm text-gray-500 mt-1 mb-5">Saldo awal menjadi titik awal sebelum transaksi yang sudah tercatat.</p>
+            <div className="space-y-4">
+              <div><label className="block text-sm font-medium text-gray-700 mb-1">Nama</label><input value={accountForm.name} onChange={(event) => setAccountForm({ ...accountForm, name: event.target.value })} className="w-full min-w-0 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" /></div>
+              <div><label className="block text-sm font-medium text-gray-700 mb-1">Saldo Awal</label><div className="flex min-w-0"><span className="px-3 py-2 border border-r-0 border-gray-300 rounded-l-lg text-gray-500">Rp</span><input type="number" min="0" value={accountForm.openingBalance} onChange={(event) => setAccountForm({ ...accountForm, openingBalance: event.target.value })} className="w-full min-w-0 px-3 py-2 border border-gray-300 rounded-r-lg focus:ring-2 focus:ring-blue-500" placeholder="0" /></div></div>
+            </div>
+            <div className="grid grid-cols-2 gap-2 mt-6"><button type="button" onClick={() => setAccountDialog(null)} className="px-3 py-2.5 bg-gray-100 text-gray-700 rounded-lg">Batal</button><button type="button" onClick={() => void handleSaveAccount()} className="px-3 py-2.5 bg-blue-600 text-white rounded-lg">Simpan</button></div>
+          </div>
+        </div>
+      )}
+
+      {transferDialog && (
+        <div className="finance-transaction-overlay fixed inset-0 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4" style={{ backgroundColor: 'rgba(17, 24, 39, 0.22)', backdropFilter: 'blur(7px)', WebkitBackdropFilter: 'blur(7px)' }} role="dialog" aria-modal="true" aria-labelledby="transfer-dialog-title">
+          <div className="finance-transaction-dialog bg-white rounded-t-2xl sm:rounded-xl max-w-md w-full p-4 sm:p-6">
+            <h3 id="transfer-dialog-title" className="text-xl font-bold text-gray-900">Transfer Antar Saldo</h3>
+            <p className="text-sm text-gray-500 mt-1 mb-5">Pemindahan saldo tidak dihitung sebagai pemasukan atau pengeluaran.</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div><label className="block text-sm font-medium text-gray-700 mb-1">Dari</label><select value={transferForm.fromSource} onChange={(event) => { const fromSource = event.target.value as 'bank' | 'cash'; setTransferForm({ ...transferForm, fromSource, toSource: fromSource === 'bank' ? 'cash' : 'bank' }); }} className="w-full px-3 py-2 border border-gray-300 rounded-lg"><option value="bank">Rekening Mandiri</option><option value="cash">Cash</option></select></div>
+              <div><label className="block text-sm font-medium text-gray-700 mb-1">Ke</label><select value={transferForm.toSource} disabled className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50"><option value="bank">Rekening Mandiri</option><option value="cash">Cash</option></select></div>
+              <div><label className="block text-sm font-medium text-gray-700 mb-1">Nominal</label><input type="number" min="1" value={transferForm.amount} onChange={(event) => setTransferForm({ ...transferForm, amount: event.target.value })} className="w-full min-w-0 px-3 py-2 border border-gray-300 rounded-lg" placeholder="50000" /></div>
+              <div><label className="block text-sm font-medium text-gray-700 mb-1">Tanggal</label><input type="date" value={transferForm.date} onChange={(event) => setTransferForm({ ...transferForm, date: event.target.value })} className="w-full min-w-0 px-3 py-2 border border-gray-300 rounded-lg" /></div>
+              <div className="sm:col-span-2"><label className="block text-sm font-medium text-gray-700 mb-1">Catatan</label><input value={transferForm.notes} onChange={(event) => setTransferForm({ ...transferForm, notes: event.target.value })} className="w-full min-w-0 px-3 py-2 border border-gray-300 rounded-lg" placeholder="Opsional" /></div>
+            </div>
+            <div className="grid grid-cols-2 gap-2 mt-6"><button type="button" onClick={() => setTransferDialog(false)} className="px-3 py-2.5 bg-gray-100 text-gray-700 rounded-lg">Batal</button><button type="button" onClick={() => void handleSaveTransfer()} className="px-3 py-2.5 bg-blue-600 text-white rounded-lg">Simpan Transfer</button></div>
+          </div>
+        </div>
+      )}
+
       {/* Transactions List */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200">
         <div className="p-6">
@@ -1079,7 +1179,7 @@ export default function Expenses() {
                     </span>
                     {expense.predictedCategory && typeof expense.confidence === 'number' && (
                       <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded-full">
-                        AI: {(expense.confidence * 100).toFixed(0)}%
+                        Kategori otomatis: {(expense.confidence * 100).toFixed(0)}%
                       </span>
                     )}
                   </div>

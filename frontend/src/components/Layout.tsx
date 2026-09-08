@@ -11,13 +11,29 @@ import {
   X,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import ThemeToggle from './ThemeToggle';
 
 export default function Layout() {
   const { user, logout } = useAuth();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  useEffect(() => { setSidebarOpen(false); }, [location.pathname]);
+
+  useEffect(() => {
+    if (!sidebarOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setSidebarOpen(false);
+    };
+    window.addEventListener('keydown', closeOnEscape);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener('keydown', closeOnEscape);
+    };
+  }, [sidebarOpen]);
 
   const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -60,6 +76,7 @@ export default function Layout() {
             <button 
               onClick={() => setSidebarOpen(false)}
               className="lg:hidden"
+              aria-label="Tutup menu navigasi"
             >
               <X className="w-6 h-6 text-gray-600" />
             </button>

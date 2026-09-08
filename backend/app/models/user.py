@@ -19,3 +19,6 @@ class User(Base):
     daily_reports = relationship("DailyReport", back_populates="user", cascade="all, delete-orphan")
     investment_assets = relationship("InvestmentAsset", back_populates="user", cascade="all, delete-orphan")
     chat_messages = relationship("ChatMessage", back_populates="user", cascade="all, delete-orphan")
+    preference = relationship("UserPreference", back_populates="user", cascade="all, delete-orphan", uselist=False)
+    fund_accounts = relationship("FundAccount", back_populates="user", cascade="all, delete-orphan")
+    fund_transfers = relationship("FundTransfer", back_populates="user", cascade="all, delete-orphan")

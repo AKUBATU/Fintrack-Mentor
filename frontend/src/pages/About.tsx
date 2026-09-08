@@ -1,117 +1,74 @@
-import { Calculator, Database, HeartPulse, ScanLine, ShieldCheck, WalletCards, Landmark, Coins, History, KeyRound } from 'lucide-react';
+import { BarChart3, LockKeyhole, ReceiptText, ScanLine, WalletCards } from 'lucide-react';
 
-const features = [
-  { icon: WalletCards, title: 'Pencatatan keuangan', description: 'Kelola pemasukan, pengeluaran, budget, history transaksi, dan foto struk dalam satu akun.' },
-  { icon: ScanLine, title: 'Scan struk lokal', description: 'Tesseract OCR membaca teks struk tanpa mengirim foto ke layanan AI eksternal.' },
-  { icon: HeartPulse, title: 'Portofolio lintas instrumen', description: 'Catat saham, reksa dana, ETF, obligasi, kripto, emas, properti, dan instrumen lainnya.' },
-  { icon: ShieldCheck, title: 'Data terpisah per user', description: 'Setiap request data dilindungi autentikasi dan diperiksa berdasarkan pemilik akun.' },
-  { icon: History, title: 'History yang dapat dikelola', description: 'Transaksi keuangan dan saham dapat dilihat kembali, diedit jika salah, atau dihapus dengan konfirmasi.' },
-  { icon: KeyRound, title: 'Keamanan akun', description: 'Autentikasi JWT, password terenkripsi, serta alur lupa dan reset password dengan token sekali pakai.' },
-];
-
-const instrumentGroups = [
-  ['Pasar modal', 'Saham, ETF, reksa dana, obligasi, dan derivatif'],
-  ['Aset likuid', 'Kas, deposito, forex, dan dana pensiun'],
-  ['Aset alternatif', 'Kripto, emas, komoditas, properti, dan koleksi'],
-  ['Investasi privat', 'Bisnis, private equity, P2P lending, dan asuransi investasi'],
-  ['Instrumen lain', 'Kategori fleksibel untuk aset yang belum tersedia dalam daftar'],
+const capabilities = [
+  {
+    icon: ReceiptText,
+    title: 'Keuangan harian',
+    description: 'Catat pemasukan dan pengeluaran, pisahkan sumber dana, atur budget, lalu temukan kembali transaksi berdasarkan tanggal.',
+  },
+  {
+    icon: BarChart3,
+    title: 'Investasi dalam satu tempat',
+    description: 'Pantau saham, reksa dana, ETF, obligasi, emas, kripto, dan aset lain dengan nilai yang dinormalisasi ke Rupiah.',
+  },
+  {
+    icon: LockKeyhole,
+    title: 'Data milik Anda',
+    description: 'Halaman akun dilindungi login dan setiap transaksi ditautkan ke pemilik akun yang sedang aktif.',
+  },
 ];
 
 export default function About() {
   return (
-    <div className="max-w-5xl space-y-6">
-      <div>
-        <p className="text-sm font-medium text-blue-600 mb-1">Tentang aplikasi</p>
-        <h1 className="text-2xl font-bold text-gray-900">FinTrack Mentor</h1>
-        <p className="text-gray-600 mt-1">Personal wealth manager untuk membantu pencatatan keuangan dan pemantauan investasi secara terstruktur.</p>
-      </div>
+    <div className="about-page max-w-5xl space-y-6">
+      <header>
+        <p className="text-sm font-medium text-blue-600 mb-1">Tentang FinTrack</p>
+        <h1 className="text-2xl font-bold text-gray-900">Satu tempat untuk memahami kondisi keuangan Anda</h1>
+        <p className="text-gray-600 mt-2 max-w-3xl">FinTrack Mentor membantu Anda mencatat arus kas, menjaga budget, dan memantau investasi tanpa memisahkan semuanya ke banyak aplikasi.</p>
+      </header>
 
-      <div className="about-hero">
-        <div className="about-hero-mark"><WalletCards className="w-8 h-8" /></div>
+      <section className="about-hero">
+        <div className="about-hero-mark"><img src="/fintrack-mark.svg" alt="" className="w-10 h-10 rounded-xl" /></div>
         <div>
-          <h2 className="text-2xl font-bold">Keuangan yang lebih mudah dipahami</h2>
-          <p className="mt-2">FinTrack menyatukan arus kas, budget, aset investasi, dividen, dan analisis kesehatan portofolio dalam satu dashboard.</p>
+          <p className="text-sm font-semibold text-blue-100">Personal wealth manager</p>
+          <h2 className="text-2xl font-bold mt-1">Catat dengan sederhana. Pahami dengan jelas.</h2>
+          <p className="mt-2 text-blue-50">Angka yang ditampilkan berasal dari data akun Anda—bukan data contoh yang dibuat untuk memenuhi dashboard.</p>
         </div>
-      </div>
+      </section>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {features.map(({ icon: Icon, title, description }) => (
-          <div key={title} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <div className="w-11 h-11 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center mb-4"><Icon className="w-5 h-5" /></div>
-            <h3 className="font-semibold text-gray-900">{title}</h3>
-            <p className="text-sm text-gray-600 mt-2">{description}</p>
-          </div>
-        ))}
-      </div>
-
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <div className="flex items-center gap-3 mb-2"><Landmark className="w-5 h-5 text-blue-600" /><h3 className="font-semibold text-gray-900">Instrumen yang Didukung</h3></div>
-        <p className="text-sm text-gray-600 mb-5">FinTrack menggunakan pencatatan aset generik sehingga berbagai kelas investasi dapat disimpan dalam satu portofolio.</p>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {instrumentGroups.map(([title, detail]) => (
-            <div key={title} className="p-4 bg-gray-50 border border-gray-100 rounded-lg">
-              <p className="text-sm font-semibold text-gray-900">{title}</p>
-              <p className="text-sm text-gray-600 mt-1">{detail}</p>
+      <section className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <div className="p-5 sm:p-6 border-b border-gray-100">
+          <h2 className="text-lg font-semibold text-gray-900">Yang dapat Anda kelola</h2>
+          <p className="text-sm text-gray-500 mt-1">Fitur inti FinTrack saat ini.</p>
+        </div>
+        <div className="divide-y divide-gray-100">
+          {capabilities.map(({ icon: Icon, title, description }) => (
+            <div key={title} className="about-capability flex items-start gap-4 p-5 sm:p-6">
+              <div className="w-10 h-10 shrink-0 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center"><Icon className="w-5 h-5" /></div>
+              <div><h3 className="font-semibold text-gray-900">{title}</h3><p className="text-sm text-gray-600 mt-1 leading-6">{description}</p></div>
             </div>
           ))}
         </div>
-        <div className="mt-4 p-3 bg-blue-50 border border-blue-100 rounded-lg text-sm text-blue-800">
-          Aset mata uang asing dikonversi ke Rupiah menggunakan kurs ke IDR yang dimasukkan user. Harga pasar dan kurs belum diperbarui otomatis.
-        </div>
-      </div>
+      </section>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center gap-3 mb-4"><Coins className="w-5 h-5 text-blue-600" /><h3 className="font-semibold text-gray-900">Pengelolaan Portofolio</h3></div>
-          <ul className="space-y-2 text-sm text-gray-600">
-            <li>• Transaksi saham beli dan jual berbasis lot atau lembar.</li>
-            <li>• Edit dan hapus transaksi jika terjadi kesalahan input.</li>
-            <li>• Perhitungan holdings, modal, harga rata-rata, serta realized dan unrealized P/L.</li>
-            <li>• Pencatatan dividen berdasarkan jumlah lembar dan tanggal pembayaran.</li>
-            <li>• Aset non-saham dapat ditambah, diperbarui, dan dihapus secara terpisah.</li>
-          </ul>
-        </div>
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center gap-3 mb-4"><ScanLine className="w-5 h-5 text-blue-600" /><h3 className="font-semibold text-gray-900">Keuangan & Scan Struk</h3></div>
-          <ul className="space-y-2 text-sm text-gray-600">
-            <li>• Pencatatan pemasukan dan pengeluaran beserta budget kategori.</li>
-            <li>• Pencarian, filter, import, dan export history transaksi.</li>
-            <li>• Lampiran foto struk yang hanya dapat diakses pemilik transaksi.</li>
-            <li>• OCR lokal membaca merchant, tanggal, total, pembayaran, kategori, pajak, diskon, item, dan teks struk.</li>
-            <li>• Hingga empat foto dapat digabungkan untuk membantu membaca struk terlipat.</li>
-          </ul>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center gap-3 mb-4"><Calculator className="w-5 h-5 text-blue-600" /><h3 className="font-semibold text-gray-900">Metode Perhitungan</h3></div>
-          <div className="space-y-3 text-sm text-gray-600">
-            <p><strong className="text-gray-900">Saham:</strong> 1 lot sama dengan 100 lembar.</p>
-            <p><strong className="text-gray-900">Harga rata-rata:</strong> total biaya beli dibagi jumlah lembar.</p>
-            <p><strong className="text-gray-900">Unrealized P/L:</strong> nilai terkini dikurangi modal kepemilikan.</p>
-            <p><strong className="text-gray-900">Realized P/L:</strong> dihitung saat transaksi jual berdasarkan harga rata-rata.</p>
-            <p><strong className="text-gray-900">Health score:</strong> kombinasi diversifikasi, konsentrasi, likuiditas, dan keseimbangan risiko.</p>
-            <p><strong className="text-gray-900">Normalisasi nilai:</strong> jumlah unit × harga per unit × kurs ke IDR.</p>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 sm:p-6">
+          <div className="flex items-center gap-3"><WalletCards className="w-5 h-5 text-blue-600" /><h2 className="font-semibold text-gray-900">Cara nilai dihitung</h2></div>
+          <div className="mt-4 space-y-3 text-sm text-gray-600">
+            <p><strong className="text-gray-900">Arus kas bersih</strong> adalah pemasukan dikurangi pengeluaran yang Anda catat.</p>
+            <p><strong className="text-gray-900">Nilai portofolio</strong> memakai jumlah aset, harga terakhir, dan kurs manual untuk aset asing.</p>
+            <p><strong className="text-gray-900">Health score</strong> adalah indikator edukatif berdasarkan komposisi aset, bukan rekomendasi investasi.</p>
           </div>
-        </div>
+        </section>
 
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center gap-3 mb-4"><Database className="w-5 h-5 text-blue-600" /><h3 className="font-semibold text-gray-900">Teknologi & Penyimpanan</h3></div>
-          <div className="space-y-3 text-sm text-gray-600">
-            <p><strong className="text-gray-900">Frontend:</strong> React, TypeScript, dan Tailwind CSS.</p>
-            <p><strong className="text-gray-900">Backend:</strong> FastAPI dan SQLAlchemy.</p>
-            <p><strong className="text-gray-900">Database:</strong> SQLite untuk lokal atau PostgreSQL melalui konfigurasi.</p>
-            <p><strong className="text-gray-900">Migrasi:</strong> Alembic menjaga perubahan schema tetap terkontrol.</p>
-            <p><strong className="text-gray-900">OCR:</strong> Tesseract berjalan lokal untuk membaca foto struk.</p>
-            <p><strong className="text-gray-900">Isolasi:</strong> transaksi, budget, aset, saham, dan dividen ditautkan ke ID pemilik akun.</p>
-          </div>
-        </div>
+        <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 sm:p-6">
+          <div className="flex items-center gap-3"><ScanLine className="w-5 h-5 text-blue-600" /><h2 className="font-semibold text-gray-900">Tentang scan struk</h2></div>
+          <p className="text-sm text-gray-600 mt-4 leading-6">FinTrack dapat mencoba membaca merchant, tanggal, total, dan metode pembayaran dari foto struk. Hasil OCR tetap perlu diperiksa sebelum disimpan dan ketersediaannya bergantung pada konfigurasi server.</p>
+          <p className="text-xs text-gray-500 mt-3">Foto buram, terlipat, terpotong, atau minim cahaya dapat mengurangi akurasi.</p>
+        </section>
       </div>
 
-      <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl text-sm text-blue-800">
-        Analisis kesehatan portofolio bersifat edukatif dan tidak menggantikan saran dari penasihat keuangan profesional.
-      </div>
+      <p className="text-xs text-gray-500 border-t border-gray-200 pt-4">FinTrack adalah alat pencatatan dan informasi. Analisis yang ditampilkan tidak menggantikan nasihat dari penasihat keuangan profesional.</p>
     </div>
   );
 }

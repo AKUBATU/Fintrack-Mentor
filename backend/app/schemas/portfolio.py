@@ -38,6 +38,13 @@ class StockTransactionUpdate(BaseModel):
             raise ValueError("Ticker wajib diisi")
         return value
 
+class StockPriceUpdate(BaseModel):
+    price: float = Field(gt=0)
+
+class StockPriceOut(BaseModel):
+    ticker: str
+    price: float
+
 class DividendBase(BaseModel):
     ticker: str
     amount: float = Field(gt=0)

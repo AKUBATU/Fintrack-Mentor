@@ -1,19 +1,24 @@
-import { useState, useEffect } from 'react';
+import { lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { Toaster } from 'sonner';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { DataProvider } from './contexts/DataContext';
-import Login from './pages/Login';
-import Register from './pages/Register';
-import ForgotPassword from './pages/ForgotPassword';
-import ResetPassword from './pages/ResetPassword';
-import Dashboard from './pages/Dashboard';
-import Expenses from './pages/Expenses';
-import Portfolio from './pages/Portfolio';
-import ChatMentor from './pages/ChatMentor';
-import Settings from './pages/Settings';
-import About from './pages/About';
 import Layout from './components/Layout';
+
+const Login = lazy(() => import('./pages/Login'));
+const Register = lazy(() => import('./pages/Register'));
+const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
+const ResetPassword = lazy(() => import('./pages/ResetPassword'));
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const Expenses = lazy(() => import('./pages/Expenses'));
+const Portfolio = lazy(() => import('./pages/Portfolio'));
+const ChatMentor = lazy(() => import('./pages/ChatMentor'));
+const Settings = lazy(() => import('./pages/Settings'));
+const About = lazy(() => import('./pages/About'));
+
+function PageLoader() {
+  return <div className="flex min-h-[40vh] items-center justify-center" role="status" aria-label="Memuat halaman"><div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600" /></div>;
+}
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, loading } = useAuth();
@@ -72,7 +77,7 @@ export default function App() {
     <Router>
       <AuthProvider>
         <DataProvider>
-          <AppRoutes />
+          <Suspense fallback={<PageLoader />}><AppRoutes /></Suspense>
           <Toaster position="top-right" richColors closeButton />
         </DataProvider>
       </AuthProvider>

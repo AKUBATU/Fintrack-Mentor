@@ -1,15 +1,17 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, BadgeCheck, ChartNoAxesCombined, KeyRound, PiggyBank, ReceiptText, Save, ShieldCheck, UserRound, WalletCards } from 'lucide-react';
+import { ArrowRight, BadgeCheck, ChartNoAxesCombined, KeyRound, LoaderCircle, PiggyBank, ReceiptText, Save, ShieldCheck, UserRound, WalletCards } from 'lucide-react';
 import { useData } from '../contexts/DataContext';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'sonner';
+import { formatCurrency } from '../utils/formatters';
 
 export default function Settings() {
   const { user } = useAuth();
-  const { userProfile, updateUserProfile, expenses, budgets, holdings, dividends } = useData();
+  const { userProfile, updateUserProfile, expenses, budgets, holdings, dividends, investmentAssets } = useData();
   const [profile, setProfile] = useState(userProfile);
   const [focusStocksInput, setFocusStocksInput] = useState(userProfile.focusStocks.join(', '));
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     setProfile(userProfile);
@@ -19,19 +21,22 @@ export default function Settings() {
   const accountStats = useMemo(() => [
     { label: 'Transaksi keuangan', value: expenses.length, icon: ReceiptText, color: 'text-blue-600 bg-blue-50' },
     { label: 'Budget tersimpan', value: budgets.length, icon: PiggyBank, color: 'text-green-700 bg-green-50' },
-    { label: 'Saham aktif', value: holdings.length, icon: ChartNoAxesCombined, color: 'text-purple-600 bg-purple-50' },
+    { label: 'Aset investasi aktif', value: holdings.length + investmentAssets.filter((asset) => asset.market_value > 0).length, icon: ChartNoAxesCombined, color: 'text-purple-600 bg-purple-50' },
     { label: 'Catatan dividen', value: dividends.length, icon: WalletCards, color: 'text-yellow-700 bg-yellow-50' },
-  ], [budgets.length, dividends.length, expenses.length, holdings.length]);
+  ], [budgets.length, dividends.length, expenses.length, holdings.length, investmentAssets]);
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const focusStocks = focusStocksInput.split(',').map((stock) => stock.trim().toUpperCase()).filter(Boolean);
-    updateUserProfile({ ...profile, focusStocks });
-    toast.success('Preferensi profil berhasil disimpan');
+    setSaving(true);
+    try {
+      await updateUserProfile({ ...profile, focusStocks });
+      toast.success('Preferensi profil berhasil disimpan');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Preferensi gagal disimpan');
+    } finally {
+      setSaving(false);
+    }
   };
-
-  const formatCurrency = (value: number) => new Intl.NumberFormat('id-ID', {
-    style: 'currency', currency: 'IDR', minimumFractionDigits: 0,
-  }).format(value);
 
   const frequencyLabel = profile.dcaFrequency === 'weekly'
     ? 'minggu' : profile.dcaFrequency === 'biweekly' ? 'dua minggu' : 'bulan';
@@ -52,8 +57,8 @@ export default function Settings() {
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
               <h2 className="text-xl font-semibold text-gray-900 break-words">{user?.name || 'Pengguna FinTrack'}</h2>
-              <span className="inline-flex items-center gap-1 px-2 py-1 bg-green-50 text-green-700 text-xs font-medium rounded-full">
-                <BadgeCheck className="w-3.5 h-3.5" /> Aktif
+              <span className="inline-flex items-center gap-1 px-2 py-1 bg-blue-50 text-blue-700 text-xs font-medium rounded-full">
+                <ShieldCheck className="w-3.5 h-3.5" /> Dilindungi login
               </span>
             </div>
             <p className="text-sm text-gray-600 break-all mt-1">{user?.email}</p>
@@ -129,7 +134,7 @@ export default function Settings() {
             </div>
 
             <div className="settings-save-action flex justify-end pt-1">
-              <button onClick={handleSave} className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"><Save className="w-5 h-5" /> Simpan preferensi</button>
+              <button onClick={handleSave} disabled={saving} className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:opacity-60">{saving ? <LoaderCircle className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />} {saving ? 'Menyimpan…' : 'Simpan preferensi'}</button>
             </div>
           </div>
         </section>
@@ -141,7 +146,7 @@ export default function Settings() {
               <div className="flex items-start gap-2"><BadgeCheck className="w-4 h-4 text-green-700 mt-0.5 shrink-0" /><span>Halaman akun dilindungi login.</span></div>
               <div className="flex items-start gap-2"><UserRound className="w-4 h-4 text-blue-600 mt-0.5 shrink-0" /><span>Data keuangan dipisahkan berdasarkan pemilik akun.</span></div>
             </div>
-            <p className="text-xs text-gray-500 border-t border-gray-200 mt-4 pt-4">Preferensi investasi di halaman ini disimpan pada browser yang sedang digunakan.</p>
+            <p className="text-xs text-gray-500 border-t border-gray-200 mt-4 pt-4">Preferensi investasi tersimpan pada akun dan tersedia di perangkat lain setelah login.</p>
           </section>
 
           <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">

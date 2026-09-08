@@ -36,7 +36,7 @@ export default function Login() {
           <div className="text-center mb-8">
             <img src="/fintrack-mark.svg" alt="Logo FinTrack" className="inline-block w-16 h-16 mb-4 rounded-2xl shadow-lg" />
             <h1 className="text-3xl font-bold text-gray-900">FinTrack Mentor</h1>
-            <p className="text-gray-500 mt-2">Masuk ke akun Anda</p>
+            <p className="text-gray-500 mt-2">Lanjutkan mengelola keuangan Anda</p>
           </div>
 
           {/* Form */}
@@ -47,6 +47,7 @@ export default function Login() {
               </label>
               <input
                 type="email"
+                autoComplete="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -62,6 +63,7 @@ export default function Login() {
               <div className="relative">
                 <input
                   type={showPassword ? 'text' : 'password'}
+                  autoComplete="current-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"

@@ -105,19 +105,25 @@ class ApiIntegrationTest(unittest.TestCase):
 
         account_data = self.client.get("/api/account-data", headers=first)
         self.assertEqual(account_data.status_code, 200, account_data.text)
-        self.assertEqual(
-            {key: len(value) for key, value in account_data.json().items()},
-            {
-                "expenses": 1,
-                "budgets": 1,
-                "transactions": 1,
-                "dividends": 1,
-                "reports": 1,
-            },
-        )
+        data = account_data.json()
+        self.assertEqual(len(data["expenses"]), 1)
+        self.assertEqual(len(data["budgets"]), 1)
+        self.assertEqual(len(data["transactions"]), 1)
+        self.assertEqual(len(data["dividends"]), 1)
+        self.assertEqual(len(data["reports"]), 1)
+        self.assertEqual(data["investment_assets"], [])
+        self.assertEqual(data["stock_prices"], {})
+        self.assertEqual({row["source"] for row in data["fund_accounts"]}, {"bank", "cash"})
+        self.assertEqual(data["fund_transfers"], [])
+        self.assertFalse(data["preferences_persisted"])
         second_account_data = self.client.get("/api/account-data", headers=second)
         self.assertEqual(second_account_data.status_code, 200, second_account_data.text)
-        self.assertTrue(all(not rows for rows in second_account_data.json().values()))
+        second_data = second_account_data.json()
+        self.assertEqual(second_data["expenses"], [])
+        self.assertEqual(second_data["budgets"], [])
+        self.assertEqual(second_data["transactions"], [])
+        self.assertEqual(second_data["dividends"], [])
+        self.assertEqual(second_data["investment_assets"], [])
         self.assertEqual(account_data.json()["expenses"][0]["fund_source"], "cash")
         self.assertEqual(account_data.json()["budgets"][0]["fund_source"], "bank")
 
@@ -166,6 +172,20 @@ class ApiIntegrationTest(unittest.TestCase):
         summary = self.client.get("/api/portfolio/summary", headers=first)
         self.assertEqual(summary.status_code, 200, summary.text)
         self.assertEqual(summary.json()["holdings"][0]["ticker"], "BBRI")
+
+        saved_price = self.client.put(
+            "/api/portfolio/prices/BBRI", json={"price": 4750}, headers=first,
+        )
+        self.assertEqual(saved_price.status_code, 200, saved_price.text)
+        self.assertEqual(saved_price.json(), {"ticker": "BBRI", "price": 4750.0})
+        self.assertEqual(
+            self.client.get("/api/account-data", headers=first).json()["stock_prices"],
+            {"BBRI": 4750.0},
+        )
+        self.assertEqual(
+            self.client.get("/api/account-data", headers=second).json()["stock_prices"],
+            {},
+        )
 
         transaction_id = created["/api/portfolio/transactions"]["id"]
         edited_transaction = self.client.patch(
@@ -238,6 +258,56 @@ class ApiIntegrationTest(unittest.TestCase):
         self.assertEqual([item["role"] for item in chat_history.json()], ["user", "assistant"])
         self.assertEqual(chat_history.json()[0]["content"], "Ringkas data saya")
         self.assertEqual(self.client.get("/api/chat/history", headers=second).json(), [])
+
+    def test_profile_preferences_and_fund_accounts_persist_per_user(self):
+        first = self.register_and_login("phase5-first")
+        second = self.register_and_login("phase5-second")
+
+        preference = {
+            "dca_strategy": "Income dan growth",
+            "dca_amount": 750000,
+            "dca_frequency": "biweekly",
+            "focus_stocks": ["BBCA", "TLKM"],
+            "compounding_dividends": False,
+            "bonus_week_rule": "Bonus masuk RDPU",
+        }
+        saved = self.client.put("/api/profile/preferences", json=preference, headers=first)
+        self.assertEqual(saved.status_code, 200, saved.text)
+        self.assertEqual(saved.json(), preference)
+        self.assertEqual(self.client.get("/api/profile/preferences", headers=first).json(), preference)
+        self.assertNotEqual(self.client.get("/api/profile/preferences", headers=second).json(), preference)
+        self.assertTrue(self.client.get("/api/account-data", headers=first).json()["preferences_persisted"])
+
+        account = self.client.put(
+            "/api/fund-accounts/bank",
+            json={"name": "Mandiri Utama", "opening_balance": 1000000},
+            headers=first,
+        )
+        self.assertEqual(account.status_code, 200, account.text)
+        self.assertEqual(account.json()["balance"], 1000000)
+
+        transfer = self.client.post(
+            "/api/fund-accounts/transfers",
+            json={
+                "from_source": "bank", "to_source": "cash", "amount": 200000,
+                "date": "2026-09-08", "notes": "Tarik tunai",
+            },
+            headers=first,
+        )
+        self.assertEqual(transfer.status_code, 200, transfer.text)
+        balances = {row["source"]: row["balance"] for row in self.client.get("/api/fund-accounts", headers=first).json()}
+        self.assertEqual(balances, {"bank": 800000, "cash": 200000})
+        second_balances = {row["source"]: row["balance"] for row in self.client.get("/api/fund-accounts", headers=second).json()}
+        self.assertEqual(second_balances, {"bank": 0, "cash": 0})
+        self.assertEqual(self.client.get("/api/fund-accounts/transfers", headers=second).json(), [])
+        self.assertEqual(
+            self.client.delete(f"/api/fund-accounts/transfers/{transfer.json()['id']}", headers=second).status_code,
+            404,
+        )
+        self.assertEqual(
+            self.client.delete(f"/api/fund-accounts/transfers/{transfer.json()['id']}", headers=first).status_code,
+            200,
+        )
 
     def test_protected_data_requires_login(self):
         response = self.client.get("/api/expenses")
@@ -331,6 +401,28 @@ class ApiIntegrationTest(unittest.TestCase):
         )
         self.assertEqual(response.status_code, 200, response.text)
         self.assertEqual(response.json()["model_used"], "heuristic")
+
+    def test_anomaly_detection_works_without_scientific_runtime_dependencies(self):
+        headers = self.register_and_login("anomaly-lightweight")
+        for index, amount in enumerate([10000] * 10 + [500000]):
+            response = self.client.post(
+                "/api/expenses",
+                json={
+                    "date": f"2026-09-{index + 1:02d}",
+                    "amount": amount,
+                    "category": "Belanja",
+                    "payment_method": "Cash",
+                    "fund_source": "cash",
+                    "merchant": "Toko",
+                    "notes": "",
+                },
+                headers=headers,
+            )
+            self.assertEqual(response.status_code, 200, response.text)
+        anomalies = self.client.get("/api/ml/anomalies", headers=headers)
+        self.assertEqual(anomalies.status_code, 200, anomalies.text)
+        self.assertEqual(len(anomalies.json()), 1)
+        self.assertEqual(anomalies.json()[0]["amount"], 500000)
 
     def test_password_reset_token_is_single_use(self):
         email = "user-reset@example.com"

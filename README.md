@@ -10,7 +10,7 @@ FinTrack Mentor is a full-stack personal wealth management application for track
 - Protected application routes and user-isolated financial data
 - Forgot-password and email-based password reset flow
 - Income and expense tracking with search, filters, budgets, notes, and transaction history
-- Receipt attachments and local Tesseract OCR for extracting merchant, date, total, payment method, category, tax, discounts, line items, and raw text
+- Receipt attachments with persistent Supabase Storage support and OCR extraction for merchant, date, total, payment method, category, tax, discounts, line items, and raw text
 - Support for up to four receipt photos to improve recognition of folded or partially obscured receipts
 - Stock buy/sell history with editable and removable transactions
 - Dividend tracking and realized/unrealized profit and loss calculations
@@ -18,6 +18,8 @@ FinTrack Mentor is a full-stack personal wealth management application for track
 - Manual IDR, USD, and EUR asset valuation with user-provided exchange rates
 - Educational portfolio health score based on diversification, concentration, liquidity, and risk balance
 - Account-aware Chat Mentor with per-user daily conversation history and automatic daily reset
+- Separate bank and cash balances, configurable opening balances, and internal fund transfers
+- Account-synced investment preferences across devices
 - Responsive layouts for desktop, tablet, and mobile
 - Light and dark themes
 
@@ -42,8 +44,8 @@ FinTrack Mentor is a full-stack personal wealth management application for track
 - PostgreSQL in production
 - SQLite for local development
 - JWT authentication
-- Tesseract OCR integration
-- Scikit-learn utilities for transaction categorization and anomaly analysis
+- OCR.space integration with local Tesseract fallback
+- Lightweight production categorization and anomaly analysis, with optional Scikit-learn training utilities
 
 ### Deployment
 
@@ -59,9 +61,9 @@ Provides a quick overview of income, expenses, total cash flow, portfolio value,
 
 ### Finance
 
-Records both income and expenses. Transactions support categories, payment methods, merchants, notes, budgets, receipt images, history search, and filtering.
+Records both income and expenses. Transactions support categories, payment methods, merchants, notes, budgets, receipt images, history search, and filtering. Bank and cash balances are tracked separately from opening balances and transaction flows; internal transfers do not change total income or expenses.
 
-Receipt analysis runs through the FinTrack backend without sending images to an external generative AI service. Local OCR requires the `tesseract` executable to be available on the backend host.
+Receipt analysis runs through the FinTrack backend without generative AI. Production can use OCR.space, while local development falls back to the installed `tesseract` executable.
 
 ### Portfolio
 
@@ -125,6 +127,12 @@ alembic upgrade head
 uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 ```
 
+Install optional training dependencies only when working with the local ML models:
+
+```bash
+pip install -r requirements-ml.txt
+```
+
 Verify the backend at [http://127.0.0.1:8000/health](http://127.0.0.1:8000/health).
 
 ### 2. Frontend
@@ -158,8 +166,12 @@ Open [http://localhost:5173](http://localhost:5173).
 | `SMTP_USE_TLS` | Enables SMTP TLS |
 | `PASSWORD_RESET_DEV_MODE` | Returns a reset link directly during local development only |
 | `AUTO_CREATE_SCHEMA` | Optionally creates registered tables during application startup |
+| `SUPABASE_URL` | Supabase project URL used for persistent receipt storage |
+| `SUPABASE_SERVICE_ROLE_KEY` | Server-only key used to access the private receipt bucket |
+| `SUPABASE_RECEIPTS_BUCKET` | Private Storage bucket name; defaults to `fintrack-receipts` |
+| `OCR_SPACE_API_KEY` | Optional OCR.space key for receipt extraction on serverless hosting |
 
-Use a long random value for `JWT_SECRET_KEY`. Never enable `PASSWORD_RESET_DEV_MODE` on a public deployment and never commit real credentials.
+Use a long random value for `JWT_SECRET_KEY`. Never enable `PASSWORD_RESET_DEV_MODE` on a public deployment and never commit real credentials. Keep `SUPABASE_SERVICE_ROLE_KEY` on the backend only—never expose it through a `VITE_` variable.
 
 ### Frontend
 
@@ -177,7 +189,7 @@ source .venv/bin/activate
 alembic upgrade head
 ```
 
-Expenses, budgets, stock transactions, dividends, investment assets, receipt access, and daily chat messages are associated with the authenticated user. API queries enforce ownership so one user cannot retrieve another user's records.
+Expenses, budgets, fund accounts, transfers, profile preferences, stock transactions, dividends, investment assets, receipt access, and daily chat messages are associated with the authenticated user. API queries enforce ownership so one user cannot retrieve another user's records.
 
 ## Verification
 
@@ -201,7 +213,7 @@ npm run build
 
 - Foreign-currency conversion uses the exchange rate entered by the user; no automatic market-rate service is currently used.
 - Stock and other asset prices are updated manually.
-- Receipt files stored on a local filesystem are suitable for local or persistent-server deployments. Serverless filesystems may be ephemeral, so production receipt storage should use persistent object storage when long-term retention is required.
+- Configure a private Supabase Storage bucket for persistent receipt files on serverless deployments. Without Supabase variables, local development automatically uses `backend/uploads/receipts`.
 - Financial and portfolio health information is educational and does not replace professional financial advice.
 
 ## License

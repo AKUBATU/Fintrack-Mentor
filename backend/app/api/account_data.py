@@ -7,6 +7,12 @@ from ..models.daily_report import DailyReport
 from ..models.dividend import Dividend
 from ..models.expense import Expense
 from ..models.stock_transaction import StockTransaction
+from ..models.stock_price import StockPrice
+from ..models.investment_asset import InvestmentAsset
+from ..models.fund_transfer import FundTransfer
+from ..models.user_preference import UserPreference
+from ..services.fund_account_service import account_rows
+from ..services.profile_service import preference_dict
 from .deps import get_current_user
 from .expenses import to_expense_out
 
@@ -46,6 +52,18 @@ def get_account_data(db: Session = Depends(get_db), user=Depends(get_current_use
         .filter(DailyReport.user_id == user.id)
         .order_by(DailyReport.date.desc(), DailyReport.id.desc())
         .all()
+    )
+    investment_assets = (
+        db.query(InvestmentAsset)
+        .filter(InvestmentAsset.user_id == user.id)
+        .order_by(InvestmentAsset.id.desc())
+        .all()
+    )
+    stock_prices = db.query(StockPrice).filter(StockPrice.user_id == user.id).all()
+    preference = db.query(UserPreference).filter(UserPreference.user_id == user.id).first()
+    fund_transfers = (
+        db.query(FundTransfer).filter(FundTransfer.user_id == user.id)
+        .order_by(FundTransfer.date.desc(), FundTransfer.id.desc()).all()
     )
 
     return {
@@ -91,5 +109,40 @@ def get_account_data(db: Session = Depends(get_db), user=Depends(get_current_use
                 "screenshot_url": row.screenshot_url,
             }
             for row in reports
+        ],
+        "investment_assets": [
+            {
+                "id": row.id,
+                "name": row.name,
+                "symbol": row.symbol,
+                "asset_type": row.asset_type,
+                "quantity": row.quantity,
+                "average_price": row.average_price,
+                "current_price": row.current_price,
+                "currency": row.currency,
+                "exchange_rate_to_idr": row.exchange_rate_to_idr,
+                "acquired_date": row.acquired_date,
+                "notes": row.notes,
+                "cost_basis": row.quantity * row.average_price * row.exchange_rate_to_idr,
+                "market_value": row.quantity * row.current_price * row.exchange_rate_to_idr,
+                "unrealized_pl": row.quantity * (row.current_price - row.average_price) * row.exchange_rate_to_idr,
+                "unrealized_pl_percent": ((row.current_price - row.average_price) / row.average_price * 100) if row.average_price else 0,
+            }
+            for row in investment_assets
+        ],
+        "stock_prices": {row.ticker: row.price for row in stock_prices},
+        "preferences": preference_dict(preference),
+        "preferences_persisted": preference is not None,
+        "fund_accounts": account_rows(db, user.id, expenses, fund_transfers),
+        "fund_transfers": [
+            {
+                "id": row.id,
+                "from_source": row.from_source,
+                "to_source": row.to_source,
+                "amount": row.amount,
+                "date": row.date,
+                "notes": row.notes,
+            }
+            for row in fund_transfers
         ],
     }

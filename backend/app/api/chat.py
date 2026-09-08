@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from ..core.db import get_db
 from ..models.expense import Expense
 from ..models.chat_message import ChatMessage
+from ..models.investment_asset import InvestmentAsset
 from ..schemas.chat import ChatHistoryItem, ChatIn, ChatOut
 from ..services.portfolio_service import compute_portfolio_summary
 from .deps import get_current_user
@@ -27,9 +28,15 @@ def _clear_old_messages(db: Session, user_id: int) -> None:
 
 
 def _expense_summary(db: Session, user_id: int) -> dict:
+    today = _today()
     rows = (
         db.query(Expense)
-        .filter(Expense.user_id == user_id, Expense.transaction_type == "expense")
+        .filter(
+            Expense.user_id == user_id,
+            Expense.transaction_type == "expense",
+            Expense.date >= today.replace(day=1),
+            Expense.date <= today,
+        )
         .all()
     )
     total = sum(float(row.amount) for row in rows)
@@ -63,6 +70,11 @@ def chat(
 ) -> ChatOut:
     expenses = _expense_summary(db, user.id)
     portfolio = compute_portfolio_summary(db, user.id)
+    other_assets = db.query(InvestmentAsset).filter(InvestmentAsset.user_id == user.id).all()
+    other_asset_value = sum(
+        float(asset.quantity * asset.current_price * asset.exchange_rate_to_idr)
+        for asset in other_assets
+    )
     category_text = ", ".join(
         f"{category} (Rp {amount:,.0f})"
         for category, amount in expenses["top_categories"]
@@ -70,9 +82,10 @@ def chat(
 
     reply = (
         f"Ringkasan untuk pertanyaan: {payload.message}\n\n"
-        f"Pengeluaran tercatat Rp {expenses['total']:,.0f} dari {expenses['count']} transaksi. "
+        f"Pengeluaran bulan berjalan Rp {expenses['total']:,.0f} dari {expenses['count']} transaksi. "
         f"Kategori terbesar: {category_text}. Total dividen tercatat "
-        f"Rp {float(portfolio['total_dividends']):,.0f}.\n\n"
+        f"Rp {float(portfolio['total_dividends']):,.0f}. Nilai instrumen non-saham tercatat "
+        f"Rp {other_asset_value:,.0f}.\n\n"
         "Saran: periksa kategori pengeluaran terbesar, tetapkan batas bulanan yang realistis, "
         "dan pastikan dana darurat tersedia sebelum menambah investasi. Data di atas diolah "
         "langsung oleh server FinTrack tanpa dikirim ke layanan eksternal."

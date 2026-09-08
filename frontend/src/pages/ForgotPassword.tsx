@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { KeyRound, LoaderCircle } from 'lucide-react';
+import { LoaderCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import ThemeToggle from '../components/ThemeToggle';
 import { api } from '../services/api';
@@ -33,9 +33,7 @@ export default function ForgotPassword() {
       <ThemeToggle className="auth-theme-toggle" />
       <div className="auth-card max-w-md w-full bg-white rounded-2xl shadow-xl p-8">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-600 rounded-full mb-4">
-            <KeyRound className="w-8 h-8 text-white" />
-          </div>
+          <img src="/fintrack-mark.svg" alt="Logo FinTrack" className="inline-block w-16 h-16 mb-4 rounded-2xl shadow-lg" />
           <h1 className="text-3xl font-bold text-gray-900">Lupa Password</h1>
           <p className="text-gray-500 mt-2">Masukkan email akun untuk menerima link reset.</p>
         </div>
@@ -55,6 +53,7 @@ export default function ForgotPassword() {
               <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
               <input
                 type="email"
+                autoComplete="email"
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"

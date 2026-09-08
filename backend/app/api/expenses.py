@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
-from fastapi.responses import FileResponse
+from fastapi.responses import Response
+from starlette.concurrency import run_in_threadpool
 from sqlalchemy.orm import Session
-from pathlib import Path
 from uuid import uuid4
 from ..core.db import get_db
 from ..schemas.expense import ExpenseCreate, ExpenseOut, ExpenseUpdate, ReceiptScanOut
@@ -9,6 +9,7 @@ from ..models.expense import Expense
 from .deps import get_current_user
 from ..core.config import settings
 from ..services.receipt_service import scan_receipts
+from ..services.receipt_storage import delete_receipt, read_receipt, store_receipt
 
 router = APIRouter(prefix="/expenses", tags=["expenses"])
 
@@ -69,7 +70,8 @@ async def analyze_receipt(
         _, mime_type = validate_receipt(content)
         images.append((content, mime_type))
     try:
-        return ReceiptScanOut(**scan_receipts(images))
+        result = await run_in_threadpool(scan_receipts, images)
+        return ReceiptScanOut(**result)
     except RuntimeError as exc:
         raise HTTPException(422, str(exc)) from exc
     except Exception as exc:
@@ -101,16 +103,18 @@ async def upload_receipt(
     if len(content) > settings.MAX_RECEIPT_SIZE_BYTES:
         raise HTTPException(413, "Ukuran foto struk maksimal 5 MB")
 
-    extension, _ = validate_receipt(content)
-
-    settings.RECEIPTS_DIR.mkdir(parents=True, exist_ok=True)
-    target = settings.RECEIPTS_DIR / f"{uuid4().hex}.{extension}"
-    target.write_bytes(content)
-    old_path = Path(expense.receipt_path) if expense.receipt_path else None
-    expense.receipt_path = str(target)
+    extension, mime_type = validate_receipt(content)
+    old_reference = expense.receipt_path
+    object_key = f"{user.id}/{uuid4().hex}.{extension}"
+    try:
+        expense.receipt_path = store_receipt(object_key, content, mime_type)
+    except RuntimeError as exc:
+        raise HTTPException(502, str(exc)) from exc
     db.commit()
-    if old_path and old_path.exists() and old_path.is_file():
-        old_path.unlink()
+    try:
+        delete_receipt(old_reference)
+    except RuntimeError:
+        pass
     return {"has_receipt": True}
 
 @router.get("/{expense_id}/receipt")
@@ -118,18 +122,25 @@ def get_receipt(expense_id: int, db: Session = Depends(get_db), user=Depends(get
     expense = db.query(Expense).filter(Expense.user_id==user.id, Expense.id==expense_id).first()
     if not expense or not expense.receipt_path:
         raise HTTPException(404, "Receipt not found")
-    path = Path(expense.receipt_path)
-    if not path.exists() or not path.is_file():
+    try:
+        content = read_receipt(expense.receipt_path)
+    except FileNotFoundError:
         raise HTTPException(404, "Receipt file not found")
-    return FileResponse(path)
+    except RuntimeError as exc:
+        raise HTTPException(502, str(exc)) from exc
+    extension = expense.receipt_path.rsplit(".", 1)[-1].lower()
+    mime_type = {"jpg": "image/jpeg", "jpeg": "image/jpeg", "png": "image/png", "webp": "image/webp"}.get(extension, "application/octet-stream")
+    return Response(content=content, media_type=mime_type)
 
 @router.delete("/{expense_id}")
 def delete_expense(expense_id: int, db: Session = Depends(get_db), user=Depends(get_current_user)):
     r = db.query(Expense).filter(Expense.user_id==user.id, Expense.id==expense_id).first()
     if not r:
         raise HTTPException(404, "Expense not found")
-    receipt_path = Path(r.receipt_path) if r.receipt_path else None
+    receipt_reference = r.receipt_path
     db.delete(r); db.commit()
-    if receipt_path and receipt_path.exists() and receipt_path.is_file():
-        receipt_path.unlink()
+    try:
+        delete_receipt(receipt_reference)
+    except RuntimeError:
+        pass
     return {"ok": True}

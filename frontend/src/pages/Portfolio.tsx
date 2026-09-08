@@ -4,6 +4,7 @@ import { Plus, TrendingUp, DollarSign, X, Pencil, Trash2, Activity, Layers3, Loa
 import { toast } from 'sonner';
 import { api } from '../services/api';
 import ProcessingOverlay from '../components/ProcessingOverlay';
+import { formatCurrency, formatCurrencyCode } from '../utils/formatters';
 
 const ASSET_TYPES = [
   ['stock', 'Saham'], ['etf', 'ETF'], ['money_market_fund', 'Reksa Dana Pasar Uang (RDPU)'], ['mutual_fund', 'Reksa Dana Lainnya'], ['bond', 'Obligasi'],
@@ -62,6 +63,8 @@ export default function Portfolio() {
   const stockTransactions = (data?.stockTransactions ?? []) as any[];
   const holdings = (data?.holdings ?? []) as any[];
   const dividends = (data?.dividends ?? []) as any[];
+  const investmentAssets = (data?.investmentAssets ?? []) as any[];
+  const refreshInvestmentAssets = data?.refreshInvestmentAssets as undefined | (() => Promise<void>);
 
   const addStockTransaction = data?.addStockTransaction as undefined | ((payload: any) => Promise<void>);
   const updateStockTransaction = data?.updateStockTransaction as undefined | ((id: string, payload: any) => Promise<void>);
@@ -70,7 +73,7 @@ export default function Portfolio() {
 
   // ✅ ini yang bikin error kamu: kalau context belum punya, dia undefined → kita guard biar nggak crash
   const updateHoldingPrice =
-    typeof data?.updateHoldingPrice === 'function' ? (data.updateHoldingPrice as (ticker: string, price: number) => void) : undefined;
+    typeof data?.updateHoldingPrice === 'function' ? (data.updateHoldingPrice as (ticker: string, price: number) => Promise<void>) : undefined;
 
   const [showAddTransaction, setShowAddTransaction] = useState(false);
   const [showAddDividend, setShowAddDividend] = useState(false);
@@ -79,7 +82,7 @@ export default function Portfolio() {
   const [editingTransactionId, setEditingTransactionId] = useState<string | null>(null);
   const [savingTransaction, setSavingTransaction] = useState(false);
   const [savingDividend, setSavingDividend] = useState(false);
-  const [investmentAssets, setInvestmentAssets] = useState<any[]>([]);
+  const [savingPrice, setSavingPrice] = useState(false);
   const [portfolioHealth, setPortfolioHealth] = useState<any>(null);
   const [assetLoading, setAssetLoading] = useState(true);
   const [showAssetModal, setShowAssetModal] = useState(false);
@@ -145,17 +148,25 @@ export default function Portfolio() {
     const previousHtmlOverflow = document.documentElement.style.overflow;
     document.body.style.overflow = 'hidden';
     document.documentElement.style.overflow = 'hidden';
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape' || savingAsset || savingTransaction || savingDividend || savingPrice) return;
+      setShowAssetModal(false);
+      setShowAddTransaction(false);
+      setShowAddDividend(false);
+      setShowUpdatePrice(false);
+    };
+    window.addEventListener('keydown', closeOnEscape);
 
     return () => {
       document.body.style.overflow = previousBodyOverflow;
       document.documentElement.style.overflow = previousHtmlOverflow;
+      window.removeEventListener('keydown', closeOnEscape);
     };
   }, [showAssetModal, showAddTransaction, showAddDividend, showUpdatePrice]);
 
   const loadAssetsAndHealth = async () => {
     try {
-      const [assets, health] = await Promise.all([api.listInvestmentAssets(), api.portfolioHealth()]);
-      setInvestmentAssets(assets);
+      const [, health] = await Promise.all([refreshInvestmentAssets?.(), api.portfolioHealth()]);
       setPortfolioHealth(health);
     } catch (error: any) {
       toast.error(error?.message || 'Data aset investasi gagal dimuat');
@@ -216,17 +227,7 @@ export default function Portfolio() {
 
   const getDividendPaymentDate = (d: any) => String(d?.paymentDate ?? d?.payment_date ?? '');
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      minimumFractionDigits: 0
-    }).format(Number.isFinite(value) ? value : 0);
-  };
-
-  const formatAssetCurrency = (value: number, currency: string) => new Intl.NumberFormat('id-ID', {
-    style: 'currency', currency: currency || 'IDR', minimumFractionDigits: 0, maximumFractionDigits: 2,
-  }).format(Number.isFinite(value) ? value : 0);
+  const formatAssetCurrency = formatCurrencyCode;
 
   // ======================
   // Portfolio metrics (tetap layout sama)
@@ -505,7 +506,7 @@ export default function Portfolio() {
     }
   };
 
-  const handleUpdatePrice = () => {
+  const handleUpdatePrice = async () => {
     if (!priceForm.ticker || !priceForm.price) {
       toast.error('Mohon lengkapi semua field!');
       return;
@@ -525,22 +526,31 @@ export default function Portfolio() {
       return;
     }
 
-    updateHoldingPrice(priceForm.ticker, p);
-    toast.success('Harga berhasil diupdate!');
-    setShowUpdatePrice(false);
-    setPriceForm({ ticker: '', price: '' });
+    try {
+      setSavingPrice(true);
+      await updateHoldingPrice(priceForm.ticker, p);
+      toast.success('Harga berhasil disimpan');
+      setShowUpdatePrice(false);
+      setPriceForm({ ticker: '', price: '' });
+      const health = await api.portfolioHealth();
+      setPortfolioHealth(health);
+    } catch (error: any) {
+      toast.error(error?.message || 'Harga gagal disimpan');
+    } finally {
+      setSavingPrice(false);
+    }
   };
 
   return (
     <div className="flex flex-col gap-6">
-      {(savingAsset || savingTransaction || savingDividend) && (
-        <ProcessingOverlay message={savingAsset ? 'Sedang menyimpan instrumen…' : savingTransaction ? 'Sedang menyimpan transaksi saham…' : 'Sedang menyimpan dividen…'} />
+      {(savingAsset || savingTransaction || savingDividend || savingPrice) && (
+        <ProcessingOverlay message={savingAsset ? 'Sedang menyimpan instrumen…' : savingTransaction ? 'Sedang menyimpan transaksi saham…' : savingDividend ? 'Sedang menyimpan dividen…' : 'Sedang menyimpan harga…'} />
       )}
       {/* Header */}
       <div className="portfolio-page-header order-1 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Portofolio Investasi</h1>
-          <p className="text-gray-600">Kelola seluruh instrumen investasi dan pantau kesehatan portofolio</p>
+          <h1 className="text-2xl font-bold text-gray-900">Portofolio</h1>
+          <p className="text-gray-600">Pantau kepemilikan, performa, dan pendapatan investasi Anda.</p>
         </div>
         <div className="portfolio-header-actions flex flex-wrap gap-2">
           <button onClick={openAddAsset} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
@@ -555,7 +565,7 @@ export default function Portfolio() {
           </button>
           <button
             onClick={() => setShowAddDividend(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
           >
             <DollarSign className="w-4 h-4" />
             Dividen
@@ -565,7 +575,7 @@ export default function Portfolio() {
               setEditingTransactionId(null);
               setShowAddTransaction(true);
             }}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
           >
             <Plus className="w-4 h-4" />
             Catat Saham
@@ -578,7 +588,7 @@ export default function Portfolio() {
         <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 border border-gray-200">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <p className="text-sm text-gray-500">Kesehatan Portofolio</p>
+              <p className="text-sm text-gray-500">Indikator komposisi portofolio</p>
               <div className="flex items-end gap-3 mt-1">
                 <p className="text-4xl font-bold text-gray-900">{portfolioHealth?.score ?? 0}</p>
                 <p className="text-sm text-gray-500 mb-1">/ 100</p>
@@ -590,6 +600,7 @@ export default function Portfolio() {
             <div className="h-2 rounded-full" style={{ width: `${portfolioHealth?.score || 0}%`, backgroundColor: (portfolioHealth?.score || 0) >= 75 ? '#22c55e' : (portfolioHealth?.score || 0) >= 55 ? '#3b82f6' : (portfolioHealth?.score || 0) >= 35 ? '#eab308' : '#ef4444' }} />
           </div>
           <p className="font-semibold text-gray-900 mt-3">{portfolioHealth?.status || (assetLoading ? 'Menghitung…' : 'Belum dapat dinilai')}</p>
+          <p className="text-xs text-gray-500 mt-1">Skor edukatif berdasarkan diversifikasi, konsentrasi, likuiditas, dan tingkat risiko aset.</p>
           <div className="portfolio-health-grid grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4 text-sm">
             <div className="p-3 bg-gray-50 rounded-lg"><p className="text-gray-500">Diversifikasi</p><p className="font-semibold">{portfolioHealth?.diversification_score ?? 0}/100</p></div>
             <div className="p-3 bg-gray-50 rounded-lg"><p className="text-gray-500">Konsentrasi</p><p className="font-semibold">{portfolioHealth?.concentration_score ?? 0}/100</p></div>
@@ -615,7 +626,7 @@ export default function Portfolio() {
           {visibleAssetSections.map(([assetType, assets]) => <div key={`mobile-section-${assetType}`} className="space-y-3 pt-1">
             <div className="flex items-center justify-between"><p className="text-xs font-semibold uppercase tracking-wide text-gray-500">{assetTypeLabel(assetType)}</p><span className="text-xs text-gray-400">{assets.length} aset</span></div>
             {assets.map((asset) => <div key={`mobile-asset-${asset.id}`} className="rounded-xl border border-gray-200 p-4">
-            <div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="font-semibold text-gray-900 truncate">{asset.name}</p><p className="text-xs text-gray-500 mt-0.5">{asset.symbol || 'Tanpa simbol'} · {assetQuantitySummary(asset)}</p></div><span className="shrink-0 px-2 py-1 bg-violet-50 text-violet-700 text-xs rounded-full">{assetTypeLabel(asset.asset_type)}</span></div>
+            <div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="font-semibold text-gray-900 truncate">{asset.name}</p><p className="text-xs text-gray-500 mt-0.5">{asset.symbol ? `${asset.symbol} · ` : ''}{assetQuantitySummary(asset)}</p></div><span className="shrink-0 px-2 py-1 bg-violet-50 text-violet-700 text-xs rounded-full">{assetTypeLabel(asset.asset_type)}</span></div>
             <div className="grid grid-cols-2 gap-3 mt-4"><div><p className="text-xs text-gray-500">Modal</p><p className="text-sm font-medium mt-1">{asset.currency === 'IDR' ? formatCurrency(asset.cost_basis) : formatAssetCurrency(asset.quantity * asset.average_price, asset.currency)}</p>{asset.currency !== 'IDR' && <p className="text-xs text-gray-500">≈ {formatCurrency(asset.cost_basis)}</p>}</div><div className="text-right"><p className="text-xs text-gray-500">Nilai kini</p><p className="text-sm font-semibold mt-1">{asset.currency === 'IDR' ? formatCurrency(asset.market_value) : formatAssetCurrency(asset.quantity * asset.current_price, asset.currency)}</p>{asset.currency !== 'IDR' && <p className="text-xs text-gray-500">≈ {formatCurrency(asset.market_value)}</p>}</div></div>
             <div className="flex items-end justify-between gap-3 mt-4 pt-3 border-t border-gray-100"><div><p className="text-xs text-gray-500">P/L</p><p className={`text-sm font-semibold mt-1 ${asset.unrealized_pl >= 0 ? 'text-green-600' : 'text-red-600'}`}>{asset.unrealized_pl >= 0 ? '+' : ''}{formatCurrency(asset.unrealized_pl)}</p></div><div className="flex gap-1"><button onClick={() => openEditAsset(asset)} className="p-2.5 text-blue-600 bg-blue-50 rounded-lg" aria-label={`Edit ${asset.name}`}><Pencil className="w-4 h-4" /></button><button onClick={() => deleteAsset(asset)} className="p-2.5 text-red-600 bg-red-50 rounded-lg" aria-label={`Hapus ${asset.name}`}><Trash2 className="w-4 h-4" /></button></div></div>
             </div>)}
@@ -1053,9 +1064,9 @@ export default function Portfolio() {
 
       {/* Update Price Modal */}
       {showUpdatePrice && (
-        <div className="portfolio-form-overlay fixed inset-0 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4" style={{ backgroundColor: 'rgba(17, 24, 39, 0.22)', backdropFilter: 'blur(7px)', WebkitBackdropFilter: 'blur(7px)' }}>
+        <div className="portfolio-form-overlay fixed inset-0 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4" style={{ backgroundColor: 'rgba(17, 24, 39, 0.22)', backdropFilter: 'blur(7px)', WebkitBackdropFilter: 'blur(7px)' }} role="dialog" aria-modal="true" aria-labelledby="price-dialog-title">
           <div className="portfolio-form-dialog bg-white rounded-t-2xl sm:rounded-xl max-w-md w-full p-4 sm:p-6 max-h-[calc(100dvh-1rem)] overflow-y-auto overscroll-contain">
-            <h3 className="text-xl font-bold text-gray-900 mb-4">Update Harga Saham</h3>
+            <h3 id="price-dialog-title" className="text-xl font-bold text-gray-900 mb-4">Update Harga Saham</h3>
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Ticker</label>
@@ -1086,13 +1097,15 @@ export default function Portfolio() {
             <div className="grid grid-cols-2 gap-2 mt-6 pb-[max(0px,env(safe-area-inset-bottom))]">
               <button
                 onClick={() => setShowUpdatePrice(false)}
+                disabled={savingPrice}
                 className="min-w-0 px-3 sm:px-4 py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200"
               >
                 Batal
               </button>
               <button
                 onClick={handleUpdatePrice}
-                className="min-w-0 px-3 sm:px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                disabled={savingPrice}
+                className="min-w-0 px-3 sm:px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
               >
                 Update
               </button>

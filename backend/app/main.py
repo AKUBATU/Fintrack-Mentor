@@ -7,6 +7,10 @@ from .core.base import Base
 from .core.db import engine
 from . import models as _models  # noqa: F401 - register tables before create_all
 from .models.chat_message import ChatMessage
+from .models.stock_price import StockPrice
+from .models.user_preference import UserPreference
+from .models.fund_account import FundAccount
+from .models.fund_transfer import FundTransfer
 from .api.router import api_router
 
 app = FastAPI(title=settings.APP_NAME)
@@ -14,13 +18,17 @@ app = FastAPI(title=settings.APP_NAME)
 
 @app.on_event("startup")
 def create_production_schema():
+    if engine.dialect.name == "postgresql" and settings.DATABASE_SCHEMA == "fintrack_app":
+        with engine.begin() as connection:
+            connection.execute(text("CREATE SCHEMA IF NOT EXISTS fintrack_app"))
     # Vercel does not run Alembic automatically. Keep the small chat-history
     # table available independently from the legacy AUTO_CREATE_SCHEMA flag.
     ChatMessage.__table__.create(bind=engine, checkfirst=True)
+    StockPrice.__table__.create(bind=engine, checkfirst=True)
+    UserPreference.__table__.create(bind=engine, checkfirst=True)
+    FundAccount.__table__.create(bind=engine, checkfirst=True)
+    FundTransfer.__table__.create(bind=engine, checkfirst=True)
     if settings.AUTO_CREATE_SCHEMA:
-        if engine.dialect.name == "postgresql" and settings.DATABASE_SCHEMA == "fintrack_app":
-            with engine.begin() as connection:
-                connection.execute(text("CREATE SCHEMA IF NOT EXISTS fintrack_app"))
         Base.metadata.create_all(bind=engine)
         if engine.dialect.name == "postgresql" and settings.DATABASE_SCHEMA == "fintrack_app":
             with engine.begin() as connection:

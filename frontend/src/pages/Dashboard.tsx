@@ -1,6 +1,5 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import { useData } from '../contexts/DataContext'
-import { api } from '../services/api'
 import { TrendingUp, TrendingDown, Wallet, PieChart, DollarSign, AlertCircle } from 'lucide-react'
 import {
   BarChart,
@@ -12,8 +11,10 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
+  Legend,
   ResponsiveContainer,
 } from 'recharts'
+import { formatCurrency, toLocalDateValue } from '../utils/formatters'
 
 const getLocalDateValue = () => {
   const today = new Date()
@@ -40,21 +41,8 @@ const isInBudgetPeriod = (dateValue: string, referenceDateValue: string, period:
 }
 
 export default function Dashboard() {
-  const { accountDataLoading, expenses, holdings, budgets } = useData()
-  const [investmentAssets, setInvestmentAssets] = useState<any[]>([])
-  const [investmentAssetsLoading, setInvestmentAssetsLoading] = useState(true)
-
-  useEffect(() => {
-    let active = true
-    setInvestmentAssetsLoading(true)
-    api.listInvestmentAssets()
-      .then((assets) => { if (active) setInvestmentAssets(assets) })
-      .catch((error) => console.error('Failed to load dashboard investment assets:', error))
-      .finally(() => { if (active) setInvestmentAssetsLoading(false) })
-    return () => { active = false }
-  }, [])
-
-  const portfolioLoading = accountDataLoading || investmentAssetsLoading
+  const { accountDataLoading, expenses, holdings, budgets, investmentAssets } = useData()
+  const portfolioLoading = accountDataLoading
 
   // Calculate metrics
   const metrics = useMemo(() => {
@@ -132,7 +120,7 @@ export default function Dashboard() {
     })
 
     return last7Days.map((date) => {
-      const dateStr = date.toISOString().split('T')[0]
+      const dateStr = toLocalDateValue(date)
       const dayExpenses = (expenses ?? []).filter((e) => e.transactionType !== 'income' && e.date === dateStr)
       const total = dayExpenses.reduce((sum, e) => sum + e.amount, 0)
 
@@ -145,25 +133,17 @@ export default function Dashboard() {
 
   const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899']
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      minimumFractionDigits: 0,
-    }).format(value)
-  }
-
   return (
     <div className="space-y-6">
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-        <p className="text-gray-600">Ringkasan keuangan & portofolio Anda</p>
+        <p className="text-gray-600">Lihat arus kas, budget, dan investasi Anda dalam satu ringkasan.</p>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+      <div className="dashboard-metrics-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="dashboard-metric dashboard-expense-card bg-white rounded-xl shadow-sm p-5 border border-gray-200">
           <div className="flex items-center justify-between mb-4">
             <div className="p-2 bg-red-100 rounded-lg">
               <Wallet className="w-6 h-6 text-red-600" />
@@ -191,7 +171,7 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+        <div className="dashboard-metric dashboard-income-card bg-white rounded-xl shadow-sm p-5 border border-gray-200">
           <div className="p-2 bg-green-100 rounded-lg w-fit mb-4">
             <TrendingUp className="w-6 h-6 text-green-600" />
           </div>
@@ -199,15 +179,16 @@ export default function Dashboard() {
           <p className="text-2xl font-bold text-green-600">{formatCurrency(metrics.totalIncome)}</p>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+        <div className="dashboard-metric dashboard-balance-card bg-white rounded-xl shadow-sm p-5 border border-gray-200">
           <div className={`p-2 rounded-lg w-fit mb-4 ${metrics.cashFlowBalance >= 0 ? 'bg-green-100' : 'bg-red-100'}`}>
             <Wallet className={`w-6 h-6 ${metrics.cashFlowBalance >= 0 ? 'text-green-600' : 'text-red-600'}`} />
           </div>
-          <p className="text-sm text-gray-600 mb-1">Saldo Arus Kas Keseluruhan</p>
-          <p className={`text-2xl font-bold ${metrics.cashFlowBalance >= 0 ? 'text-green-600' : 'text-red-600'}`}>{formatCurrency(metrics.cashFlowBalance)}</p>
+          <p className="text-sm text-gray-600 mb-1">Arus Kas Bersih</p>
+          <p className={`text-3xl font-bold ${metrics.cashFlowBalance >= 0 ? 'text-green-600' : 'text-red-600'}`}>{formatCurrency(metrics.cashFlowBalance)}</p>
+          <p className="text-xs text-gray-500 mt-2">Akumulasi pemasukan dikurangi pengeluaran</p>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+        <div className="dashboard-metric dashboard-portfolio-card bg-white rounded-xl shadow-sm p-5 border border-gray-200">
           <div className="flex items-center justify-between mb-4">
             <div className="p-2 bg-blue-100 rounded-lg">
               <PieChart className="w-6 h-6 text-blue-600" />
@@ -219,7 +200,7 @@ export default function Dashboard() {
             : <p className="text-2xl font-bold text-gray-900">{formatCurrency(metrics.portfolioValue)}</p>}
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+        <div className="dashboard-metric dashboard-profit-card bg-white rounded-xl shadow-sm p-5 border border-gray-200">
           <div className="flex items-center justify-between mb-4">
             <div className={`p-2 rounded-lg ${metrics.unrealizedPL >= 0 ? 'bg-green-100' : 'bg-red-100'}`}>
               {metrics.unrealizedPL >= 0 ? (
@@ -241,15 +222,15 @@ export default function Dashboard() {
           </>}
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+        <div className="dashboard-metric dashboard-assets-card bg-white rounded-xl shadow-sm p-5 border border-gray-200">
           <div className="flex items-center justify-between mb-4">
             <div className="p-2 bg-purple-100 rounded-lg">
               <DollarSign className="w-6 h-6 text-purple-600" />
             </div>
           </div>
-          <p className="text-sm text-gray-600 mb-1">Holdings</p>
-          <p className="text-2xl font-bold text-gray-900">{(holdings ?? []).length}</p>
-          <p className="text-sm text-gray-600 mt-1">Saham aktif</p>
+          <p className="text-sm text-gray-600 mb-1">Aset aktif</p>
+          <p className="text-2xl font-bold text-gray-900">{(holdings ?? []).length + investmentAssets.filter((asset) => asset.market_value > 0).length}</p>
+          <p className="text-sm text-gray-600 mt-1">Seluruh instrumen</p>
         </div>
       </div>
 
@@ -258,7 +239,7 @@ export default function Dashboard() {
         <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 flex items-start">
           <AlertCircle className="w-5 h-5 text-yellow-600 mr-3 mt-0.5" />
           <div>
-            <p className="font-medium text-yellow-900">Perhatian Budget!</p>
+            <p className="font-medium text-yellow-900">Budget hampir terpakai</p>
             <p className="text-sm text-yellow-700 mt-1">
               Anda telah menggunakan {metrics.budgetUsage.toFixed(1)}% dari budget {metrics.budgetPeriodLabel}.
             </p>
@@ -270,7 +251,7 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Expense Trend */}
         <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-          <h3 className="font-semibold text-gray-900 mb-4">Tren Pengeluaran (7 Hari)</h3>
+          <div className="mb-4"><h3 className="font-semibold text-gray-900">Tren pengeluaran</h3><p className="text-xs text-gray-500 mt-0.5">Tujuh hari terakhir</p></div>
           <ResponsiveContainer width="100%" height={250}>
             <BarChart data={expenseTrend}>
               <CartesianGrid strokeDasharray="3 3" />
@@ -284,7 +265,7 @@ export default function Dashboard() {
 
         {/* Expense by Category */}
         <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-          <h3 className="font-semibold text-gray-900 mb-4">Pengeluaran per Kategori (Keseluruhan)</h3>
+          <div className="mb-4"><h3 className="font-semibold text-gray-900">Komposisi pengeluaran</h3><p className="text-xs text-gray-500 mt-0.5">Berdasarkan seluruh transaksi</p></div>
           {expenseByCategory.length > 0 ? (
             <ResponsiveContainer width="100%" height={250}>
               <RechartsPie>
@@ -292,8 +273,6 @@ export default function Dashboard() {
                   data={expenseByCategory}
                   cx="50%"
                   cy="50%"
-                  labelLine={false}
-                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
                   outerRadius={80}
                   fill="#8884d8"
                   dataKey="value"
@@ -303,6 +282,7 @@ export default function Dashboard() {
                   ))}
                 </Pie>
                 <Tooltip formatter={(value) => formatCurrency(Number(value))} />
+                <Legend iconType="circle" wrapperStyle={{ fontSize: 12 }} />
               </RechartsPie>
             </ResponsiveContainer>
           ) : (
@@ -313,7 +293,8 @@ export default function Dashboard() {
 
       {/* Holdings Summary */}
       <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-        <h3 className="font-semibold text-gray-900 mb-4">Top Holdings</h3>
+        <h3 className="font-semibold text-gray-900">Kepemilikan saham</h3>
+        <p className="text-xs text-gray-500 mt-0.5 mb-4">Maksimal lima posisi saham aktif</p>
         <div className="space-y-3">
           {(holdings ?? []).slice(0, 5).map((holding) => (
             <div key={holding.ticker} className="dashboard-holding-row flex items-center justify-between gap-3 p-3 bg-gray-50 rounded-lg">
@@ -332,7 +313,7 @@ export default function Dashboard() {
               </div>
             </div>
           ))}
-          {(holdings ?? []).length === 0 && <p className="text-gray-500 text-center py-4">Belum ada holdings</p>}
+          {(holdings ?? []).length === 0 && <p className="text-gray-500 text-center py-4">Belum ada saham aktif</p>}
         </div>
       </div>
     </div>

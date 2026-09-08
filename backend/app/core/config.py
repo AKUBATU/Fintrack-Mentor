@@ -39,5 +39,9 @@ class Settings(BaseSettings):
     TRAIN_CSV: Path = ML_DIR / "data" / "train.csv"
     RECEIPTS_DIR: Path = PROJECT_ROOT / "uploads" / "receipts"
     MAX_RECEIPT_SIZE_BYTES: int = 5 * 1024 * 1024
+    SUPABASE_URL: str | None = None
+    SUPABASE_SERVICE_ROLE_KEY: str | None = None
+    SUPABASE_RECEIPTS_BUCKET: str = "fintrack-receipts"
+    OCR_SPACE_API_KEY: str | None = None
 
 settings = Settings()

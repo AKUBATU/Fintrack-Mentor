@@ -1,6 +1,63 @@
 export const API_BASE_URL =
   import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
 
+export interface InvestmentAssetResponse {
+  id: number;
+  name: string;
+  symbol?: string | null;
+  asset_type: string;
+  quantity: number;
+  average_price: number;
+  current_price: number;
+  currency: string;
+  exchange_rate_to_idr: number;
+  acquired_date?: string | null;
+  notes?: string | null;
+  cost_basis: number;
+  market_value: number;
+  unrealized_pl: number;
+  unrealized_pl_percent: number;
+}
+
+interface AccountDataResponse {
+  expenses: any[];
+  budgets: any[];
+  transactions: any[];
+  dividends: any[];
+  reports: any[];
+  investment_assets: InvestmentAssetResponse[];
+  stock_prices: Record<string, number>;
+  preferences: ProfilePreferenceResponse;
+  preferences_persisted: boolean;
+  fund_accounts: FundAccountResponse[];
+  fund_transfers: FundTransferResponse[];
+}
+
+export interface ProfilePreferenceResponse {
+  dca_strategy: string;
+  dca_amount: number;
+  dca_frequency: 'weekly' | 'biweekly' | 'monthly';
+  focus_stocks: string[];
+  compounding_dividends: boolean;
+  bonus_week_rule: string;
+}
+
+export interface FundAccountResponse {
+  source: 'bank' | 'cash';
+  name: string;
+  opening_balance: number;
+  balance: number;
+}
+
+export interface FundTransferResponse {
+  id: number;
+  from_source: 'bank' | 'cash';
+  to_source: 'bank' | 'cash';
+  amount: number;
+  date: string;
+  notes: string;
+}
+
 function getToken() {
   return localStorage.getItem('access_token');
 }
@@ -20,10 +77,17 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   }
 
   let res: Response;
+  const controller = new AbortController();
+  const timeoutId = window.setTimeout(() => controller.abort(), 15000);
   try {
-    res = await fetch(url, { ...options, headers });
-  } catch {
+    res = await fetch(url, { ...options, headers, signal: options.signal ?? controller.signal });
+  } catch (error) {
+    if (error instanceof DOMException && error.name === 'AbortError') {
+      throw new Error('Server terlalu lama merespons. Silakan coba lagi.');
+    }
     throw new Error(`Backend tidak dapat dihubungi di ${API_BASE_URL}. Pastikan server FastAPI sudah berjalan.`);
+  } finally {
+    window.clearTimeout(timeoutId);
   }
 
   const contentType = res.headers.get('content-type') || '';
@@ -116,13 +180,7 @@ function normalizeReportPayload(payload: any) {
 
 export const api = {
   async accountData() {
-    return request<{
-      expenses: any[];
-      budgets: any[];
-      transactions: any[];
-      dividends: any[];
-      reports: any[];
-    }>(`/api/account-data`);
+    return request<AccountDataResponse>(`/api/account-data`);
   },
 
   async register(name: string, email: string, password: string) {
@@ -230,6 +288,29 @@ export const api = {
     return request<{ ok: boolean }>(`/api/budgets/${id}`, { method: 'DELETE' });
   },
 
+  async updatePreferences(payload: ProfilePreferenceResponse) {
+    return request<ProfilePreferenceResponse>(`/api/profile/preferences`, {
+      method: 'PUT', body: JSON.stringify(payload),
+    });
+  },
+
+  async listFundAccounts() {
+    return request<FundAccountResponse[]>(`/api/fund-accounts`);
+  },
+  async updateFundAccount(source: 'bank' | 'cash', payload: { name: string; opening_balance: number }) {
+    return request<FundAccountResponse>(`/api/fund-accounts/${source}`, {
+      method: 'PUT', body: JSON.stringify(payload),
+    });
+  },
+  async addFundTransfer(payload: Omit<FundTransferResponse, 'id'>) {
+    return request<FundTransferResponse>(`/api/fund-accounts/transfers`, {
+      method: 'POST', body: JSON.stringify(payload),
+    });
+  },
+  async deleteFundTransfer(id: number) {
+    return request<{ ok: boolean }>(`/api/fund-accounts/transfers/${id}`, { method: 'DELETE' });
+  },
+
   // Portfolio
   async listTransactions() {
     return request<any[]>(`/api/portfolio/transactions`);
@@ -247,6 +328,12 @@ export const api = {
   async deleteTransaction(id: number) {
     return request<{ ok: boolean }>(`/api/portfolio/transactions/${id}`, { method: 'DELETE' });
   },
+  async updateStockPrice(ticker: string, price: number) {
+    return request<{ ticker: string; price: number }>(`/api/portfolio/prices/${encodeURIComponent(ticker)}`, {
+      method: 'PUT',
+      body: JSON.stringify({ price }),
+    });
+  },
   async listDividends() {
     return request<any[]>(`/api/portfolio/dividends`);
   },
@@ -260,13 +347,13 @@ export const api = {
 
   // Generic investment assets
   async listInvestmentAssets() {
-    return request<any[]>(`/api/investment-assets`);
+    return request<InvestmentAssetResponse[]>(`/api/investment-assets`);
   },
   async createInvestmentAsset(payload: any) {
-    return request<any>(`/api/investment-assets`, { method: 'POST', body: JSON.stringify(payload) });
+    return request<InvestmentAssetResponse>(`/api/investment-assets`, { method: 'POST', body: JSON.stringify(payload) });
   },
   async updateInvestmentAsset(id: number, payload: any) {
-    return request<any>(`/api/investment-assets/${id}`, { method: 'PATCH', body: JSON.stringify(payload) });
+    return request<InvestmentAssetResponse>(`/api/investment-assets/${id}`, { method: 'PATCH', body: JSON.stringify(payload) });
   },
   async deleteInvestmentAsset(id: number) {
     return request<{ ok: boolean }>(`/api/investment-assets/${id}`, { method: 'DELETE' });
