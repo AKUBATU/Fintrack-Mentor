@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useData } from '../contexts/DataContext';
-import { Plus, Trash2, Download, Upload, AlertTriangle, Camera, Search, X, WalletCards, CalendarDays, Pencil, ChevronDown } from 'lucide-react';
+import { Plus, Trash2, Download, Upload, AlertTriangle, Camera, Search, X, WalletCards, CalendarDays, Pencil, ChevronDown, LoaderCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { api } from '../services/api';
 
@@ -30,6 +30,7 @@ export default function Expenses() {
   const [showAddBudget, setShowAddBudget] = useState(false);
   const [editingBudget, setEditingBudget] = useState<string | null>(null);
   const [savingBudget, setSavingBudget] = useState(false);
+  const [savingExpense, setSavingExpense] = useState(false);
   const [deletingBudget, setDeletingBudget] = useState<string | null>(null);
   const [editingExpense, setEditingExpense] = useState<string | null>(null);
 
@@ -327,6 +328,7 @@ export default function Expenses() {
     const predictedCategory = autoPred?.category;
     const confidence = autoPred?.confidence;
 
+    setSavingExpense(true);
     try {
       await addExpense({
         transactionType: formData.transactionType,
@@ -363,6 +365,8 @@ export default function Expenses() {
       });
     } catch (e: any) {
       toast.error(e?.message || 'Gagal menambahkan transaksi');
+    } finally {
+      setSavingExpense(false);
     }
   };
 
@@ -373,6 +377,7 @@ export default function Expenses() {
       return;
     }
 
+    setSavingExpense(true);
     try {
       await updateExpense(id, {
         transactionType: formData.transactionType,
@@ -396,6 +401,8 @@ export default function Expenses() {
       void handleReceiptChange([]);
     } catch (e: any) {
       toast.error(e?.message || 'Gagal update transaksi');
+    } finally {
+      setSavingExpense(false);
     }
   };
 
@@ -904,6 +911,7 @@ export default function Expenses() {
 
             <div className="finance-transaction-actions shrink-0 grid grid-cols-2 gap-2 px-4 sm:px-6 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))] bg-white border-t border-gray-100 shadow-[0_-8px_20px_rgba(15,23,42,0.06)]">
               <button
+                disabled={savingExpense || receiptScanning}
                 onClick={() => {
                   setShowAddExpense(false);
                   setEditingExpense(null);
@@ -911,16 +919,17 @@ export default function Expenses() {
                   setEntryMode('scan');
                   void handleReceiptChange([]);
                 }}
-                className="min-w-0 px-3 sm:px-4 py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200"
+                className="min-w-0 px-3 sm:px-4 py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 disabled:opacity-50"
               >
                 Batal
               </button>
               <button
                 onClick={editingExpense ? () => handleUpdateExpense(editingExpense) : handleAddExpense}
-                disabled={receiptScanning || (!editingExpense && entryMode === 'scan' && !receiptScanText)}
-                className="min-w-0 px-3 sm:px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                disabled={savingExpense || receiptScanning || (!editingExpense && entryMode === 'scan' && !receiptScanText)}
+                className="min-w-0 inline-flex items-center justify-center gap-2 px-3 sm:px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
               >
-                {receiptScanning ? 'Membaca Struk…' : editingExpense ? 'Update' : entryMode === 'scan' && !receiptScanText ? 'Upload Struk Dahulu' : 'Simpan'}
+                {(savingExpense || receiptScanning) && <LoaderCircle className="w-4 h-4 animate-spin" />}
+                {savingExpense ? (editingExpense ? 'Menyimpan Perubahan…' : 'Menyimpan…') : receiptScanning ? 'Membaca Struk…' : editingExpense ? 'Update' : entryMode === 'scan' && !receiptScanText ? 'Upload Struk Dahulu' : 'Simpan'}
               </button>
             </div>
           </div>
@@ -1009,7 +1018,7 @@ export default function Expenses() {
                 disabled={savingBudget}
                 className="min-w-0 px-3 sm:px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
               >
-                {savingBudget ? 'Menyimpan…' : editingBudget ? 'Simpan Perubahan' : 'Simpan'}
+                <span className="inline-flex items-center justify-center gap-2">{savingBudget && <LoaderCircle className="w-4 h-4 animate-spin" />}{savingBudget ? 'Menyimpan…' : editingBudget ? 'Simpan Perubahan' : 'Simpan'}</span>
               </button>
             </div>
           </div>

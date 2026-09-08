@@ -1,6 +1,6 @@
 import { Fragment, useState, useMemo, useEffect } from 'react';
 import { useData } from '../contexts/DataContext';
-import { Plus, TrendingUp, DollarSign, X, Pencil, Trash2, Activity, Layers3 } from 'lucide-react';
+import { Plus, TrendingUp, DollarSign, X, Pencil, Trash2, Activity, Layers3, LoaderCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { api } from '../services/api';
 
@@ -77,6 +77,7 @@ export default function Portfolio() {
   const [selectedTicker, setSelectedTicker] = useState('');
   const [editingTransactionId, setEditingTransactionId] = useState<string | null>(null);
   const [savingTransaction, setSavingTransaction] = useState(false);
+  const [savingDividend, setSavingDividend] = useState(false);
   const [investmentAssets, setInvestmentAssets] = useState<any[]>([]);
   const [portfolioHealth, setPortfolioHealth] = useState<any>(null);
   const [assetLoading, setAssetLoading] = useState(true);
@@ -477,6 +478,7 @@ export default function Portfolio() {
 
     const totalAmount = dps * shares;
 
+    setSavingDividend(true);
     try {
       // ✅ DataContext Dividend: { ticker, amount, recordDate, paymentDate }
       await addDividend({
@@ -497,6 +499,8 @@ export default function Portfolio() {
       });
     } catch (e: any) {
       toast.error(e?.message || 'Gagal mencatat dividen');
+    } finally {
+      setSavingDividend(false);
     }
   };
 
@@ -778,9 +782,9 @@ export default function Portfolio() {
 
       {/* Generic asset modal */}
       {showAssetModal && (
-        <div className="portfolio-form-overlay fixed inset-0 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4" style={{ backgroundColor: 'rgba(17, 24, 39, 0.22)', backdropFilter: 'blur(7px)', WebkitBackdropFilter: 'blur(7px)' }} onClick={() => setShowAssetModal(false)} role="dialog" aria-modal="true">
+        <div className="portfolio-form-overlay fixed inset-0 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4" style={{ backgroundColor: 'rgba(17, 24, 39, 0.22)', backdropFilter: 'blur(7px)', WebkitBackdropFilter: 'blur(7px)' }} onClick={() => { if (!savingAsset) setShowAssetModal(false); }} role="dialog" aria-modal="true">
           <div className="portfolio-form-dialog relative bg-white rounded-t-2xl sm:rounded-xl max-w-md w-full p-4 sm:p-6 overflow-y-auto overscroll-contain max-h-[calc(100dvh-1rem)] sm:max-h-[90vh]" onClick={(event) => event.stopPropagation()}>
-            <button onClick={() => setShowAssetModal(false)} className="absolute top-3 sm:top-4 right-3 sm:right-4 p-2 text-gray-500"><X className="w-5 h-5" /></button>
+            <button disabled={savingAsset} onClick={() => setShowAssetModal(false)} className="absolute top-3 sm:top-4 right-3 sm:right-4 p-2 text-gray-500 disabled:opacity-50"><X className="w-5 h-5" /></button>
             <h3 className="text-xl font-bold text-gray-900 pr-8">{editingAssetId ? 'Edit Instrumen' : 'Tambah Instrumen Investasi'}</h3>
             <p className="text-sm text-gray-500 mt-1 mb-5">Form akan menyesuaikan satuan dan nilai berdasarkan instrumen yang dipilih.</p>
             <div className="space-y-4">
@@ -811,7 +815,7 @@ export default function Portfolio() {
               <div><label className="block text-sm font-medium text-gray-700 mb-1">Tanggal Perolehan</label><input type="date" value={assetForm.acquired_date} onChange={(e) => setAssetForm({ ...assetForm, acquired_date: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div>
               <div><label className="block text-sm font-medium text-gray-700 mb-1">Catatan</label><textarea value={assetForm.notes} onChange={(e) => setAssetForm({ ...assetForm, notes: e.target.value })} rows={2} className="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div>
             </div>
-            <div className="sticky bottom-0 grid grid-cols-2 gap-2 mt-6 pt-3 pb-[max(0px,env(safe-area-inset-bottom))] bg-white"><button disabled={savingAsset} onClick={() => setShowAssetModal(false)} className="min-w-0 px-3 sm:px-4 py-2.5 bg-gray-100 text-gray-700 rounded-lg">Batal</button><button disabled={savingAsset} onClick={saveAsset} className="min-w-0 px-3 sm:px-4 py-2.5 bg-blue-600 text-white rounded-lg disabled:opacity-50">{savingAsset ? 'Menyimpan…' : editingAssetId ? 'Simpan Perubahan' : 'Simpan Aset'}</button></div>
+            <div className="sticky bottom-0 grid grid-cols-2 gap-2 mt-6 pt-3 pb-[max(0px,env(safe-area-inset-bottom))] bg-white"><button disabled={savingAsset} onClick={() => setShowAssetModal(false)} className="min-w-0 px-3 sm:px-4 py-2.5 bg-gray-100 text-gray-700 rounded-lg disabled:opacity-50">Batal</button><button disabled={savingAsset} onClick={saveAsset} className="min-w-0 inline-flex items-center justify-center gap-2 px-3 sm:px-4 py-2.5 bg-blue-600 text-white rounded-lg disabled:opacity-50">{savingAsset && <LoaderCircle className="w-4 h-4 animate-spin" />}{savingAsset ? 'Menyimpan…' : editingAssetId ? 'Simpan Perubahan' : 'Simpan Aset'}</button></div>
           </div>
         </div>
       )}
@@ -821,13 +825,13 @@ export default function Portfolio() {
         <div
           className="portfolio-form-overlay fixed inset-0 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4"
           style={{ backgroundColor: 'rgba(17, 24, 39, 0.22)', backdropFilter: 'blur(7px)', WebkitBackdropFilter: 'blur(7px)' }}
-          onClick={() => setShowAddTransaction(false)}
+          onClick={() => { if (!savingTransaction) setShowAddTransaction(false); }}
           role="dialog"
           aria-modal="true"
           aria-labelledby="asset-modal-title"
         >
           <div className="portfolio-form-dialog relative bg-white rounded-t-2xl sm:rounded-xl max-w-md w-full p-4 sm:p-6 max-h-[calc(100dvh-1rem)] sm:max-h-[90vh] overflow-y-auto overscroll-contain" onClick={(event) => event.stopPropagation()}>
-            <button type="button" onClick={() => setShowAddTransaction(false)} className="absolute top-3 sm:top-4 right-3 sm:right-4 p-2 text-gray-500 hover:text-gray-800" aria-label="Tutup popup catat aset">
+            <button type="button" disabled={savingTransaction} onClick={() => setShowAddTransaction(false)} className="absolute top-3 sm:top-4 right-3 sm:right-4 p-2 text-gray-500 hover:text-gray-800 disabled:opacity-50" aria-label="Tutup popup catat aset">
               <X className="w-5 h-5" />
             </button>
             <h3 id="asset-modal-title" className="text-xl font-bold text-gray-900 mb-1 pr-8">{editingTransactionId ? 'Edit Transaksi Saham' : 'Catat Aset Saham'}</h3>
@@ -937,7 +941,7 @@ export default function Portfolio() {
                 disabled={savingTransaction}
                 className="min-w-0 px-3 sm:px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
               >
-                {savingTransaction ? 'Menyimpan…' : editingTransactionId ? 'Simpan Perubahan' : 'Simpan'}
+                <span className="inline-flex items-center justify-center gap-2">{savingTransaction && <LoaderCircle className="w-4 h-4 animate-spin" />}{savingTransaction ? 'Menyimpan…' : editingTransactionId ? 'Simpan Perubahan' : 'Simpan'}</span>
               </button>
             </div>
           </div>
@@ -949,13 +953,13 @@ export default function Portfolio() {
         <div
           className="portfolio-form-overlay fixed inset-0 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4"
           style={{ backgroundColor: 'rgba(17, 24, 39, 0.22)', backdropFilter: 'blur(7px)', WebkitBackdropFilter: 'blur(7px)' }}
-          onClick={() => setShowAddDividend(false)}
+          onClick={() => { if (!savingDividend) setShowAddDividend(false); }}
           role="dialog"
           aria-modal="true"
           aria-labelledby="dividend-modal-title"
         >
           <div className="portfolio-form-dialog relative bg-white rounded-t-2xl sm:rounded-xl max-w-md w-full p-4 sm:p-6 max-h-[calc(100dvh-1rem)] sm:max-h-[90vh] overflow-y-auto overscroll-contain" onClick={(event) => event.stopPropagation()}>
-            <button type="button" onClick={() => setShowAddDividend(false)} className="absolute top-3 sm:top-4 right-3 sm:right-4 p-2 text-gray-500 hover:text-gray-800" aria-label="Tutup popup dividen">
+            <button type="button" disabled={savingDividend} onClick={() => setShowAddDividend(false)} className="absolute top-3 sm:top-4 right-3 sm:right-4 p-2 text-gray-500 hover:text-gray-800 disabled:opacity-50" aria-label="Tutup popup dividen">
               <X className="w-5 h-5" />
             </button>
             <h3 id="dividend-modal-title" className="text-xl font-bold text-gray-900 mb-4 pr-8">Catat Dividen</h3>
@@ -1026,15 +1030,17 @@ export default function Portfolio() {
             <div className="sticky bottom-0 grid grid-cols-2 gap-2 mt-6 pt-3 pb-[max(0px,env(safe-area-inset-bottom))] bg-white">
               <button
                 onClick={() => setShowAddDividend(false)}
-                className="min-w-0 px-3 sm:px-4 py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200"
+                disabled={savingDividend}
+                className="min-w-0 px-3 sm:px-4 py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 disabled:opacity-50"
               >
                 Batal
               </button>
               <button
                 onClick={handleAddDividend}
-                className="min-w-0 px-3 sm:px-4 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700"
+                disabled={savingDividend}
+                className="min-w-0 inline-flex items-center justify-center gap-2 px-3 sm:px-4 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
               >
-                Simpan
+                {savingDividend && <LoaderCircle className="w-4 h-4 animate-spin" />}{savingDividend ? 'Menyimpan…' : 'Simpan'}
               </button>
             </div>
           </div>

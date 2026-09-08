@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff, LoaderCircle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import ThemeToggle from '../components/ThemeToggle';
 
@@ -121,7 +121,7 @@ export default function Register() {
               disabled={loading}
               className="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium"
             >
-              {loading ? 'Memproses...' : 'Daftar'}
+              <span className="inline-flex items-center justify-center gap-2">{loading && <LoaderCircle className="w-4 h-4 animate-spin" />}{loading ? 'Memproses...' : 'Daftar'}</span>
             </button>
           </form>
 

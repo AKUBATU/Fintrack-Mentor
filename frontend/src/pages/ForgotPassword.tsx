@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { KeyRound } from 'lucide-react';
+import { KeyRound, LoaderCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import ThemeToggle from '../components/ThemeToggle';
 import { api } from '../services/api';
@@ -61,7 +61,7 @@ export default function ForgotPassword() {
               />
             </div>
             <button type="submit" disabled={loading} className="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 disabled:opacity-50 font-medium">
-              {loading ? 'Mengirim...' : 'Kirim Link Reset'}
+              <span className="inline-flex items-center justify-center gap-2">{loading && <LoaderCircle className="w-4 h-4 animate-spin" />}{loading ? 'Mengirim...' : 'Kirim Link Reset'}</span>
             </button>
           </form>
         )}

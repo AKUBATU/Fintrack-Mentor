@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { Eye, EyeOff, KeyRound } from 'lucide-react';
+import { Eye, EyeOff, KeyRound, LoaderCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import ThemeToggle from '../components/ThemeToggle';
 import { api } from '../services/api';
@@ -79,7 +79,7 @@ export default function ResetPassword() {
             {passwordInput(password, setPassword, showPassword, setShowPassword, 'Password Baru')}
             {passwordInput(confirmation, setConfirmation, showConfirmation, setShowConfirmation, 'Konfirmasi Password')}
             <button type="submit" disabled={loading} className="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 disabled:opacity-50 font-medium">
-              {loading ? 'Menyimpan...' : 'Simpan Password Baru'}
+              <span className="inline-flex items-center justify-center gap-2">{loading && <LoaderCircle className="w-4 h-4 animate-spin" />}{loading ? 'Menyimpan...' : 'Simpan Password Baru'}</span>
             </button>
           </form>
         )}
