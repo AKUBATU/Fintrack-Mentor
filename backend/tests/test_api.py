@@ -11,6 +11,7 @@ from app.core.base import Base
 from app.core.db import get_db
 from app.main import app
 from app import models as _models  # noqa: F401 - register all tables in metadata
+from app.services.receipt_service import _category
 
 
 class ApiIntegrationTest(unittest.TestCase):
@@ -53,6 +54,11 @@ class ApiIntegrationTest(unittest.TestCase):
         )
         self.assertEqual(response.status_code, 200, response.text)
         return {"Authorization": f"Bearer {response.json()['access_token']}"}
+
+    def test_receipt_food_and_drink_categories_are_distinct(self):
+        self.assertEqual(_category("Nasi ayam goreng"), "Makan")
+        self.assertEqual(_category("Es kopi susu"), "Minum")
+        self.assertEqual(_category("Nasi ayam dan es teh"), "Makan & Minum")
 
     def test_financial_data_persists_and_is_isolated_per_user(self):
         first = self.register_and_login("first")

@@ -86,7 +86,7 @@ export default function Expenses() {
     referenceDate: getLocalDateValue(),
   });
 
-  const expenseCategories = ['Makan', 'Transport', 'Belanja', 'Tagihan', 'Hiburan', 'Kesehatan', 'Pendidikan', 'Lainnya'];
+  const expenseCategories = ['Makan', 'Minum', 'Makan & Minum', 'Transport', 'Belanja', 'Tagihan', 'Hiburan', 'Kesehatan', 'Pendidikan', 'Lainnya'];
   const incomeCategories = ['Gaji', 'Bonus', 'Usaha', 'Investasi', 'Hadiah', 'Lainnya'];
   const budgetCategories = ['Keseluruhan', ...expenseCategories];
   const categories = formData.transactionType === 'income' ? incomeCategories : expenseCategories;

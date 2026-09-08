@@ -5,7 +5,7 @@ from datetime import date
 
 
 RECEIPT_CATEGORIES = [
-    "Makan", "Transport", "Belanja", "Tagihan", "Hiburan",
+    "Makan", "Minum", "Makan & Minum", "Transport", "Belanja", "Tagihan", "Hiburan",
     "Kesehatan", "Pendidikan", "Lainnya",
 ]
 PAYMENT_METHODS = ["Cash", "Debit Card", "Credit Card", "E-Wallet", "Transfer Bank"]
@@ -105,14 +105,37 @@ def _payment_method(text: str) -> str:
 def _category(text: str) -> str:
     lowered = text.lower()
     keywords = {
-        "Makan": ("restaurant", "restoran", "warung", "kopi", "coffee", "food", "nasi", "ayam", "cafe", "bakso"),
         "Transport": ("pertamina", "shell", "bensin", "parkir", "parking", "tol", "grab", "gojek"),
         "Tagihan": ("pln", "listrik", "internet", "telepon", "pdam", "tagihan"),
         "Kesehatan": ("apotek", "pharmacy", "klinik", "hospital", "obat"),
         "Pendidikan": ("school", "sekolah", "buku", "course", "kursus"),
         "Hiburan": ("cinema", "bioskop", "game", "karaoke"),
     }
-    return next((category for category, words in keywords.items() if any(word in lowered for word in words)), "Belanja")
+    matched = next((category for category, words in keywords.items() if any(word in lowered for word in words)), None)
+    if matched:
+        return matched
+
+    food_words = (
+        "nasi", "ayam", "bakso", "mie", "mi goreng", "burger", "pizza",
+        "roti", "sate", "makanan", "food", "meal", "steak", "gorengan",
+    )
+    drink_words = (
+        "kopi", "coffee", "teh", "tea", "boba", "jus", "juice", "air mineral",
+        "minuman", "drink", "latte", "cappuccino", "espresso", "soda",
+    )
+
+    def contains_any(words: tuple[str, ...]) -> bool:
+        return any(re.search(rf"(?<!\w){re.escape(word)}(?!\w)", lowered) for word in words)
+
+    has_food = contains_any(food_words)
+    has_drink = contains_any(drink_words)
+    if has_food and has_drink:
+        return "Makan & Minum"
+    if has_drink:
+        return "Minum"
+    if has_food or any(word in lowered for word in ("restaurant", "restoran", "warung", "cafe")):
+        return "Makan"
+    return "Belanja"
 
 
 def _receipt_number(lines: list[str]) -> str:
