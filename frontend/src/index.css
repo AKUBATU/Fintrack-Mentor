@@ -2461,6 +2461,12 @@ html.dark { color-scheme: dark; background: #080d18; }
   background: #111827 !important;
   color: #e2e8f0 !important;
 }
+.dark .processing-overlay { background: rgba(2, 6, 23, .48); }
+.dark .processing-card { border-color: #334155; background: #111827; }
+.dark .processing-card .text-gray-900 { color: #f1f5f9; }
+.dark .processing-card .text-gray-500 { color: #94a3b8; }
+.dark .processing-card .bg-blue-50 { background: #172554; }
+.dark .processing-card .text-blue-600 { color: #93c5fd; }
 .dark ::-webkit-scrollbar { width: 10px; height: 10px; }
 .dark ::-webkit-scrollbar-track { background: #0b1120; }
 .dark ::-webkit-scrollbar-thumb { background: #334155; border: 2px solid #0b1120; border-radius: 999px; }

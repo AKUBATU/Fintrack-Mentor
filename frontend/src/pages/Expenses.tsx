@@ -3,6 +3,7 @@ import { useData } from '../contexts/DataContext';
 import { Plus, Trash2, Download, Upload, AlertTriangle, Camera, Search, X, WalletCards, CalendarDays, Pencil, ChevronDown, LoaderCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { api } from '../services/api';
+import ProcessingOverlay from '../components/ProcessingOverlay';
 
 type AutoPred = { category: string; confidence: number } | null;
 
@@ -519,6 +520,9 @@ export default function Expenses() {
 
   return (
     <div className="space-y-6">
+      {(savingExpense || savingBudget || receiptScanning) && (
+        <ProcessingOverlay message={receiptScanning ? 'Sedang membaca struk…' : savingBudget ? 'Sedang menyimpan budget…' : editingExpense ? 'Sedang menyimpan perubahan…' : 'Sedang menyimpan transaksi…'} />
+      )}
       {/* Header */}
       <div className="finance-page-header">
         <div>

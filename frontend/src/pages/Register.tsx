@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, LoaderCircle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import ThemeToggle from '../components/ThemeToggle';
+import ProcessingOverlay from '../components/ProcessingOverlay';
 
 export default function Register() {
   const [name, setName] = useState('');
@@ -36,6 +37,7 @@ export default function Register() {
 
   return (
     <div className="auth-shell min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+      {loading && <ProcessingOverlay message="Sedang membuat akun…" />}
       <ThemeToggle className="auth-theme-toggle" />
       <div className="max-w-md w-full min-w-0">
         <div className="auth-card bg-white rounded-2xl shadow-xl p-8">

@@ -3,6 +3,7 @@ import { useData } from '../contexts/DataContext';
 import { Plus, TrendingUp, DollarSign, X, Pencil, Trash2, Activity, Layers3, LoaderCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { api } from '../services/api';
+import ProcessingOverlay from '../components/ProcessingOverlay';
 
 const ASSET_TYPES = [
   ['stock', 'Saham'], ['etf', 'ETF'], ['money_market_fund', 'Reksa Dana Pasar Uang (RDPU)'], ['mutual_fund', 'Reksa Dana Lainnya'], ['bond', 'Obligasi'],
@@ -532,6 +533,9 @@ export default function Portfolio() {
 
   return (
     <div className="flex flex-col gap-6">
+      {(savingAsset || savingTransaction || savingDividend) && (
+        <ProcessingOverlay message={savingAsset ? 'Sedang menyimpan instrumen…' : savingTransaction ? 'Sedang menyimpan transaksi saham…' : 'Sedang menyimpan dividen…'} />
+      )}
       {/* Header */}
       <div className="portfolio-page-header order-1 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <div>

@@ -4,6 +4,7 @@ import { KeyRound, LoaderCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import ThemeToggle from '../components/ThemeToggle';
 import { api } from '../services/api';
+import ProcessingOverlay from '../components/ProcessingOverlay';
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState('');
@@ -28,6 +29,7 @@ export default function ForgotPassword() {
 
   return (
     <div className="auth-shell min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+      {loading && <ProcessingOverlay message="Sedang mengirim link reset…" />}
       <ThemeToggle className="auth-theme-toggle" />
       <div className="auth-card max-w-md w-full bg-white rounded-2xl shadow-xl p-8">
         <div className="text-center mb-8">
