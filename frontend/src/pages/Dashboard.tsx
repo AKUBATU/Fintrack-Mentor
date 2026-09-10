@@ -1,6 +1,6 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { useData } from '../contexts/DataContext'
-import { TrendingUp, TrendingDown, Wallet, PieChart, DollarSign, AlertCircle } from 'lucide-react'
+import { TrendingUp, TrendingDown, Wallet, PieChart, DollarSign, AlertCircle, CalendarDays } from 'lucide-react'
 import {
   BarChart,
   Bar,
@@ -14,7 +14,7 @@ import {
   Legend,
   ResponsiveContainer,
 } from 'recharts'
-import { formatCurrency, toLocalDateValue } from '../utils/formatters'
+import { formatCurrency } from '../utils/formatters'
 
 const getLocalDateValue = () => {
   const today = new Date()
@@ -43,13 +43,23 @@ const isInBudgetPeriod = (dateValue: string, referenceDateValue: string, period:
 export default function Dashboard() {
   const { accountDataLoading, expenses, holdings, budgets, investmentAssets } = useData()
   const portfolioLoading = accountDataLoading
+  const currentMonth = getLocalDateValue().slice(0, 7)
+  const [selectedMonth, setSelectedMonth] = useState(currentMonth)
+  const selectedMonthLabel = new Date(`${selectedMonth}-01T00:00:00`).toLocaleDateString('id-ID', {
+    month: 'long',
+    year: 'numeric',
+  })
+  const monthlyExpenses = useMemo(
+    () => (expenses ?? []).filter((expense) => expense.date.startsWith(selectedMonth)),
+    [expenses, selectedMonth],
+  )
 
   // Calculate metrics
   const metrics = useMemo(() => {
-    const totalExpenses = (expenses ?? [])
+    const totalExpenses = monthlyExpenses
       .filter((e) => e.transactionType !== 'income')
       .reduce((sum, e) => sum + e.amount, 0)
-    const totalIncome = (expenses ?? [])
+    const totalIncome = monthlyExpenses
       .filter((e) => e.transactionType === 'income')
       .reduce((sum, e) => sum + e.amount, 0)
     const stockPortfolioValue = (holdings ?? []).reduce((sum, h) => sum + (h.marketValue ?? 0), 0)
@@ -61,25 +71,23 @@ export default function Dashboard() {
     const unrealizedPL = portfolioValue - totalCost
     const unrealizedPLPercent = totalCost > 0 ? (unrealizedPL / totalCost) * 100 : 0
 
-    // Use the newest overall budget for today's period to avoid mixing daily,
-    // monthly, and category budgets into a misleading aggregate.
-    const todayValue = getLocalDateValue()
-    const budgetsForToday = (budgets ?? []).filter((budget) =>
-      isInBudgetPeriod(todayValue, budget.referenceDate || todayValue, budget.period)
+    // A monthly dashboard only compares spending with a monthly budget. Daily,
+    // weekly, and yearly limits remain available in the detailed Finance page.
+    const monthlyBudgets = (budgets ?? []).filter((budget) =>
+      budget.period === 'monthly' && (budget.referenceDate || '').startsWith(selectedMonth)
     )
-    const activeBudget = budgetsForToday.find((budget) => budget.category === 'Keseluruhan') ?? budgetsForToday[0]
+    const activeBudget = monthlyBudgets.find((budget) => budget.category === 'Keseluruhan') ?? monthlyBudgets[0]
     const budgetSpent = activeBudget
-      ? (expenses ?? [])
+      ? monthlyExpenses
           .filter((expense) => expense.transactionType !== 'income'
             && (activeBudget.category === 'Keseluruhan' || expense.category === activeBudget.category)
-            && isInBudgetPeriod(expense.date, activeBudget.referenceDate || todayValue, activeBudget.period))
+            && (activeBudget.fundSource === 'all' || expense.fundSource === activeBudget.fundSource)
+            && isInBudgetPeriod(expense.date, activeBudget.referenceDate, activeBudget.period))
           .reduce((sum, expense) => sum + expense.amount, 0)
       : 0
     const totalBudget = activeBudget?.amount ?? 0
     const budgetUsage = totalBudget > 0 ? (budgetSpent / totalBudget) * 100 : 0
-    const budgetPeriodLabel = activeBudget
-      ? ({ daily: 'hari ini', weekly: 'minggu ini', monthly: 'bulan ini', yearly: 'tahun ini' }[activeBudget.period] || 'periode ini')
-      : ''
+    const budgetPeriodLabel = activeBudget ? selectedMonthLabel : ''
 
     return {
       totalExpenses,
@@ -94,12 +102,12 @@ export default function Dashboard() {
       budgetPeriodLabel,
       budgetCategory: activeBudget?.category ?? '',
     }
-  }, [expenses, holdings, budgets, investmentAssets])
+  }, [monthlyExpenses, holdings, budgets, investmentAssets, selectedMonth, selectedMonthLabel])
 
   // Expense by category
   const expenseByCategory = useMemo(() => {
     const categoryMap = new Map<string, number>()
-    ;(expenses ?? []).forEach((e) => {
+    monthlyExpenses.forEach((e) => {
       if (e.transactionType !== 'income') {
         categoryMap.set(e.category, (categoryMap.get(e.category) || 0) + e.amount)
       }
@@ -109,36 +117,38 @@ export default function Dashboard() {
       name,
       value,
     }))
-  }, [expenses])
+  }, [monthlyExpenses])
 
-  // Expense trend (last 7 days)
+  // Weekly totals keep a full month readable without squeezing 28–31 bars.
   const expenseTrend = useMemo(() => {
-    const last7Days = Array.from({ length: 7 }, (_, i) => {
-      const date = new Date()
-      date.setDate(date.getDate() - (6 - i))
-      return date
+    const weeks = Array.from({ length: 5 }, (_, index) => ({ date: `Minggu ${index + 1}`, amount: 0 }))
+    monthlyExpenses.forEach((expense) => {
+      if (expense.transactionType === 'income') return
+      const day = Number(expense.date.slice(8, 10))
+      const weekIndex = Math.min(4, Math.floor((day - 1) / 7))
+      weeks[weekIndex].amount += expense.amount
     })
-
-    return last7Days.map((date) => {
-      const dateStr = toLocalDateValue(date)
-      const dayExpenses = (expenses ?? []).filter((e) => e.transactionType !== 'income' && e.date === dateStr)
-      const total = dayExpenses.reduce((sum, e) => sum + e.amount, 0)
-
-      return {
-        date: date.toLocaleDateString('id-ID', { day: '2-digit', month: 'short' }),
-        amount: total,
-      }
-    })
-  }, [expenses])
+    return weeks
+  }, [monthlyExpenses])
 
   const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899']
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-        <p className="text-gray-600">Lihat arus kas, budget, dan investasi Anda dalam satu ringkasan.</p>
+      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+          <p className="text-gray-600">Lihat arus kas, budget, dan investasi Anda dalam satu ringkasan.</p>
+        </div>
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2 min-w-0">
+          <label className="relative min-w-0">
+            <span className="sr-only">Pilih bulan laporan</span>
+            <CalendarDays className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+            <input type="month" value={selectedMonth} onChange={(event) => setSelectedMonth(event.target.value || currentMonth)} className="w-full sm:w-auto min-w-0 pl-9 pr-3 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500" />
+          </label>
+          {selectedMonth !== currentMonth && <button type="button" onClick={() => setSelectedMonth(currentMonth)} className="px-3 py-2 text-sm font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100">Bulan ini</button>}
+        </div>
       </div>
 
       {/* Stats Cards */}
@@ -156,7 +166,7 @@ export default function Dashboard() {
               <span className="text-gray-600">
                 {metrics.totalBudget > 0
                   ? `Budget ${metrics.budgetCategory === 'Keseluruhan' ? '' : `${metrics.budgetCategory} `}${metrics.budgetPeriodLabel}: ${formatCurrency(metrics.totalBudget)}`
-                  : 'Belum ada budget untuk hari ini'}
+                  : `Belum ada budget bulanan untuk ${selectedMonthLabel}`}
               </span>
             </div>
             {metrics.totalBudget > 0 && <>
@@ -185,7 +195,7 @@ export default function Dashboard() {
           </div>
           <p className="text-sm text-gray-600 mb-1">Arus Kas Bersih</p>
           <p className={`text-3xl font-bold ${metrics.cashFlowBalance >= 0 ? 'text-green-600' : 'text-red-600'}`}>{formatCurrency(metrics.cashFlowBalance)}</p>
-          <p className="text-xs text-gray-500 mt-2">Akumulasi pemasukan dikurangi pengeluaran</p>
+          <p className="text-xs text-gray-500 mt-2">Pemasukan dikurangi pengeluaran pada {selectedMonthLabel}</p>
         </div>
 
         <div className="dashboard-metric dashboard-portfolio-card bg-white rounded-xl shadow-sm p-5 border border-gray-200">
@@ -251,7 +261,7 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Expense Trend */}
         <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-          <div className="mb-4"><h3 className="font-semibold text-gray-900">Tren pengeluaran</h3><p className="text-xs text-gray-500 mt-0.5">Tujuh hari terakhir</p></div>
+          <div className="mb-4"><h3 className="font-semibold text-gray-900">Tren pengeluaran</h3><p className="text-xs text-gray-500 mt-0.5">Per minggu · {selectedMonthLabel}</p></div>
           <ResponsiveContainer width="100%" height={250}>
             <BarChart data={expenseTrend}>
               <CartesianGrid strokeDasharray="3 3" />
@@ -265,7 +275,7 @@ export default function Dashboard() {
 
         {/* Expense by Category */}
         <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-          <div className="mb-4"><h3 className="font-semibold text-gray-900">Komposisi pengeluaran</h3><p className="text-xs text-gray-500 mt-0.5">Berdasarkan seluruh transaksi</p></div>
+          <div className="mb-4"><h3 className="font-semibold text-gray-900">Komposisi pengeluaran</h3><p className="text-xs text-gray-500 mt-0.5">Berdasarkan transaksi {selectedMonthLabel}</p></div>
           {expenseByCategory.length > 0 ? (
             <ResponsiveContainer width="100%" height={250}>
               <RechartsPie>
