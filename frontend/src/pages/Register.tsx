@@ -139,6 +139,9 @@ export default function Register() {
                 Masuk di sini
               </Link>
             </p>
+            <p className="mt-3 text-xs leading-5 text-gray-500">
+              Dengan mendaftar, Anda menyetujui <Link to="/terms" className="text-blue-600 hover:underline">Ketentuan Penggunaan</Link> dan telah membaca <Link to="/privacy" className="text-blue-600 hover:underline">Kebijakan Privasi</Link>.
+            </p>
           </div>
         </div>
       </div>

@@ -11,6 +11,7 @@ from .models.stock_price import StockPrice
 from .models.user_preference import UserPreference
 from .models.fund_account import FundAccount
 from .models.fund_transfer import FundTransfer
+from .models.transaction_category import TransactionCategory
 from .api.router import api_router
 
 app = FastAPI(title=settings.APP_NAME)
@@ -33,6 +34,7 @@ def create_production_schema():
     UserPreference.__table__.create(bind=engine, checkfirst=True)
     FundAccount.__table__.create(bind=engine, checkfirst=True)
     FundTransfer.__table__.create(bind=engine, checkfirst=True)
+    TransactionCategory.__table__.create(bind=engine, checkfirst=True)
     Base.metadata.create_all(bind=engine)
     if engine.dialect.name == "postgresql" and settings.DATABASE_SCHEMA == "fintrack_app":
         with engine.begin() as connection:
@@ -49,6 +51,17 @@ def create_production_schema():
             for column_definition in expense_columns:
                 connection.execute(text(
                     "ALTER TABLE fintrack_app.expenses ADD COLUMN IF NOT EXISTS "
+                    f"{column_definition}"
+                ))
+
+            preference_columns = (
+                "base_currency VARCHAR(10) NOT NULL DEFAULT 'IDR'",
+                "timezone VARCHAR(60) NOT NULL DEFAULT 'Asia/Jakarta'",
+                "onboarding_completed BOOLEAN NOT NULL DEFAULT FALSE",
+            )
+            for column_definition in preference_columns:
+                connection.execute(text(
+                    "ALTER TABLE fintrack_app.user_preferences ADD COLUMN IF NOT EXISTS "
                     f"{column_definition}"
                 ))
 

@@ -10,6 +10,7 @@ from .investment_assets import router as investment_assets_router
 from .account_data import router as account_data_router
 from .profile import router as profile_router
 from .fund_accounts import router as fund_accounts_router
+from .transaction_categories import router as transaction_categories_router
 
 api_router = APIRouter()
 api_router.include_router(auth_router)
@@ -23,3 +24,4 @@ api_router.include_router(investment_assets_router)
 api_router.include_router(account_data_router)
 api_router.include_router(profile_router)
 api_router.include_router(fund_accounts_router)
+api_router.include_router(transaction_categories_router)

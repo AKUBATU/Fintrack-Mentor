@@ -25,6 +25,10 @@ class ForgotPasswordIn(BaseModel):
     email: EmailStr
 
 
+class DeleteAccountIn(BaseModel):
+    password: str = Field(..., min_length=1)
+
+
 class ResetPasswordIn(BaseModel):
     token: str = Field(..., min_length=1)
     password: str = Field(..., min_length=6)

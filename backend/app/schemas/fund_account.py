@@ -3,7 +3,12 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-FundSource = Literal["bank", "cash"]
+FundSource = str
+
+
+class FundAccountCreate(BaseModel):
+    name: str = Field(min_length=1, max_length=80)
+    opening_balance: float = Field(default=0, ge=0)
 
 
 class FundAccountUpdate(BaseModel):
@@ -12,13 +17,13 @@ class FundAccountUpdate(BaseModel):
 
 
 class FundAccountOut(FundAccountUpdate):
-    source: FundSource
+    source: str
     balance: float
 
 
 class FundTransferCreate(BaseModel):
-    from_source: FundSource
-    to_source: FundSource
+    from_source: str = Field(min_length=1, max_length=20)
+    to_source: str = Field(min_length=1, max_length=20)
     amount: float = Field(gt=0)
     date: date
     notes: str = Field(default="", max_length=300)

@@ -31,6 +31,9 @@ export default function Expenses() {
     updateFundAccount,
     addFundTransfer,
     deleteFundTransfer,
+    createFundAccount,
+    deleteFundAccount,
+    customCategories,
   } = useData();
 
   const [showAddExpense, setShowAddExpense] = useState(false);
@@ -55,14 +58,14 @@ export default function Expenses() {
   const [historySearch, setHistorySearch] = useState('');
   const [historyDate, setHistoryDate] = useState(getLocalDateValue);
   const [summaryMode, setSummaryMode] = useState<'all' | 'daily'>('all');
-  const [summarySource, setSummarySource] = useState<'all' | 'bank' | 'cash'>('all');
+  const [summarySource, setSummarySource] = useState('all');
   const [summaryDate, setSummaryDate] = useState(getLocalDateValue);
   const [budgetDate, setBudgetDate] = useState(getLocalDateValue);
-  const [accountDialog, setAccountDialog] = useState<'bank' | 'cash' | null>(null);
+  const [accountDialog, setAccountDialog] = useState<string | null>(null);
   const [transferDialog, setTransferDialog] = useState(false);
   const [savingFunds, setSavingFunds] = useState(false);
   const [accountForm, setAccountForm] = useState({ name: '', openingBalance: '' });
-  const [transferForm, setTransferForm] = useState({ fromSource: 'bank' as 'bank' | 'cash', toSource: 'cash' as 'bank' | 'cash', amount: '', date: getLocalDateValue(), notes: '' });
+  const [transferForm, setTransferForm] = useState({ fromSource: 'bank', toSource: 'cash', amount: '', date: getLocalDateValue(), notes: '' });
 
   useEffect(() => {
     const modalOpen = showAddExpense || Boolean(editingExpense) || showAddBudget || Boolean(selectedReceipt) || Boolean(accountDialog) || transferDialog;
@@ -90,10 +93,15 @@ export default function Expenses() {
     };
   }, [showAddExpense, editingExpense, showAddBudget, selectedReceipt, accountDialog, transferDialog, savingExpense, savingBudget, receiptScanning]);
 
-  const openAccountDialog = (source: 'bank' | 'cash') => {
+  const openAccountDialog = (source: string) => {
     const account = fundAccounts.find((item) => item.source === source);
-    setAccountForm({ name: account?.name || (source === 'bank' ? 'Rekening Mandiri' : 'Cash'), openingBalance: String(account?.openingBalance || '') });
+    setAccountForm({ name: account?.name || '', openingBalance: String(account?.openingBalance || '') });
     setAccountDialog(source);
+  };
+
+  const openNewAccountDialog = () => {
+    setAccountForm({ name: '', openingBalance: '' });
+    setAccountDialog('__new__');
   };
 
   const handleSaveAccount = async () => {
@@ -102,10 +110,22 @@ export default function Expenses() {
     if (!accountForm.name.trim() || !Number.isFinite(openingBalance) || openingBalance < 0) return toast.error('Nama dan saldo awal harus valid');
     setSavingFunds(true);
     try {
-      await updateFundAccount(accountDialog, { name: accountForm.name.trim(), openingBalance });
+      if (accountDialog === '__new__') await createFundAccount({ name: accountForm.name.trim(), openingBalance });
+      else await updateFundAccount(accountDialog, { name: accountForm.name.trim(), openingBalance });
       setAccountDialog(null);
       toast.success('Sumber saldo berhasil diperbarui');
     } catch (error) { toast.error(error instanceof Error ? error.message : 'Sumber saldo gagal disimpan'); }
+    finally { setSavingFunds(false); }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!accountDialog || accountDialog === '__new__' || !window.confirm('Hapus sumber saldo ini?')) return;
+    setSavingFunds(true);
+    try {
+      await deleteFundAccount(accountDialog);
+      setAccountDialog(null);
+      toast.success('Sumber saldo berhasil dihapus');
+    } catch (error) { toast.error(error instanceof Error ? error.message : 'Sumber saldo gagal dihapus'); }
     finally { setSavingFunds(false); }
   };
 
@@ -142,7 +162,7 @@ export default function Expenses() {
     amount: '',
     category: 'Makan',
     paymentMethod: 'Cash',
-    fundSource: 'bank' as 'bank' | 'cash',
+    fundSource: 'bank',
     merchant: '',
     notes: '',
   });
@@ -151,12 +171,12 @@ export default function Expenses() {
     category: 'Makan',
     amount: '',
     period: 'monthly' as 'daily' | 'weekly' | 'monthly' | 'yearly',
-    fundSource: 'all' as 'all' | 'bank' | 'cash',
+    fundSource: 'all',
     referenceDate: getLocalDateValue(),
   });
 
-  const expenseCategories = ['Makan', 'Minum', 'Makan & Minum', 'Transport', 'Belanja', 'Top Up', 'Tagihan', 'Hiburan', 'Kesehatan', 'Pendidikan', 'Lainnya'];
-  const incomeCategories = ['Gaji', 'Bonus', 'Usaha', 'Investasi', 'Hadiah', 'Lainnya'];
+  const expenseCategories = Array.from(new Set(['Makan', 'Minum', 'Makan & Minum', 'Transport', 'Belanja', 'Top Up', 'Tagihan', 'Hiburan', 'Kesehatan', 'Pendidikan', 'Lainnya', ...customCategories.filter((item) => item.transactionType === 'expense').map((item) => item.name)]));
+  const incomeCategories = Array.from(new Set(['Gaji', 'Bonus', 'Usaha', 'Investasi', 'Hadiah', 'Lainnya', ...customCategories.filter((item) => item.transactionType === 'income').map((item) => item.name)]));
   const budgetCategories = ['Keseluruhan', ...expenseCategories];
   const categories = formData.transactionType === 'income' ? incomeCategories : expenseCategories;
   const paymentMethods = ['Cash', 'QRIS', 'Debit Card', 'Credit Card', 'E-Wallet', 'Transfer Bank'];
@@ -375,11 +395,10 @@ export default function Expenses() {
     yearly: 'Tahunan',
   };
 
-  const fundSourceLabels: Record<string, string> = {
-    all: 'Keduanya',
-    bank: 'Rekening Mandiri',
-    cash: 'Cash',
-  };
+  const fundSourceLabels: Record<string, string> = Object.fromEntries([
+    ['all', 'Semua saldo'],
+    ...fundAccounts.map((account) => [account.source, account.name]),
+  ]);
 
   const handleAddExpense = async () => {
     if (!formData.amount || !formData.merchant) {
@@ -626,8 +645,7 @@ export default function Expenses() {
               className="finance-summary-date px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white"
             >
               <option value="all">Semua saldo</option>
-              <option value="bank">Rekening Mandiri</option>
-              <option value="cash">Cash</option>
+              {fundAccounts.map((account) => <option key={account.source} value={account.source}>{account.name}</option>)}
             </select>
             <div className="finance-summary-mode">
               <button type="button" onClick={() => setSummaryMode('all')} className={summaryMode === 'all' ? 'finance-summary-mode-active' : ''}>Keseluruhan</button>
@@ -682,7 +700,7 @@ export default function Expenses() {
       <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
           <div><h3 className="font-semibold text-gray-900">Sumber Saldo</h3><p className="text-sm text-gray-500">Saldo rekening dan cash dihitung dari saldo awal, transaksi, serta transfer.</p></div>
-          <button type="button" onClick={() => setTransferDialog(true)} className="inline-flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100"><ArrowRightLeft className="w-4 h-4" /> Transfer Saldo</button>
+          <div className="flex flex-col sm:flex-row gap-2"><button type="button" onClick={openNewAccountDialog} className="inline-flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"><Plus className="w-4 h-4" /> Tambah Sumber</button><button type="button" onClick={() => { const [first, second] = fundAccounts; if (first && second) setTransferForm((current) => ({ ...current, fromSource: first.source, toSource: second.source })); setTransferDialog(true); }} disabled={fundAccounts.length < 2} className="inline-flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 disabled:opacity-50"><ArrowRightLeft className="w-4 h-4" /> Transfer Saldo</button></div>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {fundAccounts.map((account) => {
@@ -928,10 +946,9 @@ export default function Expenses() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Sumber Saldo</label>
-                <div className="grid grid-cols-2 gap-2 p-1 bg-gray-100 rounded-lg">
-                  <button type="button" onClick={() => setFormData({ ...formData, fundSource: 'bank' })} className={`min-w-0 px-3 py-2 text-sm font-medium rounded-md transition-colors ${formData.fundSource === 'bank' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-600'}`}>Rekening Mandiri</button>
-                  <button type="button" onClick={() => setFormData({ ...formData, fundSource: 'cash' })} className={`min-w-0 px-3 py-2 text-sm font-medium rounded-md transition-colors ${formData.fundSource === 'cash' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-600'}`}>Cash</button>
-                </div>
+                <select value={formData.fundSource} onChange={(event) => setFormData({ ...formData, fundSource: event.target.value })} className="w-full min-w-0 px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                  {fundAccounts.map((account) => <option key={account.source} value={account.source}>{account.name}</option>)}
+                </select>
               </div>
 
               <div className="finance-form-pair grid grid-cols-2 gap-3">
@@ -1057,12 +1074,11 @@ export default function Expenses() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">Sumber Saldo</label>
                 <select
                   value={budgetFormData.fundSource}
-                  onChange={(e) => setBudgetFormData({ ...budgetFormData, fundSource: e.target.value as 'all' | 'bank' | 'cash' })}
+                  onChange={(e) => setBudgetFormData({ ...budgetFormData, fundSource: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                 >
-                  <option value="all">Keduanya</option>
-                  <option value="bank">Rekening Mandiri</option>
-                  <option value="cash">Cash</option>
+                  <option value="all">Semua saldo</option>
+                  {fundAccounts.map((account) => <option key={account.source} value={account.source}>{account.name}</option>)}
                 </select>
                 <p className="text-xs text-gray-500 mt-1">Pemakaian budget hanya dihitung dari sumber saldo yang dipilih.</p>
               </div>
@@ -1101,12 +1117,13 @@ export default function Expenses() {
       {accountDialog && (
         <div className="finance-transaction-overlay fixed inset-0 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4" style={{ backgroundColor: 'rgba(17, 24, 39, 0.22)', backdropFilter: 'blur(7px)', WebkitBackdropFilter: 'blur(7px)' }} role="dialog" aria-modal="true" aria-labelledby="account-dialog-title">
           <div className="finance-transaction-dialog bg-white rounded-t-2xl sm:rounded-xl max-w-md w-full p-4 sm:p-6">
-            <h3 id="account-dialog-title" className="text-xl font-bold text-gray-900">Atur Sumber Saldo</h3>
+            <h3 id="account-dialog-title" className="text-xl font-bold text-gray-900">{accountDialog === '__new__' ? 'Tambah Sumber Saldo' : 'Atur Sumber Saldo'}</h3>
             <p className="text-sm text-gray-500 mt-1 mb-5">Saldo awal menjadi titik awal sebelum transaksi yang sudah tercatat.</p>
             <div className="space-y-4">
               <div><label className="block text-sm font-medium text-gray-700 mb-1">Nama</label><input value={accountForm.name} onChange={(event) => setAccountForm({ ...accountForm, name: event.target.value })} className="w-full min-w-0 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" /></div>
               <div><label className="block text-sm font-medium text-gray-700 mb-1">Saldo Awal</label><div className="flex min-w-0"><span className="px-3 py-2 border border-r-0 border-gray-300 rounded-l-lg text-gray-500">Rp</span><input type="number" min="0" value={accountForm.openingBalance} onChange={(event) => setAccountForm({ ...accountForm, openingBalance: event.target.value })} className="w-full min-w-0 px-3 py-2 border border-gray-300 rounded-r-lg focus:ring-2 focus:ring-blue-500" placeholder="0" /></div></div>
             </div>
+            {accountDialog !== '__new__' && !['bank', 'cash'].includes(accountDialog) && <button type="button" onClick={() => void handleDeleteAccount()} className="mt-4 text-sm font-medium text-red-600 hover:text-red-700">Hapus sumber saldo</button>}
             <div className="grid grid-cols-2 gap-2 mt-6"><button type="button" onClick={() => setAccountDialog(null)} className="px-3 py-2.5 bg-gray-100 text-gray-700 rounded-lg">Batal</button><button type="button" onClick={() => void handleSaveAccount()} className="px-3 py-2.5 bg-blue-600 text-white rounded-lg">Simpan</button></div>
           </div>
         </div>
@@ -1118,8 +1135,8 @@ export default function Expenses() {
             <h3 id="transfer-dialog-title" className="text-xl font-bold text-gray-900">Transfer Antar Saldo</h3>
             <p className="text-sm text-gray-500 mt-1 mb-5">Pemindahan saldo tidak dihitung sebagai pemasukan atau pengeluaran.</p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div><label className="block text-sm font-medium text-gray-700 mb-1">Dari</label><select value={transferForm.fromSource} onChange={(event) => { const fromSource = event.target.value as 'bank' | 'cash'; setTransferForm({ ...transferForm, fromSource, toSource: fromSource === 'bank' ? 'cash' : 'bank' }); }} className="w-full px-3 py-2 border border-gray-300 rounded-lg"><option value="bank">Rekening Mandiri</option><option value="cash">Cash</option></select></div>
-              <div><label className="block text-sm font-medium text-gray-700 mb-1">Ke</label><select value={transferForm.toSource} disabled className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50"><option value="bank">Rekening Mandiri</option><option value="cash">Cash</option></select></div>
+              <div><label className="block text-sm font-medium text-gray-700 mb-1">Dari</label><select value={transferForm.fromSource} onChange={(event) => { const fromSource = event.target.value; const destination = fundAccounts.find((account) => account.source !== fromSource)?.source || ''; setTransferForm({ ...transferForm, fromSource, toSource: destination }); }} className="w-full px-3 py-2 border border-gray-300 rounded-lg">{fundAccounts.map((account) => <option key={account.source} value={account.source}>{account.name}</option>)}</select></div>
+              <div><label className="block text-sm font-medium text-gray-700 mb-1">Ke</label><select value={transferForm.toSource} onChange={(event) => setTransferForm({ ...transferForm, toSource: event.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg">{fundAccounts.filter((account) => account.source !== transferForm.fromSource).map((account) => <option key={account.source} value={account.source}>{account.name}</option>)}</select></div>
               <div><label className="block text-sm font-medium text-gray-700 mb-1">Nominal</label><input type="number" min="1" value={transferForm.amount} onChange={(event) => setTransferForm({ ...transferForm, amount: event.target.value })} className="w-full min-w-0 px-3 py-2 border border-gray-300 rounded-lg" placeholder="50000" /></div>
               <div><label className="block text-sm font-medium text-gray-700 mb-1">Tanggal</label><input type="date" value={transferForm.date} onChange={(event) => setTransferForm({ ...transferForm, date: event.target.value })} className="w-full min-w-0 px-3 py-2 border border-gray-300 rounded-lg" /></div>
               <div className="sm:col-span-2"><label className="block text-sm font-medium text-gray-700 mb-1">Catatan</label><input value={transferForm.notes} onChange={(event) => setTransferForm({ ...transferForm, notes: event.target.value })} className="w-full min-w-0 px-3 py-2 border border-gray-300 rounded-lg" placeholder="Opsional" /></div>

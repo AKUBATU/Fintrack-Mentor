@@ -22,3 +22,4 @@ class User(Base):
     preference = relationship("UserPreference", back_populates="user", cascade="all, delete-orphan", uselist=False)
     fund_accounts = relationship("FundAccount", back_populates="user", cascade="all, delete-orphan")
     fund_transfers = relationship("FundTransfer", back_populates="user", cascade="all, delete-orphan")
+    transaction_categories = relationship("TransactionCategory", back_populates="user", cascade="all, delete-orphan")

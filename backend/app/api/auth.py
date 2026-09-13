@@ -11,11 +11,14 @@ from ..core.security import (
     decode_token,
     decode_password_reset_token,
     hash_password,
+    verify_password,
 )
-from ..schemas.auth import ForgotPasswordIn, MessageOut, RegisterIn, ResetPasswordIn, LoginOut, UserOut
+from ..schemas.auth import DeleteAccountIn, ForgotPasswordIn, MessageOut, RegisterIn, ResetPasswordIn, LoginOut, UserOut
 from ..services.auth_service import get_user_by_email, create_user, authenticate
 from ..services.email_service import send_password_reset_email
 from ..models.user import User
+from ..models.expense import Expense
+from ..services.receipt_storage import delete_receipt
 from .deps import get_current_user
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -39,6 +42,21 @@ def login(form: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get
 @router.get("/me", response_model=UserOut)
 def me(current_user=Depends(get_current_user)):
     return UserOut(id=current_user.id, email=current_user.email, name=current_user.name)
+
+
+@router.delete("/account")
+def delete_account(payload: DeleteAccountIn, db: Session = Depends(get_db), current_user=Depends(get_current_user)):
+    if not verify_password(payload.password, current_user.password_hash):
+        raise HTTPException(status_code=400, detail="Password tidak sesuai")
+    receipt_references = [row.receipt_path for row in db.query(Expense).filter(Expense.user_id == current_user.id).all() if row.receipt_path]
+    db.delete(current_user)
+    db.commit()
+    for reference in receipt_references:
+        try:
+            delete_receipt(reference)
+        except RuntimeError:
+            logger.warning("Failed to delete receipt while removing account")
+    return {"ok": True}
 
 @router.post("/forgot-password", response_model=MessageOut)
 def forgot_password(payload: ForgotPasswordIn, db: Session = Depends(get_db)):

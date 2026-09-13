@@ -10,5 +10,6 @@ from .stock_price import StockPrice
 from .user_preference import UserPreference
 from .fund_account import FundAccount
 from .fund_transfer import FundTransfer
+from .transaction_category import TransactionCategory
 
-__all__ = ["User","Expense","Budget","StockTransaction","Dividend","DailyReport","InvestmentAsset","ChatMessage","StockPrice","UserPreference","FundAccount","FundTransfer"]
+__all__ = ["User","Expense","Budget","StockTransaction","Dividend","DailyReport","InvestmentAsset","ChatMessage","StockPrice","UserPreference","FundAccount","FundTransfer","TransactionCategory"]

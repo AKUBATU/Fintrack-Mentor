@@ -29,6 +29,9 @@ def update_preferences(payload: ProfilePreferenceIn, db: Session = Depends(get_d
     row.focus_stocks_json = json.dumps(payload.focus_stocks)
     row.compounding_dividends = payload.compounding_dividends
     row.bonus_week_rule = payload.bonus_week_rule
+    row.base_currency = payload.base_currency
+    row.timezone = payload.timezone
+    row.onboarding_completed = payload.onboarding_completed
     db.commit()
     db.refresh(row)
     return preference_dict(row)

@@ -49,7 +49,7 @@ export interface ExpenseTransaction {
   amount: number
   category: string
   paymentMethod: string
-  fundSource: 'bank' | 'cash'
+  fundSource: string
   merchant: string
   notes: string
   predictedCategory?: string
@@ -64,7 +64,7 @@ export interface Budget {
   category: string
   amount: number
   period: 'daily' | 'weekly' | 'monthly' | 'yearly'
-  fundSource: 'all' | 'bank' | 'cash'
+  fundSource: string
   referenceDate: string
 }
 
@@ -127,10 +127,13 @@ export interface UserProfile {
   focusStocks: string[]
   compoundingDividends: boolean
   bonusWeekRule: string
+  baseCurrency: 'IDR' | 'USD' | 'EUR'
+  timezone: 'Asia/Jakarta' | 'Asia/Makassar' | 'Asia/Jayapura'
+  onboardingCompleted: boolean
 }
 
 export interface FundAccount {
-  source: 'bank' | 'cash'
+  source: string
   name: string
   openingBalance: number
   balance: number
@@ -138,20 +141,29 @@ export interface FundAccount {
 
 export interface FundTransfer {
   id: string
-  fromSource: 'bank' | 'cash'
-  toSource: 'bank' | 'cash'
+  fromSource: string
+  toSource: string
   amount: number
   date: string
   notes: string
 }
 
+export interface TransactionCategory {
+  id: string
+  transactionType: 'income' | 'expense'
+  name: string
+}
+
 const defaultUserProfile: UserProfile = {
-  dcaStrategy: 'Balanced',
-  dcaAmount: 500000,
+  dcaStrategy: 'Belum diatur',
+  dcaAmount: 0,
   dcaFrequency: 'weekly',
-  focusStocks: ['BBRI', 'BMRI'],
-  compoundingDividends: true,
-  bonusWeekRule: 'Jika ada bonus, tambah 1x DCA',
+  focusStocks: [],
+  compoundingDividends: false,
+  bonusWeekRule: '',
+  baseCurrency: 'IDR',
+  timezone: 'Asia/Jakarta',
+  onboardingCompleted: false,
 }
 
 interface DataContextType {
@@ -167,6 +179,7 @@ interface DataContextType {
   userProfile: UserProfile
   fundAccounts: FundAccount[]
   fundTransfers: FundTransfer[]
+  customCategories: TransactionCategory[]
 
   addExpense(expense: ExpenseInput): Promise<void>
   updateExpense(id: string, expense: ExpenseInput): Promise<void>
@@ -189,9 +202,13 @@ interface DataContextType {
   refreshInvestmentAssets(): Promise<void>
   refreshCalculations(): void
   updateUserProfile(profile: UserProfile): Promise<void>
-  updateFundAccount(source: 'bank' | 'cash', data: { name: string; openingBalance: number }): Promise<void>
+  updateFundAccount(source: string, data: { name: string; openingBalance: number }): Promise<void>
+  createFundAccount(data: { name: string; openingBalance: number }): Promise<void>
+  deleteFundAccount(source: string): Promise<void>
   addFundTransfer(transfer: Omit<FundTransfer, 'id'>): Promise<void>
   deleteFundTransfer(id: string): Promise<void>
+  addCustomCategory(transactionType: 'income' | 'expense', name: string): Promise<void>
+  deleteCustomCategory(id: string): Promise<void>
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined)
@@ -298,6 +315,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [userProfile, setUserProfile] = useState<UserProfile>(defaultUserProfile)
   const [fundAccounts, setFundAccounts] = useState<FundAccount[]>([])
   const [fundTransfers, setFundTransfers] = useState<FundTransfer[]>([])
+  const [customCategories, setCustomCategories] = useState<TransactionCategory[]>([])
 
   /* ================= Load account data from backend ================= */
   useEffect(() => {
@@ -313,6 +331,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       setDailyReports([])
       setFundAccounts([])
       setFundTransfers([])
+      setCustomCategories([])
       return
     }
 
@@ -340,7 +359,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         category: row.category,
         amount: Number(row.amount),
         period: row.period,
-        fundSource: row.fund_source === 'bank' || row.fund_source === 'cash' ? row.fund_source : 'all',
+        fundSource: row.fund_source,
         referenceDate: row.reference_date,
       })))
       setStockTransactions(data.transactions.map((row) => ({
@@ -382,14 +401,19 @@ export function DataProvider({ children }: { children: ReactNode }) {
         focusStocks: preferences.focus_stocks ?? [],
         compoundingDividends: Boolean(preferences.compounding_dividends),
         bonusWeekRule: preferences.bonus_week_rule,
+        baseCurrency: preferences.base_currency ?? 'IDR',
+        timezone: preferences.timezone ?? 'Asia/Jakarta',
+        onboardingCompleted: Boolean(preferences.onboarding_completed),
       } : defaultUserProfile
       if (!data.preferences_persisted) {
-        const localProfile = storageGet(`userProfile:${user.id}`, loadedProfile)
+        const localProfile = { ...defaultUserProfile, ...storageGet(`userProfile:${user.id}`, loadedProfile) }
         loadedProfile = localProfile
         await api.updatePreferences({
           dca_strategy: localProfile.dcaStrategy, dca_amount: localProfile.dcaAmount,
           dca_frequency: localProfile.dcaFrequency, focus_stocks: localProfile.focusStocks,
           compounding_dividends: localProfile.compoundingDividends, bonus_week_rule: localProfile.bonusWeekRule,
+          base_currency: localProfile.baseCurrency ?? 'IDR', timezone: localProfile.timezone ?? 'Asia/Jakarta',
+          onboarding_completed: Boolean(localProfile.onboardingCompleted),
         })
       }
       setUserProfile(loadedProfile)
@@ -401,6 +425,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         id: String(row.id), fromSource: row.from_source, toSource: row.to_source,
         amount: Number(row.amount), date: row.date, notes: row.notes || '',
       })))
+      setCustomCategories((data.custom_categories ?? []).map((row) => ({ id: String(row.id), transactionType: row.transaction_type, name: row.name })))
       } catch (error) {
         console.error('Failed to load account data:', error)
         toast.error('Data akun gagal dimuat. Silakan coba login kembali.')
@@ -607,6 +632,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
       dca_strategy: profile.dcaStrategy, dca_amount: profile.dcaAmount,
       dca_frequency: profile.dcaFrequency, focus_stocks: profile.focusStocks,
       compounding_dividends: profile.compoundingDividends, bonus_week_rule: profile.bonusWeekRule,
+      base_currency: profile.baseCurrency, timezone: profile.timezone,
+      onboarding_completed: profile.onboardingCompleted,
     })
     setUserProfile(profile)
     if (user) storageSet(`userProfile:${user.id}`, profile)
@@ -617,8 +644,18 @@ export function DataProvider({ children }: { children: ReactNode }) {
     setFundAccounts(rows.map((row) => ({ source: row.source, name: row.name, openingBalance: Number(row.opening_balance), balance: Number(row.balance) })))
   }
 
-  const updateFundAccount = async (source: 'bank' | 'cash', data: { name: string; openingBalance: number }) => {
+  const updateFundAccount = async (source: string, data: { name: string; openingBalance: number }) => {
     await api.updateFundAccount(source, { name: data.name, opening_balance: data.openingBalance })
+    await refreshFundAccounts()
+  }
+
+  const createFundAccount = async (data: { name: string; openingBalance: number }) => {
+    await api.createFundAccount({ name: data.name, opening_balance: data.openingBalance })
+    await refreshFundAccounts()
+  }
+
+  const deleteFundAccount = async (source: string) => {
+    await api.deleteFundAccount(source)
     await refreshFundAccounts()
   }
 
@@ -635,6 +672,16 @@ export function DataProvider({ children }: { children: ReactNode }) {
     await api.deleteFundTransfer(Number(id))
     setFundTransfers((items) => items.filter((item) => item.id !== id))
     await refreshFundAccounts()
+  }
+
+  const addCustomCategory = async (transactionType: 'income' | 'expense', name: string) => {
+    const created = await api.createTransactionCategory({ transaction_type: transactionType, name })
+    setCustomCategories((items) => [...items, { id: String(created.id), transactionType: created.transaction_type, name: created.name }].sort((a, b) => a.name.localeCompare(b.name)))
+  }
+
+  const deleteCustomCategory = async (id: string) => {
+    await api.deleteTransactionCategory(Number(id))
+    setCustomCategories((items) => items.filter((item) => item.id !== id))
   }
 
   const refreshCalculations = () => {
@@ -656,6 +703,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         userProfile,
         fundAccounts,
         fundTransfers,
+        customCategories,
         addExpense,
         updateExpense,
         deleteExpense,
@@ -672,8 +720,12 @@ export function DataProvider({ children }: { children: ReactNode }) {
         refreshCalculations,
         updateUserProfile,
         updateFundAccount,
+        createFundAccount,
+        deleteFundAccount,
         addFundTransfer,
         deleteFundTransfer,
+        addCustomCategory,
+        deleteCustomCategory,
       }}
     >
       {children}

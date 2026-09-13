@@ -31,6 +31,7 @@ interface AccountDataResponse {
   preferences_persisted: boolean;
   fund_accounts: FundAccountResponse[];
   fund_transfers: FundTransferResponse[];
+  custom_categories: TransactionCategoryResponse[];
 }
 
 export interface ProfilePreferenceResponse {
@@ -40,10 +41,13 @@ export interface ProfilePreferenceResponse {
   focus_stocks: string[];
   compounding_dividends: boolean;
   bonus_week_rule: string;
+  base_currency: 'IDR' | 'USD' | 'EUR';
+  timezone: 'Asia/Jakarta' | 'Asia/Makassar' | 'Asia/Jayapura';
+  onboarding_completed: boolean;
 }
 
 export interface FundAccountResponse {
-  source: 'bank' | 'cash';
+  source: string;
   name: string;
   opening_balance: number;
   balance: number;
@@ -51,11 +55,17 @@ export interface FundAccountResponse {
 
 export interface FundTransferResponse {
   id: number;
-  from_source: 'bank' | 'cash';
-  to_source: 'bank' | 'cash';
+  from_source: string;
+  to_source: string;
   amount: number;
   date: string;
   notes: string;
+}
+
+export interface TransactionCategoryResponse {
+  id: number;
+  transaction_type: 'income' | 'expense';
+  name: string;
 }
 
 function getToken() {
@@ -222,6 +232,9 @@ export const api = {
   async me() {
     return request<{ id: number; email: string; name: string }>(`/api/auth/me`);
   },
+  async deleteAccount(password: string) {
+    return request<{ ok: boolean }>(`/api/auth/account`, { method: 'DELETE', body: JSON.stringify({ password }) });
+  },
 
   // Expenses
   async listExpenses() {
@@ -297,10 +310,16 @@ export const api = {
   async listFundAccounts() {
     return request<FundAccountResponse[]>(`/api/fund-accounts`);
   },
-  async updateFundAccount(source: 'bank' | 'cash', payload: { name: string; opening_balance: number }) {
+  async updateFundAccount(source: string, payload: { name: string; opening_balance: number }) {
     return request<FundAccountResponse>(`/api/fund-accounts/${source}`, {
       method: 'PUT', body: JSON.stringify(payload),
     });
+  },
+  async createFundAccount(payload: { name: string; opening_balance: number }) {
+    return request<FundAccountResponse>(`/api/fund-accounts`, { method: 'POST', body: JSON.stringify(payload) });
+  },
+  async deleteFundAccount(source: string) {
+    return request<{ ok: boolean }>(`/api/fund-accounts/${encodeURIComponent(source)}`, { method: 'DELETE' });
   },
   async addFundTransfer(payload: Omit<FundTransferResponse, 'id'>) {
     return request<FundTransferResponse>(`/api/fund-accounts/transfers`, {
@@ -309,6 +328,12 @@ export const api = {
   },
   async deleteFundTransfer(id: number) {
     return request<{ ok: boolean }>(`/api/fund-accounts/transfers/${id}`, { method: 'DELETE' });
+  },
+  async createTransactionCategory(payload: { transaction_type: 'income' | 'expense'; name: string }) {
+    return request<TransactionCategoryResponse>(`/api/transaction-categories`, { method: 'POST', body: JSON.stringify(payload) });
+  },
+  async deleteTransactionCategory(id: number) {
+    return request<{ ok: boolean }>(`/api/transaction-categories/${id}`, { method: 'DELETE' });
   },
 
   // Portfolio

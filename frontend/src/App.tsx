@@ -15,6 +15,8 @@ const Portfolio = lazy(() => import('./pages/Portfolio'));
 const ChatMentor = lazy(() => import('./pages/ChatMentor'));
 const Settings = lazy(() => import('./pages/Settings'));
 const About = lazy(() => import('./pages/About'));
+const Privacy = lazy(() => import('./pages/Privacy'));
+const Terms = lazy(() => import('./pages/Terms'));
 
 function PageLoader() {
   return <div className="flex min-h-[40vh] items-center justify-center" role="status" aria-label="Memuat halaman"><div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600" /></div>;
@@ -58,6 +60,8 @@ function AppRoutes() {
       <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />
+      <Route path="/privacy" element={<Privacy />} />
+      <Route path="/terms" element={<Terms />} />
       <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
         <Route index element={<Navigate to="/dashboard" replace />} />
         <Route path="dashboard" element={<Dashboard />} />

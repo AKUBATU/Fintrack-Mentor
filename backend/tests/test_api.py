@@ -273,9 +273,10 @@ class ApiIntegrationTest(unittest.TestCase):
         }
         saved = self.client.put("/api/profile/preferences", json=preference, headers=first)
         self.assertEqual(saved.status_code, 200, saved.text)
-        self.assertEqual(saved.json(), preference)
-        self.assertEqual(self.client.get("/api/profile/preferences", headers=first).json(), preference)
-        self.assertNotEqual(self.client.get("/api/profile/preferences", headers=second).json(), preference)
+        for key, value in preference.items():
+            self.assertEqual(saved.json()[key], value)
+            self.assertEqual(self.client.get("/api/profile/preferences", headers=first).json()[key], value)
+        self.assertNotEqual(self.client.get("/api/profile/preferences", headers=second).json()["dca_strategy"], preference["dca_strategy"])
         self.assertTrue(self.client.get("/api/account-data", headers=first).json()["preferences_persisted"])
 
         account = self.client.put(
@@ -308,6 +309,22 @@ class ApiIntegrationTest(unittest.TestCase):
             self.client.delete(f"/api/fund-accounts/transfers/{transfer.json()['id']}", headers=first).status_code,
             200,
         )
+
+        custom_account = self.client.post(
+            "/api/fund-accounts", json={"name": "Dompet Digital", "opening_balance": 150000}, headers=first,
+        )
+        self.assertEqual(custom_account.status_code, 200, custom_account.text)
+        self.assertEqual(custom_account.json()["balance"], 150000)
+        self.assertNotIn(custom_account.json()["source"], {row["source"] for row in self.client.get("/api/fund-accounts", headers=second).json()})
+        self.assertEqual(self.client.delete(f"/api/fund-accounts/{custom_account.json()['source']}", headers=first).status_code, 200)
+
+        category = self.client.post(
+            "/api/transaction-categories", json={"transaction_type": "expense", "name": "Peliharaan"}, headers=first,
+        )
+        self.assertEqual(category.status_code, 200, category.text)
+        self.assertEqual(self.client.get("/api/transaction-categories", headers=second).json(), [])
+        self.assertEqual(len(self.client.get("/api/transaction-categories", headers=first).json()), 1)
+        self.assertEqual(self.client.delete(f"/api/transaction-categories/{category.json()['id']}", headers=first).status_code, 200)
 
     def test_protected_data_requires_login(self):
         response = self.client.get("/api/expenses")

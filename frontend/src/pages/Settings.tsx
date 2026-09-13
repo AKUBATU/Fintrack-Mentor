@@ -1,17 +1,22 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, BadgeCheck, ChartNoAxesCombined, KeyRound, LoaderCircle, PiggyBank, ReceiptText, Save, ShieldCheck, UserRound, WalletCards } from 'lucide-react';
+import { ArrowRight, BadgeCheck, ChartNoAxesCombined, Download, KeyRound, LoaderCircle, PiggyBank, Plus, ReceiptText, Save, ShieldCheck, Trash2, UserRound, WalletCards } from 'lucide-react';
 import { useData } from '../contexts/DataContext';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'sonner';
 import { formatCurrency } from '../utils/formatters';
+import { api } from '../services/api';
 
 export default function Settings() {
-  const { user } = useAuth();
-  const { userProfile, updateUserProfile, expenses, budgets, holdings, dividends, investmentAssets } = useData();
+  const { user, logout } = useAuth();
+  const { userProfile, updateUserProfile, expenses, budgets, holdings, dividends, investmentAssets, customCategories, addCustomCategory, deleteCustomCategory } = useData();
   const [profile, setProfile] = useState(userProfile);
   const [focusStocksInput, setFocusStocksInput] = useState(userProfile.focusStocks.join(', '));
   const [saving, setSaving] = useState(false);
+  const [categoryName, setCategoryName] = useState('');
+  const [categoryType, setCategoryType] = useState<'expense' | 'income'>('expense');
+  const [deletePassword, setDeletePassword] = useState('');
+  const [deletingAccount, setDeletingAccount] = useState(false);
 
   useEffect(() => {
     setProfile(userProfile);
@@ -29,13 +34,44 @@ export default function Settings() {
     const focusStocks = focusStocksInput.split(',').map((stock) => stock.trim().toUpperCase()).filter(Boolean);
     setSaving(true);
     try {
-      await updateUserProfile({ ...profile, focusStocks });
+      await updateUserProfile({ ...profile, focusStocks, onboardingCompleted: true });
       toast.success('Preferensi profil berhasil disimpan');
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Preferensi gagal disimpan');
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleAddCategory = async () => {
+    if (!categoryName.trim()) return toast.error('Nama kategori wajib diisi');
+    try {
+      await addCustomCategory(categoryType, categoryName.trim());
+      setCategoryName('');
+      toast.success('Kategori personal ditambahkan');
+    } catch (error) { toast.error(error instanceof Error ? error.message : 'Kategori gagal ditambahkan'); }
+  };
+
+  const handleExportAccount = async () => {
+    try {
+      const data = await api.accountData();
+      const blob = new Blob([JSON.stringify({ exported_at: new Date().toISOString(), account: { id: user?.id, name: user?.name, email: user?.email }, data }, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = url; anchor.download = `fintrack-data-${new Date().toISOString().slice(0, 10)}.json`; anchor.click();
+      URL.revokeObjectURL(url);
+      toast.success('Data akun berhasil diekspor');
+    } catch (error) { toast.error(error instanceof Error ? error.message : 'Data gagal diekspor'); }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!deletePassword || !window.confirm('Hapus akun dan seluruh data secara permanen? Tindakan ini tidak dapat dibatalkan.')) return;
+    setDeletingAccount(true);
+    try {
+      await api.deleteAccount(deletePassword);
+      logout();
+    } catch (error) { toast.error(error instanceof Error ? error.message : 'Akun gagal dihapus'); }
+    finally { setDeletingAccount(false); }
   };
 
   const frequencyLabel = profile.dcaFrequency === 'weekly'
@@ -70,6 +106,8 @@ export default function Settings() {
         </div>
       </section>
 
+      {!userProfile.onboardingCompleted && <section className="rounded-xl border border-blue-200 bg-blue-50 p-4 sm:p-5"><p className="font-semibold text-blue-900">Lengkapi pengaturan awal Anda</p><p className="text-sm text-blue-700 mt-1">Pilih mata uang, zona waktu, dan preferensi investasi. Tekan Simpan preferensi setelah selesai.</p></section>}
+
       <section>
         <h2 className="text-base font-semibold text-gray-900">Ringkasan akun</h2>
         <p className="text-sm text-gray-500 mb-3">Data yang tercatat pada akun Anda saat ini.</p>
@@ -95,6 +133,10 @@ export default function Settings() {
           </div>
 
           <div className="space-y-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div><label className="block text-sm font-medium text-gray-700 mb-2">Mata uang utama</label><select value={profile.baseCurrency} onChange={(event) => setProfile({ ...profile, baseCurrency: event.target.value as 'IDR' | 'USD' | 'EUR' })} className="w-full min-w-0 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"><option value="IDR">IDR — Rupiah</option><option value="USD">USD — US Dollar</option><option value="EUR">EUR — Euro</option></select><p className="text-xs text-gray-500 mt-1.5">Portofolio tetap dinormalisasi ke IDR pada versi saat ini.</p></div>
+              <div><label className="block text-sm font-medium text-gray-700 mb-2">Zona waktu</label><select value={profile.timezone} onChange={(event) => setProfile({ ...profile, timezone: event.target.value as typeof profile.timezone })} className="w-full min-w-0 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"><option value="Asia/Jakarta">WIB — Jakarta</option><option value="Asia/Makassar">WITA — Makassar</option><option value="Asia/Jayapura">WIT — Jayapura</option></select></div>
+            </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Deskripsi strategi</label>
               <textarea value={profile.dcaStrategy} onChange={(event) => setProfile({ ...profile, dcaStrategy: event.target.value })} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" rows={3} placeholder="Contoh: Investasi rutin ke instrumen pilihan..." />
@@ -147,6 +189,7 @@ export default function Settings() {
               <div className="flex items-start gap-2"><UserRound className="w-4 h-4 text-blue-600 mt-0.5 shrink-0" /><span>Data keuangan dipisahkan berdasarkan pemilik akun.</span></div>
             </div>
             <p className="text-xs text-gray-500 border-t border-gray-200 mt-4 pt-4">Preferensi investasi tersimpan pada akun dan tersedia di perangkat lain setelah login.</p>
+            <button type="button" onClick={() => void handleExportAccount()} className="mt-4 w-full inline-flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"><Download className="w-4 h-4" /> Export seluruh data</button>
           </section>
 
           <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
@@ -160,6 +203,23 @@ export default function Settings() {
           </section>
         </aside>
       </div>
+
+      <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 sm:p-6">
+        <div className="mb-4"><h2 className="text-lg font-semibold text-gray-900">Kategori personal</h2><p className="text-sm text-gray-500">Tambahkan kategori yang sesuai dengan kebiasaan keuangan Anda.</p></div>
+        <div className="grid grid-cols-1 sm:grid-cols-[10rem_minmax(0,1fr)_auto] gap-2">
+          <select value={categoryType} onChange={(event) => setCategoryType(event.target.value as typeof categoryType)} className="w-full px-3 py-2.5 border border-gray-300 rounded-lg"><option value="expense">Pengeluaran</option><option value="income">Pemasukan</option></select>
+          <input value={categoryName} onChange={(event) => setCategoryName(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') void handleAddCategory(); }} className="w-full min-w-0 px-3 py-2.5 border border-gray-300 rounded-lg" placeholder="Contoh: Peliharaan" />
+          <button type="button" onClick={() => void handleAddCategory()} className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-lg"><Plus className="w-4 h-4" /> Tambah</button>
+        </div>
+        <div className="flex flex-wrap gap-2 mt-4">{customCategories.map((category) => <span key={category.id} className="inline-flex items-center gap-2 px-3 py-1.5 text-sm bg-gray-100 text-gray-700 rounded-full">{category.name}<span className="text-xs text-gray-400">{category.transactionType === 'income' ? 'Masuk' : 'Keluar'}</span><button type="button" aria-label={`Hapus kategori ${category.name}`} onClick={() => void deleteCustomCategory(category.id)} className="text-red-500 hover:text-red-700"><Trash2 className="w-3.5 h-3.5" /></button></span>)}</div>
+        {customCategories.length === 0 && <p className="text-sm text-gray-500 mt-4">Belum ada kategori personal.</p>}
+      </section>
+
+      <section className="rounded-xl border border-red-200 bg-white p-5 sm:p-6">
+        <h2 className="text-lg font-semibold text-red-700">Hapus akun</h2><p className="text-sm text-gray-500 mt-1">Seluruh transaksi, budget, portofolio, chat, preferensi, dan struk akan dihapus permanen.</p>
+        <div className="flex flex-col sm:flex-row gap-2 mt-4"><input type="password" value={deletePassword} onChange={(event) => setDeletePassword(event.target.value)} className="flex-1 min-w-0 px-3 py-2.5 border border-gray-300 rounded-lg" placeholder="Masukkan password untuk konfirmasi" /><button type="button" disabled={deletingAccount || !deletePassword} onClick={() => void handleDeleteAccount()} className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-red-600 text-white rounded-lg disabled:opacity-50">{deletingAccount && <LoaderCircle className="w-4 h-4 animate-spin" />} Hapus akun</button></div>
+        <p className="text-xs text-gray-500 mt-3"><Link to="/privacy" className="text-blue-600">Kebijakan Privasi</Link> · <Link to="/terms" className="text-blue-600">Ketentuan Penggunaan</Link></p>
+      </section>
     </div>
   );
 }

@@ -10,6 +10,9 @@ class ProfilePreferenceIn(BaseModel):
     focus_stocks: list[str] = Field(max_length=50)
     compounding_dividends: bool
     bonus_week_rule: str = Field(max_length=1000)
+    base_currency: Literal["IDR", "USD", "EUR"] = "IDR"
+    timezone: Literal["Asia/Jakarta", "Asia/Makassar", "Asia/Jayapura"] = "Asia/Jakarta"
+    onboarding_completed: bool = False
 
 
 class ProfilePreferenceOut(ProfilePreferenceIn):

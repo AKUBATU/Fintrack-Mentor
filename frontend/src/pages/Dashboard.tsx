@@ -15,6 +15,7 @@ import {
   ResponsiveContainer,
 } from 'recharts'
 import { formatCurrency } from '../utils/formatters'
+import { Link } from 'react-router-dom'
 
 const getLocalDateValue = () => {
   const today = new Date()
@@ -41,7 +42,7 @@ const isInBudgetPeriod = (dateValue: string, referenceDateValue: string, period:
 }
 
 export default function Dashboard() {
-  const { accountDataLoading, expenses, holdings, budgets, investmentAssets } = useData()
+  const { accountDataLoading, expenses, holdings, budgets, investmentAssets, userProfile } = useData()
   const portfolioLoading = accountDataLoading
   const currentMonth = getLocalDateValue().slice(0, 7)
   const [selectedMonth, setSelectedMonth] = useState(currentMonth)
@@ -135,6 +136,12 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6">
+      {!accountDataLoading && !userProfile.onboardingCompleted && (
+        <section className="flex flex-col gap-3 rounded-xl border border-blue-200 bg-blue-50 p-4 sm:flex-row sm:items-center sm:justify-between">
+          <div><p className="font-semibold text-blue-900">Selamat datang di FinTrack</p><p className="mt-1 text-sm text-blue-700">Atur preferensi dan sumber dana agar FinTrack sesuai dengan kebutuhan Anda.</p></div>
+          <Link to="/settings" className="shrink-0 rounded-lg bg-blue-600 px-4 py-2 text-center text-sm font-medium text-white hover:bg-blue-700">Mulai pengaturan</Link>
+        </section>
+      )}
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
         <div>

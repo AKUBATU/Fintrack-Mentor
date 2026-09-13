@@ -11,6 +11,7 @@ from ..models.stock_price import StockPrice
 from ..models.investment_asset import InvestmentAsset
 from ..models.fund_transfer import FundTransfer
 from ..models.user_preference import UserPreference
+from ..models.transaction_category import TransactionCategory
 from ..services.fund_account_service import account_rows
 from ..services.profile_service import preference_dict
 from .deps import get_current_user
@@ -65,6 +66,7 @@ def get_account_data(db: Session = Depends(get_db), user=Depends(get_current_use
         db.query(FundTransfer).filter(FundTransfer.user_id == user.id)
         .order_by(FundTransfer.date.desc(), FundTransfer.id.desc()).all()
     )
+    custom_categories = db.query(TransactionCategory).filter(TransactionCategory.user_id == user.id).order_by(TransactionCategory.name).all()
 
     return {
         "expenses": [to_expense_out(row) for row in expenses],
@@ -144,5 +146,9 @@ def get_account_data(db: Session = Depends(get_db), user=Depends(get_current_use
                 "notes": row.notes,
             }
             for row in fund_transfers
+        ],
+        "custom_categories": [
+            {"id": row.id, "transaction_type": row.transaction_type, "name": row.name}
+            for row in custom_categories
         ],
     }

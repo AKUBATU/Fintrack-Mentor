@@ -12,7 +12,7 @@ class ExpenseBase(BaseModel):
     transaction_type: Literal["income", "expense"] = "expense"
     category: str = Field(min_length=1, max_length=80)
     payment_method: str = Field(min_length=1, max_length=40)
-    fund_source: Literal["bank", "cash"] = "bank"
+    fund_source: str = Field(default="bank", min_length=1, max_length=20)
     merchant: str = Field(default="", max_length=120)
     notes: str = Field(default="", max_length=500)
     predicted_category: Optional[str] = None
@@ -33,7 +33,7 @@ class ExpenseUpdate(BaseModel):
     transaction_type: Optional[Literal["income", "expense"]] = None
     category: Optional[str] = None
     payment_method: Optional[str] = None
-    fund_source: Optional[Literal["bank", "cash"]] = None
+    fund_source: Optional[str] = Field(default=None, min_length=1, max_length=20)
     merchant: Optional[str] = None
     notes: Optional[str] = None
     predicted_category: Optional[str] = None

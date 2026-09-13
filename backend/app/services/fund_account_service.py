@@ -5,7 +5,7 @@ from ..models.fund_account import FundAccount
 from ..models.fund_transfer import FundTransfer
 
 
-DEFAULT_ACCOUNTS = {"bank": "Rekening Mandiri", "cash": "Cash"}
+DEFAULT_ACCOUNTS = {"bank": "Rekening Bank", "cash": "Cash"}
 
 
 def account_rows(
@@ -20,7 +20,9 @@ def account_rows(
     if transfers is None:
         transfers = db.query(FundTransfer).filter(FundTransfer.user_id == user_id).all()
     result = []
-    for source, default_name in DEFAULT_ACCOUNTS.items():
+    sources = list(DEFAULT_ACCOUNTS) + [source for source in stored if source not in DEFAULT_ACCOUNTS]
+    for source in sources:
+        default_name = DEFAULT_ACCOUNTS.get(source, source.replace("-", " ").title())
         row = stored.get(source)
         opening = float(row.opening_balance) if row else 0
         flow = sum(

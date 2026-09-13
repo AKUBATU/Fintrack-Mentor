@@ -4,12 +4,15 @@ from ..models.user_preference import UserPreference
 
 
 DEFAULT_PREFERENCE = {
-    "dca_strategy": "Balanced",
-    "dca_amount": 500000,
+    "dca_strategy": "Belum diatur",
+    "dca_amount": 0,
     "dca_frequency": "weekly",
-    "focus_stocks": ["BBRI", "BMRI"],
-    "compounding_dividends": True,
-    "bonus_week_rule": "Jika ada bonus, tambah 1x DCA",
+    "focus_stocks": [],
+    "compounding_dividends": False,
+    "bonus_week_rule": "",
+    "base_currency": "IDR",
+    "timezone": "Asia/Jakarta",
+    "onboarding_completed": False,
 }
 
 
@@ -27,4 +30,7 @@ def preference_dict(row: UserPreference | None) -> dict:
         "focus_stocks": focus_stocks if isinstance(focus_stocks, list) else [],
         "compounding_dividends": row.compounding_dividends,
         "bonus_week_rule": row.bonus_week_rule,
+        "base_currency": row.base_currency,
+        "timezone": row.timezone,
+        "onboarding_completed": row.onboarding_completed,
     }
