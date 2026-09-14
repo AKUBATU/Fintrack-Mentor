@@ -151,7 +151,7 @@ export default function FinancialReportPreview({
             <button type="button" onClick={() => window.print()} disabled={transactions.length === 0 && budgetRows.length === 0} className="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50">
               <Printer className="h-4 w-4" /> Simpan PDF
             </button>
-            <button type="button" onClick={onClose} className="rounded-lg p-2 text-gray-500 hover:bg-gray-100" aria-label="Tutup preview laporan"><X className="h-5 w-5" /></button>
+            <button type="button" onClick={onClose} className="financial-report-close rounded-lg p-2 text-gray-500 hover:bg-gray-100" aria-label="Tutup preview laporan"><X className="h-5 w-5" /></button>
           </div>
         </div>
 

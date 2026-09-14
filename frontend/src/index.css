@@ -3164,6 +3164,8 @@ html.dark { color-scheme: dark; background: #080d18; }
 .portfolio-report-summary strong { display: block; font-size: .9rem; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 .financial-report-table th { padding: .7rem .8rem; color: #64748b; background: #f8fafc; font-weight: 600; }
 .financial-report-table td { padding: .75rem .8rem; border-top: 1px solid #eef2f7; color: #475569; vertical-align: top; }
+.financial-report-table td.text-green-600 { color: #16a34a; }
+.financial-report-table td.text-red-600 { color: #dc2626; }
 .financial-report-table small { display: block; margin-top: .2rem; color: #94a3b8; }
 .financial-report-mobile { display: none; }
 
@@ -3183,11 +3185,21 @@ html.dark { color-scheme: dark; background: #080d18; }
   .financial-report-actions .financial-report-period-input,
   .financial-report-actions .financial-report-range { grid-column: 1 / -1; width: 100%; min-width: 0; }
   .financial-report-actions > button { min-width: 0; }
-  .financial-report-actions > button:last-child { position: absolute; right: .5rem; top: .5rem; width: auto; }
+  .financial-report-actions > .financial-report-close { position: absolute; right: .5rem; top: .5rem; width: auto; }
   .financial-report-range { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); }
   .financial-report-range input { width: 100%; min-width: 0; }
   .financial-report-table { display: none; }
   .financial-report-mobile { display: block; }
+}
+
+@media (max-width: 767px) {
+  .portfolio-report-controlbar { align-items: stretch; flex-direction: column; }
+  .portfolio-report-period-controls { display: grid; grid-template-columns: minmax(0, 1fr); width: 100%; }
+  .portfolio-report-period-controls > span { display: none; }
+  .portfolio-report-period-controls select,
+  .portfolio-report-period-controls input { width: 100%; max-width: 100%; }
+  .portfolio-report-downloads { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); width: 100%; }
+  .portfolio-report-downloads button { min-width: 0; }
 }
 
 @media (max-width: 420px) {
