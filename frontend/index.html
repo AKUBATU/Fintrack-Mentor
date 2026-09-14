@@ -10,7 +10,10 @@
       <title>FinTrack Mentor</title>
       <script>
         try {
-          const savedTheme = localStorage.getItem('fintrack_theme');
+          // Ignore the legacy key because older releases saved the system theme
+          // as if it had been selected manually.
+          localStorage.removeItem('fintrack_theme');
+          const savedTheme = localStorage.getItem('fintrack_theme_preference');
           const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
           document.documentElement.classList.toggle('dark', savedTheme ? savedTheme === 'dark' : prefersDark);
         } catch (_) {}

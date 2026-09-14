@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Moon, Sun } from 'lucide-react';
 
-const THEME_STORAGE_KEY = 'fintrack_theme';
+const THEME_STORAGE_KEY = 'fintrack_theme_preference';
 
 function hasSavedTheme() {
   try {
