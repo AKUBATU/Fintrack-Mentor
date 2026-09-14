@@ -3162,6 +3162,10 @@ html.dark { color-scheme: dark; background: #080d18; }
 .portfolio-report-summary > div { padding: 1rem; border: 1px solid #e2e8f0; border-radius: .75rem; background: #f8fafc; min-width: 0; }
 .portfolio-report-summary p { margin-bottom: .35rem; font-size: .7rem; color: #64748b; }
 .portfolio-report-summary strong { display: block; font-size: .9rem; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.portfolio-report-detail-toggle button { min-height: 34px; padding: .3rem .7rem; border-radius: .4rem; color: #64748b; font-size: .75rem; font-weight: 600; }
+.portfolio-report-detail-toggle button.active { color: #1d4ed8; background: white; box-shadow: 0 1px 4px rgba(15, 23, 42, .1); }
+.dark .portfolio-report-detail-toggle { border-color: #334155; background: #0f172a; }
+.dark .portfolio-report-detail-toggle button.active { color: #93c5fd; background: #1e293b; }
 .financial-report-table th { padding: .7rem .8rem; color: #64748b; background: #f8fafc; font-weight: 600; }
 .financial-report-table td { padding: .75rem .8rem; border-top: 1px solid #eef2f7; color: #475569; vertical-align: top; }
 .financial-report-table td.text-green-600 { color: #16a34a; }
@@ -3197,9 +3201,18 @@ html.dark { color-scheme: dark; background: #080d18; }
   .portfolio-report-period-controls { display: grid; grid-template-columns: minmax(0, 1fr); width: 100%; }
   .portfolio-report-period-controls > span { display: none; }
   .portfolio-report-period-controls select,
-  .portfolio-report-period-controls input { width: 100%; max-width: 100%; }
+  .portfolio-report-period-controls input,
+  .portfolio-report-detail-toggle { width: 100%; max-width: 100%; }
   .portfolio-report-downloads { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); width: 100%; }
   .portfolio-report-downloads button { min-width: 0; }
+  .portfolio-report-activity .portfolio-report-activity-table { display: block; overflow: visible; }
+  .portfolio-report-activity-table table,
+  .portfolio-report-activity-table tbody { display: block; min-width: 0; width: 100%; }
+  .portfolio-report-activity-table thead { display: none; }
+  .portfolio-report-activity-table tr { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); padding: .6rem; border-top: 1px solid #eef2f7; }
+  .portfolio-report-activity-table tr:first-child { border-top: 0; }
+  .portfolio-report-activity-table td { display: flex; min-width: 0; padding: .3rem; align-items: flex-start; justify-content: space-between; gap: .5rem; border: 0; text-align: right; overflow-wrap: anywhere; }
+  .portfolio-report-activity-table td::before { content: attr(data-label); color: #94a3b8; font-size: .65rem; font-weight: 500; text-align: left; }
 }
 
 @media (max-width: 420px) {
@@ -3219,7 +3232,10 @@ html.dark { color-scheme: dark; background: #080d18; }
   .financial-report-mobile { display: none !important; }
   .financial-report-document table { min-width: 0 !important; }
   .financial-report-document tr { break-inside: avoid; }
+  .financial-report-document thead { display: table-header-group; }
   .financial-report-budget-grid > div,
   .portfolio-report-activity section { break-inside: avoid; }
+  .portfolio-report-appendix { break-before: page; }
+  .portfolio-report-appendix section { break-inside: auto; }
   .financial-report-document header { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
 }

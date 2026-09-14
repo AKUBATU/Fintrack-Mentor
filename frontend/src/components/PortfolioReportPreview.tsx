@@ -37,6 +37,7 @@ interface Props {
 }
 
 type ActivityPeriod = 'monthly' | 'yearly' | 'all';
+type ReportDetail = 'summary' | 'detailed';
 const csvCell = (value: unknown) => `"${String(value ?? '').replace(/"/g, '""')}"`;
 const formatDate = (value: string) => value ? new Date(`${value}T00:00:00`).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : '-';
 
@@ -45,12 +46,33 @@ export default function PortfolioReportPreview({ assets, transactions, dividends
   const [period, setPeriod] = useState<ActivityPeriod>('monthly');
   const [selectedMonth, setSelectedMonth] = useState(initialMonth);
   const [selectedYear, setSelectedYear] = useState(initialDate.slice(0, 4));
+  const [detail, setDetail] = useState<ReportDetail>('summary');
   const periodPrefix = period === 'monthly' ? selectedMonth : period === 'yearly' ? selectedYear : '';
   const filteredTransactions = useMemo(() => transactions.filter((item) => period === 'all' || item.date.startsWith(periodPrefix)), [period, periodPrefix, transactions]);
   const filteredDividends = useMemo(() => dividends.filter((item) => period === 'all' || item.date.startsWith(periodPrefix)), [dividends, period, periodPrefix]);
   const activityLabel = period === 'monthly'
     ? new Date(`${selectedMonth}-01T00:00:00`).toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })
     : period === 'yearly' ? `Tahun ${selectedYear}` : 'Seluruh periode';
+
+  const transactionSummary = useMemo(() => {
+    const grouped = new Map<string, { ticker: string; buyCount: number; sellCount: number; buyValue: number; sellValue: number }>();
+    filteredTransactions.forEach((item) => {
+      const row = grouped.get(item.ticker) || { ticker: item.ticker, buyCount: 0, sellCount: 0, buyValue: 0, sellValue: 0 };
+      if (item.type === 'BELI') { row.buyCount += 1; row.buyValue += item.total; }
+      else { row.sellCount += 1; row.sellValue += item.total; }
+      grouped.set(item.ticker, row);
+    });
+    return Array.from(grouped.values()).sort((a, b) => (b.buyValue + b.sellValue) - (a.buyValue + a.sellValue));
+  }, [filteredTransactions]);
+
+  const dividendSummary = useMemo(() => {
+    const grouped = new Map<string, { ticker: string; payments: number; amount: number }>();
+    filteredDividends.forEach((item) => {
+      const row = grouped.get(item.ticker) || { ticker: item.ticker, payments: 0, amount: 0 };
+      row.payments += 1; row.amount += item.amount; grouped.set(item.ticker, row);
+    });
+    return Array.from(grouped.values()).sort((a, b) => b.amount - a.amount);
+  }, [filteredDividends]);
 
   const downloadCsv = () => {
     const lines = [
@@ -81,6 +103,10 @@ export default function PortfolioReportPreview({ assets, transactions, dividends
             <select value={period} onChange={(event) => setPeriod(event.target.value as ActivityPeriod)} className="financial-report-period min-w-0 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm"><option value="monthly">Bulanan</option><option value="yearly">Tahunan</option><option value="all">Semua aktivitas</option></select>
             {period === 'monthly' && <input type="month" value={selectedMonth} onChange={(event) => setSelectedMonth(event.target.value || initialMonth)} className="financial-report-period-input rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm" aria-label="Bulan aktivitas portfolio" />}
             {period === 'yearly' && <input type="number" min="2000" max="2100" value={selectedYear} onChange={(event) => setSelectedYear(event.target.value)} className="financial-report-year-input rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm" aria-label="Tahun aktivitas portfolio" />}
+            <div className="portfolio-report-detail-toggle grid grid-cols-2 rounded-lg border border-gray-200 bg-gray-100 p-0.5">
+              <button type="button" onClick={() => setDetail('summary')} className={detail === 'summary' ? 'active' : ''}>Ringkas</button>
+              <button type="button" onClick={() => setDetail('detailed')} className={detail === 'detailed' ? 'active' : ''}>Rinci</button>
+            </div>
           </div>
           <div className="portfolio-report-downloads flex shrink-0 items-center gap-2">
             <button type="button" onClick={downloadCsv} className="inline-flex items-center justify-center gap-2 rounded-lg bg-gray-100 px-3 py-2 text-sm font-medium text-gray-700"><FileSpreadsheet className="h-4 w-4" /> CSV</button>
@@ -101,8 +127,15 @@ export default function PortfolioReportPreview({ assets, transactions, dividends
             <div className="financial-report-mobile space-y-2">{assets.map((asset) => <div key={asset.id} className="rounded-lg border border-gray-200 p-3"><div className="flex justify-between gap-3"><div className="min-w-0"><p className="truncate font-medium text-gray-900">{asset.name}</p><p className="text-xs text-gray-500">{asset.symbol ? `${asset.symbol} · ` : ''}{asset.type}</p></div><p className="shrink-0 text-sm font-semibold text-gray-900">{formatCurrency(asset.currentValue)}</p></div><div className="mt-2 flex justify-between gap-3 text-xs text-gray-500"><span>{asset.ownership}</span><span className={asset.profitLoss < 0 ? 'text-red-600' : 'text-green-600'}>{formatCurrency(asset.profitLoss)}</span></div></div>)}</div></> : <p className="rounded-lg border border-dashed border-gray-200 p-6 text-center text-sm text-gray-500">Belum ada aset aktif.</p>}
           </section>
 
-          <div className="portfolio-report-activity mt-7 grid grid-cols-1 gap-5 sm:grid-cols-2"><section><h3 className="text-sm font-semibold text-gray-900">Transaksi saham</h3><p className="mb-3 text-xs text-gray-500">Aktivitas {activityLabel} · {filteredTransactions.length} transaksi</p><div className="space-y-2">{filteredTransactions.map((item) => <div key={item.id} className="flex justify-between gap-3 border-b border-gray-100 pb-2 text-xs"><div><p className="font-medium text-gray-900">{item.ticker} · {item.type}</p><p className="text-gray-500">{formatDate(item.date)} · {item.ownership}</p></div><p className="shrink-0 font-medium text-gray-900">{formatCurrency(item.total)}</p></div>)}{!filteredTransactions.length && <p className="text-xs text-gray-500">Tidak ada transaksi pada periode ini.</p>}</div></section>
-          <section><h3 className="text-sm font-semibold text-gray-900">Dividen</h3><p className="mb-3 text-xs text-gray-500">{activityLabel} · {filteredDividends.length} pembayaran</p><div className="space-y-2">{filteredDividends.map((item) => <div key={item.id} className="flex justify-between gap-3 border-b border-gray-100 pb-2 text-xs"><div><p className="font-medium text-gray-900">{item.ticker}</p><p className="text-gray-500">{formatDate(item.date)}</p></div><p className="shrink-0 font-medium text-green-600">{formatCurrency(item.amount)}</p></div>)}{!filteredDividends.length && <p className="text-xs text-gray-500">Tidak ada dividen pada periode ini.</p>}</div></section></div>
+          <div className={`portfolio-report-activity mt-7 space-y-7 ${detail === 'detailed' ? 'portfolio-report-appendix' : ''}`}>
+            <section><h3 className="text-sm font-semibold text-gray-900">Transaksi saham</h3><p className="mb-3 text-xs text-gray-500">Aktivitas {activityLabel} · {filteredTransactions.length} transaksi · {transactionSummary.length} ticker</p>
+              {filteredTransactions.length ? <div className="financial-report-table portfolio-report-activity-table overflow-hidden rounded-lg border border-gray-200"><table className="w-full border-collapse text-left text-xs"><thead><tr>{detail === 'summary' ? <><th>Ticker</th><th className="text-right">Beli</th><th className="text-right">Nilai beli</th><th className="text-right">Jual</th><th className="text-right">Nilai jual</th></> : <><th>Tanggal</th><th>Ticker</th><th>Jenis</th><th>Kepemilikan</th><th className="text-right">Harga</th><th className="text-right">Total</th></>}</tr></thead>
+                <tbody>{detail === 'summary' ? transactionSummary.map((item) => <tr key={item.ticker}><td data-label="Ticker" className="font-semibold text-gray-900">{item.ticker}</td><td data-label="Beli" className="text-right">{item.buyCount} transaksi</td><td data-label="Nilai beli" className="text-right">{formatCurrency(item.buyValue)}</td><td data-label="Jual" className="text-right">{item.sellCount} transaksi</td><td data-label="Nilai jual" className="text-right">{formatCurrency(item.sellValue)}</td></tr>) : filteredTransactions.map((item) => <tr key={item.id}><td data-label="Tanggal">{formatDate(item.date)}</td><td data-label="Ticker" className="font-semibold text-gray-900">{item.ticker}</td><td data-label="Jenis"><span className={item.type === 'BELI' ? 'text-green-600' : 'text-red-600'}>{item.type}</span></td><td data-label="Kepemilikan">{item.ownership}</td><td data-label="Harga" className="text-right">{formatCurrency(item.price)}</td><td data-label="Total" className="text-right font-medium text-gray-900">{formatCurrency(item.total)}</td></tr>)}</tbody></table></div> : <p className="text-xs text-gray-500">Tidak ada transaksi pada periode ini.</p>}
+            </section>
+            <section><h3 className="text-sm font-semibold text-gray-900">Dividen</h3><p className="mb-3 text-xs text-gray-500">Aktivitas {activityLabel} · {filteredDividends.length} pembayaran · {dividendSummary.length} ticker</p>
+              {filteredDividends.length ? <div className="financial-report-table portfolio-report-activity-table overflow-hidden rounded-lg border border-gray-200"><table className="w-full border-collapse text-left text-xs"><thead><tr>{detail === 'summary' ? <><th>Ticker</th><th className="text-right">Pembayaran</th><th className="text-right">Total dividen</th></> : <><th>Tanggal</th><th>Ticker</th><th className="text-right">Jumlah</th></>}</tr></thead><tbody>{detail === 'summary' ? dividendSummary.map((item) => <tr key={item.ticker}><td data-label="Ticker" className="font-semibold text-gray-900">{item.ticker}</td><td data-label="Pembayaran" className="text-right">{item.payments} kali</td><td data-label="Total dividen" className="text-right font-semibold text-green-600">{formatCurrency(item.amount)}</td></tr>) : filteredDividends.map((item) => <tr key={item.id}><td data-label="Tanggal">{formatDate(item.date)}</td><td data-label="Ticker" className="font-semibold text-gray-900">{item.ticker}</td><td data-label="Jumlah" className="text-right font-semibold text-green-600">{formatCurrency(item.amount)}</td></tr>)}</tbody></table></div> : <p className="text-xs text-gray-500">Tidak ada dividen pada periode ini.</p>}
+            </section>
+          </div>
           <footer className="mt-8 border-t border-gray-200 pt-4 text-center text-[11px] text-gray-400">Laporan dibuat otomatis berdasarkan data akun FinTrack. Nilai portfolio bukan nilai historis dan bukan rekomendasi investasi.</footer>
         </div>
       </article></div>
