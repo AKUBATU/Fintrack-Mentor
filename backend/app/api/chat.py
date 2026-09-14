@@ -89,32 +89,49 @@ def chat(
         float(asset.quantity * asset.current_price * asset.exchange_rate_to_idr)
         for asset in other_assets
     )
+    is_english = payload.locale == "en"
     category_text = ", ".join(
         f"{category} (Rp {amount:,.0f})"
         for category, amount in expenses["top_categories"]
-    ) or "belum ada"
+    ) or ("no data yet" if is_english else "belum ada")
     question = payload.message.lower()
-    if any(word in question for word in ("saldo", "cash", "rekening", "dompet")):
+    if any(word in question for word in ("saldo", "cash", "rekening", "dompet", "balance", "account")):
         balances = account_rows(db, user.id)
         detail = ", ".join(f"{row['name']}: Rp {row['balance']:,.0f}" for row in balances)
-        reply = f"Saldo tercatat Anda saat ini: {detail}. Total seluruh sumber saldo Rp {sum(row['balance'] for row in balances):,.0f}."
+        reply = (
+            f"Your recorded balances: {detail}. Total across all funding sources is Rp {sum(row['balance'] for row in balances):,.0f}."
+            if is_english else
+            f"Saldo tercatat Anda saat ini: {detail}. Total seluruh sumber saldo Rp {sum(row['balance'] for row in balances):,.0f}."
+        )
     elif any(word in question for word in ("budget", "anggaran", "batas")):
         budgets = db.query(Budget).filter(Budget.user_id == user.id).order_by(Budget.reference_date.desc()).limit(5).all()
-        detail = ", ".join(f"{row.category} ({row.period}): Rp {row.amount:,.0f}" for row in budgets) or "belum ada budget"
-        reply = f"Budget terbaru Anda: {detail}. Bandingkan batas tersebut dengan pengeluaran pada periode yang sama di halaman Keuangan."
+        detail = ", ".join(f"{row.category} ({row.period}): Rp {row.amount:,.0f}" for row in budgets) or ("no budgets yet" if is_english else "belum ada budget")
+        reply = (
+            f"Your latest budgets: {detail}. Compare each limit with spending for the same period on the Finance page."
+            if is_english else
+            f"Budget terbaru Anda: {detail}. Bandingkan batas tersebut dengan pengeluaran pada periode yang sama di halaman Keuangan."
+        )
     elif any(word in question for word in ("portofolio", "portfolio", "investasi", "dividen")):
         reply = (
+            f"Active stock cost basis is Rp {float(portfolio['total_cost_basis']):,.0f}, realized P/L is "
+            f"Rp {float(portfolio['total_realized_pl']):,.0f}, total dividends are Rp {float(portfolio['total_dividends']):,.0f}, "
+            f"and non-stock instruments are worth Rp {other_asset_value:,.0f}. Keep asset prices updated so this summary stays relevant."
+        ) if is_english else (
             f"Modal saham aktif tercatat Rp {float(portfolio['total_cost_basis']):,.0f}, realized P/L "
             f"Rp {float(portfolio['total_realized_pl']):,.0f}, total dividen Rp {float(portfolio['total_dividends']):,.0f}, "
             f"dan nilai instrumen non-saham Rp {other_asset_value:,.0f}. Perbarui harga aset agar ringkasan tetap relevan."
         )
     else:
         reply = (
+            f"Spending this month is Rp {expenses['total']:,.0f} across {expenses['count']} transactions. "
+            f"Top categories: {category_text}. Recorded dividends total Rp {float(portfolio['total_dividends']):,.0f}. "
+            "Use the words 'balance', 'budget', or 'portfolio' for a more specific breakdown."
+        ) if is_english else (
             f"Pengeluaran bulan berjalan Rp {expenses['total']:,.0f} dari {expenses['count']} transaksi. "
             f"Kategori terbesar: {category_text}. Total dividen tercatat Rp {float(portfolio['total_dividends']):,.0f}. "
             "Gunakan kata 'saldo', 'budget', atau 'portofolio' agar saya menampilkan rincian yang sesuai."
         )
-    reply += "\n\nAnalisis edukatif berdasarkan data FinTrack dan bukan rekomendasi keuangan profesional."
+    reply += ("\n\nEducational analysis based on FinTrack data; this is not professional financial advice." if is_english else "\n\nAnalisis edukatif berdasarkan data FinTrack dan bukan rekomendasi keuangan profesional.")
     _clear_old_messages(db, user.id)
     session_date = _today(db, user.id)
     db.add_all([

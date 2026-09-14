@@ -7,6 +7,7 @@ import ProcessingOverlay from '../components/ProcessingOverlay';
 import { formatCurrency, formatCurrencyCode } from '../utils/formatters';
 import { useModalFocusTrap } from '../utils/useModalFocusTrap';
 import PortfolioReportPreview, { type PortfolioReportAsset, type PortfolioReportDividend, type PortfolioReportTransaction } from '../components/PortfolioReportPreview';
+import { useLanguage } from '../contexts/LanguageContext';
 
 const ASSET_TYPES = [
   ['stock', 'Saham'], ['etf', 'ETF'], ['money_market_fund', 'Reksa Dana Pasar Uang (RDPU)'], ['mutual_fund', 'Reksa Dana Lainnya'], ['bond', 'Obligasi'],
@@ -59,6 +60,7 @@ const formatAssetAmount = (value: string, currency: string) => {
 };
 
 export default function Portfolio() {
+  const { locale, t, pick } = useLanguage();
   // ✅ ambil context apa adanya (tetap), tapi kita bikin aman kalau ada field yang belum disediakan
   const data: any = useData();
 
@@ -624,22 +626,22 @@ export default function Portfolio() {
       {/* Header */}
       <div className="portfolio-page-header order-1 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Portofolio</h1>
-          <p className="text-gray-600">Pantau kepemilikan, performa, dan pendapatan investasi Anda.</p>
+          <h1 className="text-2xl font-bold text-gray-900">{t('portfolio.title')}</h1>
+          <p className="text-gray-600">{t('portfolio.subtitle')}</p>
         </div>
         <div className="portfolio-header-actions flex flex-wrap gap-2">
           <button onClick={() => setShowReportPreview(true)} className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
-            <Download className="w-4 h-4" /> Export
+            <Download className="w-4 h-4" /> {t('common.export')}
           </button>
           <button onClick={openAddAsset} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-            <Layers3 className="w-4 h-4" /> Tambah Instrumen
+            <Layers3 className="w-4 h-4" /> {pick('Tambah Instrumen', 'Add Instrument')}
           </button>
           <button
             onClick={() => setShowUpdatePrice(true)}
             className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
           >
             <TrendingUp className="w-4 h-4" />
-            Update Harga
+            {pick('Update Harga', 'Update Prices')}
           </button>
           <button
             onClick={() => { setEditingDividendId(null); setDividendForm({ ticker: '', dividendPerShare: '', shares: '', recordDate: '', paymentDate: '' }); setShowAddDividend(true); }}
@@ -656,7 +658,7 @@ export default function Portfolio() {
             className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
           >
             <Plus className="w-4 h-4" />
-            Catat Saham
+            {pick('Catat Saham', 'Record Stock')}
           </button>
         </div>
       </div>
@@ -666,7 +668,7 @@ export default function Portfolio() {
         <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 border border-gray-200">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <p className="text-sm text-gray-500">Indikator komposisi portofolio</p>
+              <p className="text-sm text-gray-500">{pick('Indikator komposisi portofolio', 'Portfolio composition indicator')}</p>
               <div className="flex items-end gap-3 mt-1">
                 <p className="text-4xl font-bold text-gray-900">{portfolioHealth?.score ?? 0}</p>
                 <p className="text-sm text-gray-500 mb-1">/ 100</p>
@@ -677,13 +679,13 @@ export default function Portfolio() {
           <div className="w-full bg-gray-200 rounded-full h-2 mt-4">
             <div className="h-2 rounded-full" style={{ width: `${portfolioHealth?.score || 0}%`, backgroundColor: (portfolioHealth?.score || 0) >= 75 ? '#22c55e' : (portfolioHealth?.score || 0) >= 55 ? '#3b82f6' : (portfolioHealth?.score || 0) >= 35 ? '#eab308' : '#ef4444' }} />
           </div>
-          <p className="font-semibold text-gray-900 mt-3">{portfolioHealth?.status || (assetLoading ? 'Menghitung…' : 'Belum dapat dinilai')}</p>
-          <p className="text-xs text-gray-500 mt-1">Skor edukatif berdasarkan diversifikasi, konsentrasi, likuiditas, dan tingkat risiko aset.</p>
+          <p className="font-semibold text-gray-900 mt-3">{portfolioHealth?.status || (assetLoading ? pick('Menghitung…', 'Calculating…') : pick('Belum dapat dinilai', 'Not enough data'))}</p>
+          <p className="text-xs text-gray-500 mt-1">{pick('Skor edukatif berdasarkan diversifikasi, konsentrasi, likuiditas, dan tingkat risiko aset.', 'An educational score based on diversification, concentration, liquidity, and asset risk.')}</p>
           <div className="portfolio-health-grid grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4 text-sm">
-            <div className="p-3 bg-gray-50 rounded-lg"><p className="text-gray-500">Diversifikasi</p><p className="font-semibold">{portfolioHealth?.diversification_score ?? 0}/100</p></div>
-            <div className="p-3 bg-gray-50 rounded-lg"><p className="text-gray-500">Konsentrasi</p><p className="font-semibold">{portfolioHealth?.concentration_score ?? 0}/100</p></div>
-            <div className="p-3 bg-gray-50 rounded-lg"><p className="text-gray-500">Likuiditas</p><p className="font-semibold">{portfolioHealth?.liquidity_score ?? 0}/100</p></div>
-            <div className="p-3 bg-gray-50 rounded-lg"><p className="text-gray-500">Keseimbangan risiko</p><p className="font-semibold">{portfolioHealth?.risk_score ?? 0}/100</p></div>
+            <div className="p-3 bg-gray-50 rounded-lg"><p className="text-gray-500">{pick('Diversifikasi', 'Diversification')}</p><p className="font-semibold">{portfolioHealth?.diversification_score ?? 0}/100</p></div>
+            <div className="p-3 bg-gray-50 rounded-lg"><p className="text-gray-500">{pick('Konsentrasi', 'Concentration')}</p><p className="font-semibold">{portfolioHealth?.concentration_score ?? 0}/100</p></div>
+            <div className="p-3 bg-gray-50 rounded-lg"><p className="text-gray-500">{pick('Likuiditas', 'Liquidity')}</p><p className="font-semibold">{portfolioHealth?.liquidity_score ?? 0}/100</p></div>
+            <div className="p-3 bg-gray-50 rounded-lg"><p className="text-gray-500">{pick('Keseimbangan risiko', 'Risk balance')}</p><p className="font-semibold">{portfolioHealth?.risk_score ?? 0}/100</p></div>
           </div>
         </div>
       </div>
@@ -691,8 +693,8 @@ export default function Portfolio() {
       {/* Unified portfolio */}
       <div className="order-3 bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
         <div className="flex items-start sm:items-center justify-between gap-4 mb-4">
-          <div><h3 className="font-semibold text-gray-900">Portofolio Saya</h3><p className="text-sm text-gray-500">Seluruh saham dan instrumen investasi Anda dalam satu tempat.</p></div>
-          <span className="px-2 py-1 bg-blue-50 text-blue-700 text-xs rounded-full">{portfolioAssetCount} aset</span>
+          <div><h3 className="font-semibold text-gray-900">{pick('Portofolio Saya', 'My Portfolio')}</h3><p className="text-sm text-gray-500">{pick('Seluruh saham dan instrumen investasi Anda dalam satu tempat.', 'All your stocks and investment instruments in one place.')}</p></div>
+          <span className="px-2 py-1 bg-blue-50 text-blue-700 text-xs rounded-full">{portfolioAssetCount} {pick('aset', 'assets')}</span>
         </div>
         <div className="portfolio-mobile-list space-y-3 md:hidden">
           {visibleHoldings.length > 0 && <div className="flex items-center justify-between pt-1"><p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Saham</p><span className="text-xs text-gray-400">{visibleHoldings.length} aset</span></div>}
@@ -713,12 +715,12 @@ export default function Portfolio() {
         <div className="hidden md:block overflow-x-auto">
           <table className="w-full">
             <thead><tr className="border-b border-gray-200">
-              <th className="text-left py-3 px-3 text-sm font-medium text-gray-700">Aset</th>
-              <th className="text-left py-3 px-3 text-sm font-medium text-gray-700">Jenis</th>
-              <th className="text-right py-3 px-3 text-sm font-medium text-gray-700">Modal</th>
-              <th className="text-right py-3 px-3 text-sm font-medium text-gray-700">Nilai Kini</th>
+              <th className="text-left py-3 px-3 text-sm font-medium text-gray-700">{pick('Aset', 'Asset')}</th>
+              <th className="text-left py-3 px-3 text-sm font-medium text-gray-700">{pick('Jenis', 'Type')}</th>
+              <th className="text-right py-3 px-3 text-sm font-medium text-gray-700">{pick('Modal', 'Cost')}</th>
+              <th className="text-right py-3 px-3 text-sm font-medium text-gray-700">{pick('Nilai Kini', 'Current Value')}</th>
               <th className="text-right py-3 px-3 text-sm font-medium text-gray-700">P/L</th>
-              <th className="text-right py-3 px-3 text-sm font-medium text-gray-700">Aksi</th>
+              <th className="text-right py-3 px-3 text-sm font-medium text-gray-700">{pick('Aksi', 'Actions')}</th>
             </tr></thead>
             <tbody>
               {visibleHoldings.length > 0 && <tr className="bg-gray-50"><td colSpan={6} className="px-3 py-2 text-xs font-semibold uppercase tracking-wide text-gray-500">Saham · {visibleHoldings.length} aset</td></tr>}
@@ -744,16 +746,16 @@ export default function Portfolio() {
             </tbody>
           </table>
         </div>
-        {!assetLoading && portfolioAssetCount === 0 && <div className="text-center py-8"><p className="font-medium text-gray-700">Portofolio masih kosong</p><p className="text-sm text-gray-500 mt-1">Catat saham atau tambahkan instrumen investasi pertama Anda.</p></div>}
+        {!assetLoading && portfolioAssetCount === 0 && <div className="text-center py-8"><p className="font-medium text-gray-700">{pick('Portofolio masih kosong', 'Your portfolio is empty')}</p><p className="text-sm text-gray-500 mt-1">{pick('Catat saham atau tambahkan instrumen investasi pertama Anda.', 'Record a stock or add your first investment instrument.')}</p></div>}
         {portfolioAssetCount > 6 && <div className="flex justify-center pt-4 mt-2 border-t border-gray-100"><button onClick={() => setShowAllPortfolioAssets((current) => !current)} className="px-4 py-2 text-sm font-medium text-blue-600 hover:bg-blue-50 rounded-lg">{showAllPortfolioAssets ? 'Tampilkan lebih sedikit' : `Lihat semua ${portfolioAssetCount} aset`}</button></div>}
       </div>
 
       {/* Portfolio Summary Cards */}
       <div className="portfolio-summary-grid order-2 grid grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-6">
         <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 border border-gray-200 min-w-0">
-          <p className="text-sm text-gray-600 mb-1">Nilai Portofolio</p>
+          <p className="text-sm text-gray-600 mb-1">{pick('Nilai Portofolio', 'Portfolio Value')}</p>
           <p className="text-lg sm:text-2xl font-bold text-gray-900 break-words">{formatCurrency(portfolioMetrics.totalValue)}</p>
-          <p className="text-xs text-gray-500 mt-1">Modal: {formatCurrency(portfolioMetrics.totalCost)}</p>
+          <p className="text-xs text-gray-500 mt-1">{pick('Modal', 'Cost')}: {formatCurrency(portfolioMetrics.totalCost)}</p>
         </div>
 
         <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 border border-gray-200 min-w-0">
@@ -774,13 +776,13 @@ export default function Portfolio() {
             {portfolioMetrics.realizedPL >= 0 ? '+' : ''}
             {formatCurrency(portfolioMetrics.realizedPL)}
           </p>
-          <p className="text-xs text-gray-500 mt-1">Dari transaksi jual</p>
+          <p className="text-xs text-gray-500 mt-1">{pick('Dari transaksi jual', 'From sell transactions')}</p>
         </div>
 
         <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 border border-gray-200 min-w-0">
-          <p className="text-sm text-gray-600 mb-1">Total Dividen</p>
+          <p className="text-sm text-gray-600 mb-1">{pick('Total Dividen', 'Total Dividends')}</p>
           <p className="text-lg sm:text-2xl font-bold text-green-600 break-words">{formatCurrency(portfolioMetrics.totalDividends)}</p>
-          <p className="text-xs text-gray-500 mt-1">{dividends.length} pembayaran</p>
+          <p className="text-xs text-gray-500 mt-1">{dividends.length} {pick('pembayaran', 'payments')}</p>
         </div>
       </div>
 
@@ -790,8 +792,8 @@ export default function Portfolio() {
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
           <div className="flex items-start justify-between mb-4">
             <div>
-              <h3 className="font-semibold text-gray-900">Riwayat Transaksi Saham</h3>
-              <p className="text-sm text-gray-500">Urutan transaksi terbaru</p>
+              <h3 className="font-semibold text-gray-900">{pick('Riwayat Transaksi Saham', 'Stock Transaction History')}</h3>
+              <p className="text-sm text-gray-500">{pick('Urutan transaksi terbaru', 'Most recent transactions first')}</p>
             </div>
             <span className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-full">{transactionHistory.length} transaksi</span>
           </div>
@@ -819,7 +821,7 @@ export default function Portfolio() {
                       <p className="text-sm text-gray-600 mt-1">
                         {lots} lot @ {formatCurrency(pricePerShare)}
                       </p>
-                      <p className="text-xs text-gray-500">Tanggal: {new Date(tx.date).toLocaleDateString('id-ID')}</p>
+                      <p className="text-xs text-gray-500">Tanggal: {new Date(tx.date).toLocaleDateString(locale)}</p>
                     </div>
                     <div className="text-right">
                       <p className="font-medium text-gray-900">{formatCurrency(shares * pricePerShare + fee)}</p>
@@ -844,8 +846,8 @@ export default function Portfolio() {
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
           <div className="flex items-start justify-between mb-4">
             <div>
-              <h3 className="font-semibold text-gray-900">Riwayat Dividen</h3>
-              <p className="text-sm text-gray-500">Seluruh pendapatan dividen</p>
+              <h3 className="font-semibold text-gray-900">{pick('Riwayat Dividen', 'Dividend History')}</h3>
+              <p className="text-sm text-gray-500">{pick('Seluruh pendapatan dividen', 'All dividend income')}</p>
             </div>
             <span className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">{dividendHistory.length} pembayaran</span>
           </div>
@@ -859,7 +861,7 @@ export default function Portfolio() {
                     <div>
                       <p className="font-medium text-gray-900">{div.ticker}</p>
                       <p className="text-xs text-gray-500">
-                        Dibayar: {payment ? new Date(payment).toLocaleDateString('id-ID') : '-'}
+                        Dibayar: {payment ? new Date(payment).toLocaleDateString(locale) : '-'}
                       </p>
                     </div>
                     <div className="text-right shrink-0">

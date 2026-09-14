@@ -5,12 +5,15 @@ import { toast } from 'sonner';
 import ThemeToggle from '../components/ThemeToggle';
 import { api } from '../services/api';
 import ProcessingOverlay from '../components/ProcessingOverlay';
+import LanguageSelect from '../components/LanguageSelect';
+import { useLanguage } from '../contexts/LanguageContext';
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [resetUrl, setResetUrl] = useState<string | null>(null);
+  const { t } = useLanguage();
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -21,7 +24,7 @@ export default function ForgotPassword() {
       setResetUrl(result.reset_url || null);
       toast.success(result.message);
     } catch (error: any) {
-      toast.error(error?.message || 'Permintaan reset password gagal');
+      toast.error(error?.message || t('forgot.failed'));
     } finally {
       setLoading(false);
     }
@@ -29,28 +32,29 @@ export default function ForgotPassword() {
 
   return (
     <div className="auth-shell min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-      {loading && <ProcessingOverlay message="Sedang mengirim link reset…" />}
+      {loading && <ProcessingOverlay message={t('forgot.loading')} />}
+      <LanguageSelect compact className="auth-language-select" />
       <ThemeToggle className="auth-theme-toggle" />
       <div className="auth-card max-w-md w-full bg-white rounded-2xl shadow-xl p-8">
         <div className="text-center mb-8">
           <img src="/fintrack-mark.svg" alt="Logo FinTrack" className="inline-block w-16 h-16 mb-4 rounded-2xl shadow-lg" />
-          <h1 className="text-3xl font-bold text-gray-900">Lupa Password</h1>
-          <p className="text-gray-500 mt-2">Masukkan email akun untuk menerima link reset.</p>
+          <h1 className="text-3xl font-bold text-gray-900">{t('forgot.title')}</h1>
+          <p className="text-gray-500 mt-2">{t('forgot.subtitle')}</p>
         </div>
 
         {submitted ? (
           <div className="p-4 bg-green-50 text-green-800 rounded-lg text-sm text-center">
-            <p>{resetUrl ? 'Mode development aktif. Gunakan tombol berikut untuk mengganti password.' : 'Jika email terdaftar, link reset password telah dikirim. Periksa juga folder spam.'}</p>
+            <p>{resetUrl ? t('forgot.dev') : t('forgot.sent')}</p>
             {resetUrl && (
               <Link to={resetUrl.replace(/^https?:\/\/[^/]+/, '')} className="inline-block mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium">
-                Buka Halaman Reset Password
+                {t('forgot.openReset')}
               </Link>
             )}
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">{t('auth.email')}</label>
               <input
                 type="email"
                 autoComplete="email"
@@ -62,13 +66,13 @@ export default function ForgotPassword() {
               />
             </div>
             <button type="submit" disabled={loading} className="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 disabled:opacity-50 font-medium">
-              <span className="inline-flex items-center justify-center gap-2">{loading && <LoaderCircle className="w-4 h-4 animate-spin" />}{loading ? 'Mengirim...' : 'Kirim Link Reset'}</span>
+              <span className="inline-flex items-center justify-center gap-2">{loading && <LoaderCircle className="w-4 h-4 animate-spin" />}{loading ? t('forgot.sending') : t('forgot.send')}</span>
             </button>
           </form>
         )}
 
         <div className="mt-6 text-center">
-          <Link to="/login" className="text-blue-600 hover:underline font-medium">Kembali ke login</Link>
+          <Link to="/login" className="text-blue-600 hover:underline font-medium">{t('forgot.back')}</Link>
         </div>
       </div>
     </div>

@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field
 
 class ChatIn(BaseModel):
     message: str = Field(..., min_length=1)
+    locale: str = Field(default="id", pattern="^(id|en)$")
     # opsional: kamu bisa kirim context ringan dari frontend kalau mau
     context: Optional[str] = None
 

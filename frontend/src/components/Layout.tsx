@@ -13,11 +13,14 @@ import {
 import { useAuth } from '../contexts/AuthContext';
 import { useEffect, useState } from 'react';
 import ThemeToggle from './ThemeToggle';
+import LanguageSelect from './LanguageSelect';
+import { useLanguage } from '../contexts/LanguageContext';
 
 export default function Layout() {
   const { user, logout } = useAuth();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { locale, t } = useLanguage();
 
   useEffect(() => { setSidebarOpen(false); }, [location.pathname]);
 
@@ -36,12 +39,12 @@ export default function Layout() {
   }, [sidebarOpen]);
 
   const navigation = [
-    { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-    { name: 'Keuangan', href: '/expenses', icon: Wallet },
-    { name: 'Portofolio', href: '/portfolio', icon: TrendingUp },
-    { name: 'Chat Mentor', href: '/chat', icon: MessageSquare },
-    { name: 'Profil', href: '/settings', icon: UserRound },
-    { name: 'Tentang', href: '/about', icon: Info },
+    { name: t('nav.dashboard'), href: '/dashboard', icon: LayoutDashboard },
+    { name: t('nav.finance'), href: '/expenses', icon: Wallet },
+    { name: t('nav.portfolio'), href: '/portfolio', icon: TrendingUp },
+    { name: t('nav.chat'), href: '/chat', icon: MessageSquare },
+    { name: t('nav.profile'), href: '/settings', icon: UserRound },
+    { name: t('nav.about'), href: '/about', icon: Info },
   ];
 
   const isActive = (path: string) => location.pathname === path;
@@ -70,13 +73,13 @@ export default function Layout() {
               <img src="/fintrack-mark.svg" alt="" className="app-brand-mark" />
               <div>
                 <h1 className="text-lg font-bold text-gray-900">FinTrack</h1>
-                <p className="text-xs text-gray-500">Personal wealth manager</p>
+                <p className="text-xs text-gray-500">{t('layout.tagline')}</p>
               </div>
             </div>
             <button 
               onClick={() => setSidebarOpen(false)}
               className="lg:hidden"
-              aria-label="Tutup menu navigasi"
+              aria-label={t('layout.closeMenu')}
             >
               <X className="w-6 h-6 text-gray-600" />
             </button>
@@ -123,7 +126,7 @@ export default function Layout() {
               className="w-full flex items-center justify-center px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors"
             >
               <LogOut className="w-4 h-4 mr-2" />
-              Logout
+              {t('common.logout')}
             </button>
           </div>
         </div>
@@ -137,7 +140,7 @@ export default function Layout() {
             <button
               onClick={() => setSidebarOpen(true)}
               className="lg:hidden shrink-0"
-              aria-label="Buka menu navigasi"
+              aria-label={t('layout.openMenu')}
             >
               <Menu className="w-6 h-6 text-gray-600" />
             </button>
@@ -145,12 +148,13 @@ export default function Layout() {
               <h2 className="text-lg font-semibold text-gray-900 truncate">
                 {navigation.find(item => isActive(item.href))?.name || 'FinTrack Mentor'}
               </h2>
-              <p className="app-topbar-subtitle text-xs text-gray-500">Kelola finansial Anda dengan lebih terarah</p>
+              <p className="app-topbar-subtitle text-xs text-gray-500">{t('layout.subtitle')}</p>
             </div>
             <div className="flex items-center gap-2">
               <div className="app-topbar-meta">
-                <div className="app-date-pill">{new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }).format(new Date())}</div>
+                <div className="app-date-pill">{new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'long', year: 'numeric' }).format(new Date())}</div>
               </div>
+              <LanguageSelect compact />
               <ThemeToggle />
             </div>
           </div>

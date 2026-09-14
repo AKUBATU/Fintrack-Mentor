@@ -430,10 +430,10 @@ export const api = {
   },
 
   // Chat
-  async chat(message: string) {
+  async chat(message: string, locale: 'id' | 'en' = 'id') {
     return request<{ reply: string }>(`/api/chat`, {
       method: 'POST',
-      body: JSON.stringify({ message }),
+      body: JSON.stringify({ message, locale }),
     });
   },
   async chatHistory() {

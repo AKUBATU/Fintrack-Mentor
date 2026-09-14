@@ -5,6 +5,8 @@ import { useAuth } from '../contexts/AuthContext';
 import ThemeToggle from '../components/ThemeToggle';
 import ProcessingOverlay from '../components/ProcessingOverlay';
 import { toast } from 'sonner';
+import LanguageSelect from '../components/LanguageSelect';
+import { useLanguage } from '../contexts/LanguageContext';
 
 export default function Register() {
   const [name, setName] = useState('');
@@ -16,12 +18,13 @@ export default function Register() {
   const [loading, setLoading] = useState(false);
   const { register } = useAuth();
   const navigate = useNavigate();
+  const { t } = useLanguage();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (password !== confirmPassword) {
-      toast.error('Konfirmasi password tidak cocok');
+      toast.error(t('register.passwordMismatch'));
       return;
     }
 
@@ -38,7 +41,8 @@ export default function Register() {
 
   return (
     <div className="auth-shell min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-      {loading && <ProcessingOverlay message="Sedang membuat akun…" />}
+      {loading && <ProcessingOverlay message={t('register.loading')} />}
+      <LanguageSelect compact className="auth-language-select" />
       <ThemeToggle className="auth-theme-toggle" />
       <div className="max-w-md w-full min-w-0">
         <div className="auth-card bg-white rounded-2xl shadow-xl p-8">
@@ -46,28 +50,28 @@ export default function Register() {
           <div className="text-center mb-8">
             <img src="/fintrack-mark.svg" alt="Logo FinTrack" className="inline-block w-16 h-16 mb-4 rounded-2xl shadow-lg" />
             <h1 className="text-3xl font-bold text-gray-900">FinTrack Mentor</h1>
-            <p className="text-gray-500 mt-2">Mulai catat keuangan dan investasi Anda</p>
+            <p className="text-gray-500 mt-2">{t('register.subtitle')}</p>
           </div>
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Nama Lengkap
+                {t('register.name')}
               </label>
               <input
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="Nama lengkap Anda"
+                placeholder={t('register.namePlaceholder')}
                 required
               />
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Email
+                {t('auth.email')}
               </label>
               <input
                 type="email"
@@ -82,7 +86,7 @@ export default function Register() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Password
+                {t('auth.password')}
               </label>
               <div className="relative">
                 <input
@@ -95,7 +99,7 @@ export default function Register() {
                   required
                   minLength={6}
                 />
-                <button type="button" onClick={() => setShowPassword((visible) => !visible)} className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-gray-500 hover:text-gray-700" aria-label={showPassword ? 'Sembunyikan password' : 'Tampilkan password'}>
+                <button type="button" onClick={() => setShowPassword((visible) => !visible)} className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-gray-500 hover:text-gray-700" aria-label={showPassword ? t('auth.hidePassword') : t('auth.showPassword')}>
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
               </div>
@@ -103,7 +107,7 @@ export default function Register() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Konfirmasi Password
+                {t('register.confirmPassword')}
               </label>
               <div className="relative">
                 <input
@@ -116,7 +120,7 @@ export default function Register() {
                   required
                   minLength={6}
                 />
-                <button type="button" onClick={() => setShowConfirmPassword((visible) => !visible)} className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-gray-500 hover:text-gray-700" aria-label={showConfirmPassword ? 'Sembunyikan password' : 'Tampilkan password'}>
+                <button type="button" onClick={() => setShowConfirmPassword((visible) => !visible)} className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-gray-500 hover:text-gray-700" aria-label={showConfirmPassword ? t('auth.hidePassword') : t('auth.showPassword')}>
                   {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
               </div>
@@ -127,20 +131,20 @@ export default function Register() {
               disabled={loading}
               className="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium"
             >
-              <span className="inline-flex items-center justify-center gap-2">{loading && <LoaderCircle className="w-4 h-4 animate-spin" />}{loading ? 'Memproses...' : 'Daftar'}</span>
+              <span className="inline-flex items-center justify-center gap-2">{loading && <LoaderCircle className="w-4 h-4 animate-spin" />}{loading ? t('auth.processing') : t('register.submit')}</span>
             </button>
           </form>
 
           {/* Footer */}
           <div className="mt-6 text-center">
             <p className="text-gray-600">
-              Sudah punya akun?{' '}
+              {t('register.hasAccount')}{' '}
               <Link to="/login" className="text-blue-600 hover:underline font-medium">
-                Masuk di sini
+                {t('register.login')}
               </Link>
             </p>
             <p className="mt-3 text-xs leading-5 text-gray-500">
-              Dengan mendaftar, Anda menyetujui <Link to="/terms" className="text-blue-600 hover:underline">Ketentuan Penggunaan</Link> dan telah membaca <Link to="/privacy" className="text-blue-600 hover:underline">Kebijakan Privasi</Link>.
+              {t('register.agreement')} <Link to="/terms" className="text-blue-600 hover:underline">{t('register.terms')}</Link> {t('register.andRead')} <Link to="/privacy" className="text-blue-600 hover:underline">{t('register.privacy')}</Link>.
             </p>
           </div>
         </div>

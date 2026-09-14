@@ -7,6 +7,7 @@ import ProcessingOverlay from '../components/ProcessingOverlay';
 import { useModalFocusTrap } from '../utils/useModalFocusTrap';
 import { formatCurrency } from '../utils/formatters';
 import FinancialReportPreview from '../components/FinancialReportPreview';
+import { useLanguage } from '../contexts/LanguageContext';
 
 type AutoPred = { category: string; confidence: number } | null;
 
@@ -19,6 +20,7 @@ const getLocalDateValue = () => {
 };
 
 export default function Expenses() {
+  const { locale, t, pick } = useLanguage();
   const {
     expenses,
     addExpense,
@@ -221,7 +223,7 @@ export default function Expenses() {
     });
   }, [expenses, historyDate, historySearch, historyType]);
 
-  const selectedHistoryDateLabel = new Date(`${historyDate}T00:00:00`).toLocaleDateString('id-ID', {
+  const selectedHistoryDateLabel = new Date(`${historyDate}T00:00:00`).toLocaleDateString(locale, {
     day: 'numeric',
     month: 'long',
     year: 'numeric',
@@ -335,7 +337,7 @@ export default function Expenses() {
     };
   }, [expenses, summaryDate, summaryMode, summarySource]);
 
-  const summaryDateLabel = new Date(`${summaryDate}T00:00:00`).toLocaleDateString('id-ID', {
+  const summaryDateLabel = new Date(`${summaryDate}T00:00:00`).toLocaleDateString(locale, {
     day: 'numeric',
     month: 'long',
     year: 'numeric',
@@ -387,7 +389,7 @@ export default function Expenses() {
     });
   }, [budgetDate, budgets, expenses]);
 
-  const budgetDateLabel = new Date(`${budgetDate}T00:00:00`).toLocaleDateString('id-ID', {
+  const budgetDateLabel = new Date(`${budgetDate}T00:00:00`).toLocaleDateString(locale, {
     day: 'numeric',
     month: 'long',
     year: 'numeric',
@@ -608,8 +610,8 @@ export default function Expenses() {
       {/* Header */}
       <div className="finance-page-header">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Keuangan</h1>
-          <p className="text-gray-600">Kelola pemasukan, pengeluaran, dan budget Anda</p>
+          <h1 className="text-2xl font-bold text-gray-900">{t('finance.title')}</h1>
+          <p className="text-gray-600">{t('finance.subtitle')}</p>
         </div>
         <div className="finance-header-actions">
           <button
@@ -617,7 +619,7 @@ export default function Expenses() {
             className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
           >
             <Download className="w-4 h-4" />
-            <span>Export</span>
+            <span>{t('common.export')}</span>
           </button>
           <button
             onClick={() => {
@@ -630,7 +632,7 @@ export default function Expenses() {
             className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
           >
             <Plus className="w-4 h-4" />
-            Tambah Transaksi
+            {pick('Tambah Transaksi', 'Add Transaction')}
           </button>
         </div>
       </div>
@@ -639,22 +641,22 @@ export default function Expenses() {
       <section>
         <div className="finance-summary-header mb-3">
           <div>
-            <h3 className="font-semibold text-gray-900">Ringkasan {summaryMode === 'all' ? 'Keseluruhan' : summaryDateLabel}</h3>
-            <p className="text-sm text-gray-500">{summaryMode === 'all' ? 'Akumulasi seluruh transaksi Anda' : 'Pemasukan dan pengeluaran pada hari yang dipilih'}</p>
+            <h3 className="font-semibold text-gray-900">{pick('Ringkasan', 'Summary')} {summaryMode === 'all' ? pick('Keseluruhan', 'Overall') : summaryDateLabel}</h3>
+            <p className="text-sm text-gray-500">{summaryMode === 'all' ? pick('Akumulasi seluruh transaksi Anda', 'All of your recorded transactions') : pick('Pemasukan dan pengeluaran pada hari yang dipilih', 'Income and expenses on the selected day')}</p>
           </div>
           <div className="finance-summary-controls">
             <select
               value={summarySource}
               onChange={(event) => setSummarySource(event.target.value as typeof summarySource)}
-              aria-label="Pilih sumber saldo"
+              aria-label={pick('Pilih sumber saldo', 'Select fund source')}
               className="finance-summary-date px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white"
             >
-              <option value="all">Semua saldo</option>
+              <option value="all">{pick('Semua saldo', 'All balances')}</option>
               {fundAccounts.map((account) => <option key={account.source} value={account.source}>{account.name}</option>)}
             </select>
             <div className="finance-summary-mode">
-              <button type="button" onClick={() => setSummaryMode('all')} className={summaryMode === 'all' ? 'finance-summary-mode-active' : ''}>Keseluruhan</button>
-              <button type="button" onClick={() => setSummaryMode('daily')} className={summaryMode === 'daily' ? 'finance-summary-mode-active' : ''}>Per Hari</button>
+              <button type="button" onClick={() => setSummaryMode('all')} className={summaryMode === 'all' ? 'finance-summary-mode-active' : ''}>{pick('Keseluruhan', 'Overall')}</button>
+              <button type="button" onClick={() => setSummaryMode('daily')} className={summaryMode === 'daily' ? 'finance-summary-mode-active' : ''}>{pick('Per Hari', 'Daily')}</button>
             </div>
             {summaryMode === 'daily' && (
               <input
@@ -676,26 +678,26 @@ export default function Expenses() {
               <div className="finance-balance-heading">
                 <div className="finance-balance-icon"><WalletCards className="w-5 h-5" /></div>
                 <div>
-                  <p className="finance-balance-label">Saldo {fundSourceLabels[summarySource]}</p>
-                  <p className="finance-balance-period">Pemasukan dikurangi pengeluaran</p>
+                  <p className="finance-balance-label">{pick('Saldo', 'Balance')} {fundSourceLabels[summarySource]}</p>
+                  <p className="finance-balance-period">{pick('Pemasukan dikurangi pengeluaran', 'Income minus expenses')}</p>
                 </div>
               </div>
               <p className="finance-balance-value">{formatCurrency(financeSummary.balance)}</p>
               <div className="finance-balance-footer">
                 <span className={`finance-cashflow-badge ${financeSummary.balance >= 0 ? 'finance-cashflow-positive' : 'finance-cashflow-negative'}`}>
-                  {financeSummary.balance >= 0 ? 'Arus kas positif' : 'Arus kas negatif'}
+                  {financeSummary.balance >= 0 ? pick('Arus kas positif', 'Positive cash flow') : pick('Arus kas negatif', 'Negative cash flow')}
                 </span>
-                <span className="finance-transaction-count">{financeSummary.count} transaksi</span>
+                <span className="finance-transaction-count">{financeSummary.count} {pick('transaksi', 'transactions')}</span>
               </div>
             </div>
           </div>
           <div className="finance-flow-grid">
             <div className="finance-flow-card finance-income-card">
-              <p className="text-sm text-gray-600">Pemasukan</p>
+              <p className="text-sm text-gray-600">{pick('Pemasukan', 'Income')}</p>
               <p className="text-xl font-bold text-green-600">+{formatCurrency(financeSummary.totalIncome)}</p>
             </div>
             <div className="finance-flow-card finance-expense-card">
-              <p className="text-sm text-gray-600">Pengeluaran</p>
+              <p className="text-sm text-gray-600">{pick('Pengeluaran', 'Expenses')}</p>
               <p className="text-xl font-bold text-red-600">-{formatCurrency(financeSummary.totalExpense)}</p>
             </div>
           </div>
@@ -704,8 +706,8 @@ export default function Expenses() {
 
       <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
-          <div><h3 className="font-semibold text-gray-900">Sumber Saldo</h3><p className="text-sm text-gray-500">Saldo rekening dan cash dihitung dari saldo awal, transaksi, serta transfer.</p></div>
-          <div className="flex flex-col sm:flex-row gap-2"><button type="button" onClick={openNewAccountDialog} className="inline-flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"><Plus className="w-4 h-4" /> Tambah Sumber</button><button type="button" onClick={() => { const [first, second] = fundAccounts; if (first && second) setTransferForm((current) => ({ ...current, fromSource: first.source, toSource: second.source })); setTransferDialog(true); }} disabled={fundAccounts.length < 2} className="inline-flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 disabled:opacity-50"><ArrowRightLeft className="w-4 h-4" /> Transfer Saldo</button></div>
+          <div><h3 className="font-semibold text-gray-900">{pick('Sumber Saldo', 'Fund Sources')}</h3><p className="text-sm text-gray-500">{pick('Saldo rekening dan cash dihitung dari saldo awal, transaksi, serta transfer.', 'Account and cash balances include opening balances, transactions, and transfers.')}</p></div>
+          <div className="flex flex-col sm:flex-row gap-2"><button type="button" onClick={openNewAccountDialog} className="inline-flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"><Plus className="w-4 h-4" /> {pick('Tambah Sumber', 'Add Source')}</button><button type="button" onClick={() => { const [first, second] = fundAccounts; if (first && second) setTransferForm((current) => ({ ...current, fromSource: first.source, toSource: second.source })); setTransferDialog(true); }} disabled={fundAccounts.length < 2} className="inline-flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 disabled:opacity-50"><ArrowRightLeft className="w-4 h-4" /> {pick('Transfer Saldo', 'Transfer Funds')}</button></div>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {fundAccounts.map((account) => {
@@ -713,7 +715,7 @@ export default function Expenses() {
             return <button key={account.source} type="button" onClick={() => openAccountDialog(account.source)} className="text-left min-w-0 rounded-xl border border-gray-200 p-4 hover:border-blue-300 hover:bg-blue-50/30 transition-colors">
               <div className="flex items-center justify-between gap-3"><span className="inline-flex items-center gap-2 text-sm text-gray-600"><Icon className="w-4 h-4" />{account.name}</span><Pencil className="w-4 h-4 text-gray-400" /></div>
               <p className={`mt-3 text-xl font-semibold tabular-nums ${account.balance < 0 ? 'text-red-600' : 'text-gray-900'}`}>{formatCurrency(account.balance)}</p>
-              <p className="text-xs text-gray-500 mt-1">Saldo awal {formatCurrency(account.openingBalance)}</p>
+              <p className="text-xs text-gray-500 mt-1">{pick('Saldo awal', 'Opening balance')} {formatCurrency(account.openingBalance)}</p>
             </button>;
           })}
         </div>
@@ -726,7 +728,7 @@ export default function Expenses() {
           <div className="finance-budget-header">
             <div>
               <h3 className="font-semibold text-gray-900">Budget</h3>
-              <p className="text-sm text-gray-500">Perhitungan periode yang mencakup {budgetDateLabel}</p>
+              <p className="text-sm text-gray-500">{pick(`Perhitungan periode yang mencakup ${budgetDateLabel}`, `Period calculation covering ${budgetDateLabel}`)}</p>
             </div>
             <div className="finance-budget-actions">
               <div className="finance-budget-date relative">
@@ -747,7 +749,7 @@ export default function Expenses() {
                 onClick={openAddBudget}
                 className="inline-flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100"
               >
-                <Plus className="w-4 h-4" /> Atur Budget
+                <Plus className="w-4 h-4" /> {pick('Atur Budget', 'Set Budget')}
               </button>
             </div>
           </div>
@@ -768,10 +770,10 @@ export default function Expenses() {
                   <div>
                     <div className="flex items-end justify-between gap-3 mb-2">
                       <div>
-                        <p className="text-xs text-gray-500">Terpakai</p>
+                        <p className="text-xs text-gray-500">{pick('Terpakai', 'Used')}</p>
                         <p className="font-semibold text-gray-900">{formatCurrency(budget.spent)}</p>
                       </div>
-                      <p className="text-sm text-gray-500">dari {formatCurrency(budget.amount)}</p>
+                      <p className="text-sm text-gray-500">{pick('dari', 'of')} {formatCurrency(budget.amount)}</p>
                     </div>
                     <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
                       <div
@@ -782,7 +784,7 @@ export default function Expenses() {
                   </div>
                   <div className="flex items-center justify-between text-xs">
                     <span className={isOverBudget ? 'text-red-600 font-medium' : 'text-gray-500'}>
-                      {isOverBudget ? `Melebihi ${formatCurrency(Math.abs(budget.remaining))}` : `Sisa ${formatCurrency(budget.remaining)}`}
+                      {isOverBudget ? pick(`Melebihi ${formatCurrency(Math.abs(budget.remaining))}`, `Over by ${formatCurrency(Math.abs(budget.remaining))}`) : pick(`Sisa ${formatCurrency(budget.remaining)}`, `${formatCurrency(budget.remaining)} remaining`)}
                     </span>
                     <span className={isOverBudget ? 'text-red-600 font-medium' : 'text-gray-500'}>
                       {Math.round(budget.percentage)}%
@@ -795,7 +797,7 @@ export default function Expenses() {
                       onClick={() => openEditBudget(budget)}
                       className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100"
                     >
-                      <Pencil className="w-3.5 h-3.5" /> Edit
+                      <Pencil className="w-3.5 h-3.5" /> {t('common.edit')}
                     </button>
                     <button
                       type="button"
@@ -803,7 +805,7 @@ export default function Expenses() {
                       disabled={deletingBudget === budget.id}
                       className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-red-600 bg-red-50 rounded-lg hover:bg-red-100 disabled:opacity-50"
                     >
-                      <Trash2 className="w-3.5 h-3.5" /> {deletingBudget === budget.id ? 'Menghapus…' : 'Hapus'}
+                      <Trash2 className="w-3.5 h-3.5" /> {deletingBudget === budget.id ? pick('Menghapus…', 'Deleting…') : t('common.delete')}
                     </button>
                   </div>
                 </div>
@@ -812,8 +814,8 @@ export default function Expenses() {
           </div>
           {budgetOverview.length === 0 && (
             <div className="text-center py-8 px-4 border border-dashed border-gray-300 rounded-xl">
-              <p className="font-medium text-gray-700">Belum ada budget</p>
-              <p className="text-sm text-gray-500 mt-1">Atur batas harian, bulanan, atau tahunan untuk kategori pengeluaran Anda.</p>
+              <p className="font-medium text-gray-700">{pick('Belum ada budget', 'No budgets yet')}</p>
+              <p className="text-sm text-gray-500 mt-1">{pick('Atur batas harian, bulanan, atau tahunan untuk kategori pengeluaran Anda.', 'Set daily, monthly, or yearly limits for your expense categories.')}</p>
             </div>
           )}
         </div>

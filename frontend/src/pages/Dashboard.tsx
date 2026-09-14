@@ -16,6 +16,7 @@ import {
 } from 'recharts'
 import { formatCurrency } from '../utils/formatters'
 import { Link } from 'react-router-dom'
+import { useLanguage } from '../contexts/LanguageContext'
 
 const getLocalDateValue = () => {
   const today = new Date()
@@ -42,11 +43,12 @@ const isInBudgetPeriod = (dateValue: string, referenceDateValue: string, period:
 }
 
 export default function Dashboard() {
+  const { locale, t, pick } = useLanguage()
   const { accountDataLoading, expenses, holdings, budgets, investmentAssets, userProfile } = useData()
   const portfolioLoading = accountDataLoading
   const currentMonth = getLocalDateValue().slice(0, 7)
   const [selectedMonth, setSelectedMonth] = useState(currentMonth)
-  const selectedMonthLabel = new Date(`${selectedMonth}-01T00:00:00`).toLocaleDateString('id-ID', {
+  const selectedMonthLabel = new Date(`${selectedMonth}-01T00:00:00`).toLocaleDateString(locale, {
     month: 'long',
     year: 'numeric',
   })
@@ -122,7 +124,7 @@ export default function Dashboard() {
 
   // Weekly totals keep a full month readable without squeezing 28–31 bars.
   const expenseTrend = useMemo(() => {
-    const weeks = Array.from({ length: 5 }, (_, index) => ({ date: `Minggu ${index + 1}`, amount: 0 }))
+    const weeks = Array.from({ length: 5 }, (_, index) => ({ date: `${pick('Minggu', 'Week')} ${index + 1}`, amount: 0 }))
     monthlyExpenses.forEach((expense) => {
       if (expense.transactionType === 'income') return
       const day = Number(expense.date.slice(8, 10))
@@ -130,7 +132,7 @@ export default function Dashboard() {
       weeks[weekIndex].amount += expense.amount
     })
     return weeks
-  }, [monthlyExpenses])
+  }, [monthlyExpenses, pick])
 
   const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899']
 
@@ -138,23 +140,23 @@ export default function Dashboard() {
     <div className="space-y-6">
       {!accountDataLoading && !userProfile.onboardingCompleted && (
         <section className="flex flex-col gap-3 rounded-xl border border-blue-200 bg-blue-50 p-4 sm:flex-row sm:items-center sm:justify-between">
-          <div><p className="font-semibold text-blue-900">Selamat datang di FinTrack</p><p className="mt-1 text-sm text-blue-700">Atur preferensi dan sumber dana agar FinTrack sesuai dengan kebutuhan Anda.</p></div>
-          <Link to="/settings" className="shrink-0 rounded-lg bg-blue-600 px-4 py-2 text-center text-sm font-medium text-white hover:bg-blue-700">Mulai pengaturan</Link>
+          <div><p className="font-semibold text-blue-900">{pick('Selamat datang di FinTrack', 'Welcome to FinTrack')}</p><p className="mt-1 text-sm text-blue-700">{pick('Atur preferensi dan sumber dana agar FinTrack sesuai dengan kebutuhan Anda.', 'Set your preferences and fund sources to tailor FinTrack to your needs.')}</p></div>
+          <Link to="/settings" className="shrink-0 rounded-lg bg-blue-600 px-4 py-2 text-center text-sm font-medium text-white hover:bg-blue-700">{pick('Mulai pengaturan', 'Start setup')}</Link>
         </section>
       )}
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-          <p className="text-gray-600">Lihat arus kas, budget, dan investasi Anda dalam satu ringkasan.</p>
+          <h1 className="text-2xl font-bold text-gray-900">{t('dashboard.title')}</h1>
+          <p className="text-gray-600">{t('dashboard.subtitle')}</p>
         </div>
         <div className="dashboard-period-controls flex flex-col sm:flex-row sm:items-center gap-2 min-w-0">
           <label className="dashboard-month-field relative min-w-0">
-            <span className="sr-only">Pilih bulan laporan</span>
+            <span className="sr-only">{pick('Pilih bulan laporan', 'Select report month')}</span>
             <CalendarDays className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
             <input type="month" value={selectedMonth} onChange={(event) => setSelectedMonth(event.target.value || currentMonth)} className="dashboard-month-input w-full min-w-0 pl-9 pr-3 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500" />
           </label>
-          {selectedMonth !== currentMonth && <button type="button" onClick={() => setSelectedMonth(currentMonth)} className="px-3 py-2 text-sm font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100">Bulan ini</button>}
+          {selectedMonth !== currentMonth && <button type="button" onClick={() => setSelectedMonth(currentMonth)} className="px-3 py-2 text-sm font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100">{pick('Bulan ini', 'This month')}</button>}
         </div>
       </div>
 
@@ -166,14 +168,14 @@ export default function Dashboard() {
               <Wallet className="w-6 h-6 text-red-600" />
             </div>
           </div>
-          <p className="text-sm text-gray-600 mb-1">Total Pengeluaran</p>
+          <p className="text-sm text-gray-600 mb-1">{pick('Total Pengeluaran', 'Total Expenses')}</p>
           <p className="text-2xl font-bold text-gray-900">{formatCurrency(metrics.totalExpenses)}</p>
           <div className="mt-2">
             <div className="flex items-center text-sm">
               <span className="text-gray-600">
                 {metrics.totalBudget > 0
-                  ? `Budget ${metrics.budgetCategory === 'Keseluruhan' ? '' : `${metrics.budgetCategory} `}${metrics.budgetPeriodLabel}: ${formatCurrency(metrics.totalBudget)}`
-                  : `Belum ada budget bulanan untuk ${selectedMonthLabel}`}
+                  ? `${pick('Budget', 'Budget')} ${metrics.budgetCategory === 'Keseluruhan' ? '' : `${metrics.budgetCategory} `}${metrics.budgetPeriodLabel}: ${formatCurrency(metrics.totalBudget)}`
+                  : pick(`Belum ada budget bulanan untuk ${selectedMonthLabel}`, `No monthly budget for ${selectedMonthLabel}`)}
               </span>
             </div>
             {metrics.totalBudget > 0 && <>
@@ -183,7 +185,7 @@ export default function Dashboard() {
                   style={{ width: `${Math.min(metrics.budgetUsage, 100)}%` }}
                 />
               </div>
-              <p className="text-xs text-gray-500 mt-1">Terpakai {formatCurrency(metrics.budgetSpent)} ({metrics.budgetUsage.toFixed(1)}%)</p>
+              <p className="text-xs text-gray-500 mt-1">{pick('Terpakai', 'Used')} {formatCurrency(metrics.budgetSpent)} ({metrics.budgetUsage.toFixed(1)}%)</p>
             </>}
           </div>
         </div>
@@ -192,7 +194,7 @@ export default function Dashboard() {
           <div className="p-2 bg-green-100 rounded-lg w-fit mb-4">
             <TrendingUp className="w-6 h-6 text-green-600" />
           </div>
-          <p className="text-sm text-gray-600 mb-1">Total Pemasukan</p>
+          <p className="text-sm text-gray-600 mb-1">{pick('Total Pemasukan', 'Total Income')}</p>
           <p className="text-2xl font-bold text-green-600">{formatCurrency(metrics.totalIncome)}</p>
         </div>
 
@@ -200,9 +202,9 @@ export default function Dashboard() {
           <div className={`p-2 rounded-lg w-fit mb-4 ${metrics.cashFlowBalance >= 0 ? 'bg-green-100' : 'bg-red-100'}`}>
             <Wallet className={`w-6 h-6 ${metrics.cashFlowBalance >= 0 ? 'text-green-600' : 'text-red-600'}`} />
           </div>
-          <p className="text-sm text-gray-600 mb-1">Arus Kas Bersih</p>
+          <p className="text-sm text-gray-600 mb-1">{pick('Arus Kas Bersih', 'Net Cash Flow')}</p>
           <p className={`text-3xl font-bold ${metrics.cashFlowBalance >= 0 ? 'text-green-600' : 'text-red-600'}`}>{formatCurrency(metrics.cashFlowBalance)}</p>
-          <p className="text-xs text-gray-500 mt-2">Pemasukan dikurangi pengeluaran pada {selectedMonthLabel}</p>
+          <p className="text-xs text-gray-500 mt-2">{pick(`Pemasukan dikurangi pengeluaran pada ${selectedMonthLabel}`, `Income minus expenses in ${selectedMonthLabel}`)}</p>
         </div>
 
         <div className="dashboard-metric dashboard-portfolio-card bg-white rounded-xl shadow-sm p-5 border border-gray-200">
@@ -211,7 +213,7 @@ export default function Dashboard() {
               <PieChart className="w-6 h-6 text-blue-600" />
             </div>
           </div>
-          <p className="text-sm text-gray-600 mb-1">Nilai Portofolio</p>
+          <p className="text-sm text-gray-600 mb-1">{pick('Nilai Portofolio', 'Portfolio Value')}</p>
           {portfolioLoading
             ? <div className="mt-2 h-8 w-40 animate-pulse rounded bg-gray-100" />
             : <p className="text-2xl font-bold text-gray-900">{formatCurrency(metrics.portfolioValue)}</p>}
@@ -245,9 +247,9 @@ export default function Dashboard() {
               <DollarSign className="w-6 h-6 text-purple-600" />
             </div>
           </div>
-          <p className="text-sm text-gray-600 mb-1">Aset aktif</p>
+          <p className="text-sm text-gray-600 mb-1">{pick('Aset aktif', 'Active Assets')}</p>
           <p className="text-2xl font-bold text-gray-900">{(holdings ?? []).length + investmentAssets.filter((asset) => asset.market_value > 0).length}</p>
-          <p className="text-sm text-gray-600 mt-1">Seluruh instrumen</p>
+          <p className="text-sm text-gray-600 mt-1">{pick('Seluruh instrumen', 'All instruments')}</p>
         </div>
       </div>
 
@@ -256,9 +258,9 @@ export default function Dashboard() {
         <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 flex items-start">
           <AlertCircle className="w-5 h-5 text-yellow-600 mr-3 mt-0.5" />
           <div>
-            <p className="font-medium text-yellow-900">Budget hampir terpakai</p>
+            <p className="font-medium text-yellow-900">{pick('Budget hampir terpakai', 'Budget nearly used')}</p>
             <p className="text-sm text-yellow-700 mt-1">
-              Anda telah menggunakan {metrics.budgetUsage.toFixed(1)}% dari budget {metrics.budgetPeriodLabel}.
+              {pick(`Anda telah menggunakan ${metrics.budgetUsage.toFixed(1)}% dari budget ${metrics.budgetPeriodLabel}.`, `You have used ${metrics.budgetUsage.toFixed(1)}% of your ${metrics.budgetPeriodLabel} budget.`)}
             </p>
           </div>
         </div>
@@ -268,7 +270,7 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Expense Trend */}
         <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-          <div className="mb-4"><h3 className="font-semibold text-gray-900">Tren pengeluaran</h3><p className="text-xs text-gray-500 mt-0.5">Per minggu · {selectedMonthLabel}</p></div>
+          <div className="mb-4"><h3 className="font-semibold text-gray-900">{pick('Tren pengeluaran', 'Expense Trend')}</h3><p className="text-xs text-gray-500 mt-0.5">{pick('Per minggu', 'Weekly')} · {selectedMonthLabel}</p></div>
           <ResponsiveContainer width="100%" height={250}>
             <BarChart data={expenseTrend}>
               <CartesianGrid strokeDasharray="3 3" />
@@ -282,7 +284,7 @@ export default function Dashboard() {
 
         {/* Expense by Category */}
         <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-          <div className="mb-4"><h3 className="font-semibold text-gray-900">Komposisi pengeluaran</h3><p className="text-xs text-gray-500 mt-0.5">Berdasarkan transaksi {selectedMonthLabel}</p></div>
+          <div className="mb-4"><h3 className="font-semibold text-gray-900">{pick('Komposisi pengeluaran', 'Expense Breakdown')}</h3><p className="text-xs text-gray-500 mt-0.5">{pick('Berdasarkan transaksi', 'Based on transactions in')} {selectedMonthLabel}</p></div>
           {expenseByCategory.length > 0 ? (
             <ResponsiveContainer width="100%" height={250}>
               <RechartsPie>

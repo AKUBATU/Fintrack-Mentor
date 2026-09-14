@@ -4,6 +4,7 @@ import { Toaster } from 'sonner';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { DataProvider } from './contexts/DataContext';
 import Layout from './components/Layout';
+import { LanguageProvider, useLanguage } from './contexts/LanguageContext';
 
 const Login = lazy(() => import('./pages/Login'));
 const Register = lazy(() => import('./pages/Register'));
@@ -20,7 +21,8 @@ const Terms = lazy(() => import('./pages/Terms'));
 const VerifyEmail = lazy(() => import('./pages/VerifyEmail'));
 
 function PageLoader() {
-  return <div className="flex min-h-[40vh] items-center justify-center" role="status" aria-label="Memuat halaman"><div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600" /></div>;
+  const { t } = useLanguage();
+  return <div className="flex min-h-[40vh] items-center justify-center" role="status" aria-label={t('common.loading')}><div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600" /></div>;
 }
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -80,13 +82,15 @@ function AppRoutes() {
 
 export default function App() {
   return (
-    <Router>
-      <AuthProvider>
-        <DataProvider>
-          <Suspense fallback={<PageLoader />}><AppRoutes /></Suspense>
-          <Toaster position="top-right" richColors closeButton />
-        </DataProvider>
-      </AuthProvider>
-    </Router>
+    <LanguageProvider>
+      <Router>
+        <AuthProvider>
+          <DataProvider>
+            <Suspense fallback={<PageLoader />}><AppRoutes /></Suspense>
+            <Toaster position="top-right" richColors closeButton />
+          </DataProvider>
+        </AuthProvider>
+      </Router>
+    </LanguageProvider>
   );
 }
