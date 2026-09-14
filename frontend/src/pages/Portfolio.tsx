@@ -1,11 +1,12 @@
 import { Fragment, useState, useMemo, useEffect } from 'react';
 import { useData } from '../contexts/DataContext';
-import { Plus, TrendingUp, DollarSign, X, Pencil, Trash2, Activity, Layers3, LoaderCircle } from 'lucide-react';
+import { Plus, TrendingUp, DollarSign, X, Pencil, Trash2, Activity, Layers3, LoaderCircle, Download } from 'lucide-react';
 import { toast } from 'sonner';
 import { api } from '../services/api';
 import ProcessingOverlay from '../components/ProcessingOverlay';
 import { formatCurrency, formatCurrencyCode } from '../utils/formatters';
 import { useModalFocusTrap } from '../utils/useModalFocusTrap';
+import PortfolioReportPreview, { type PortfolioReportAsset, type PortfolioReportDividend, type PortfolioReportTransaction } from '../components/PortfolioReportPreview';
 
 const ASSET_TYPES = [
   ['stock', 'Saham'], ['etf', 'ETF'], ['money_market_fund', 'Reksa Dana Pasar Uang (RDPU)'], ['mutual_fund', 'Reksa Dana Lainnya'], ['bond', 'Obligasi'],
@@ -93,12 +94,13 @@ export default function Portfolio() {
   const [editingAssetId, setEditingAssetId] = useState<number | null>(null);
   const [savingAsset, setSavingAsset] = useState(false);
   const [showAllPortfolioAssets, setShowAllPortfolioAssets] = useState(false);
+  const [showReportPreview, setShowReportPreview] = useState(false);
   const emptyAssetForm = {
     name: '', symbol: '', asset_type: 'mutual_fund', quantity: '1', average_price: '',
     current_price: '', currency: 'IDR', exchange_rate_to_idr: '1', acquired_date: '', notes: '',
   };
   const [assetForm, setAssetForm] = useState(emptyAssetForm);
-  const anyPortfolioDialogOpen = showAssetModal || showAddTransaction || showAddDividend || showUpdatePrice;
+  const anyPortfolioDialogOpen = showAssetModal || showAddTransaction || showAddDividend || showUpdatePrice || showReportPreview;
   useModalFocusTrap(anyPortfolioDialogOpen, '.portfolio-form-overlay');
   const assetFields = ASSET_FIELD_LABELS[assetForm.asset_type] || DEFAULT_ASSET_FIELDS;
   const usesDirectValue = DIRECT_VALUE_ASSETS.has(assetForm.asset_type);
@@ -147,7 +149,7 @@ export default function Portfolio() {
   });
 
   useEffect(() => {
-    const modalOpen = showAssetModal || showAddTransaction || showAddDividend || showUpdatePrice;
+    const modalOpen = showAssetModal || showAddTransaction || showAddDividend || showUpdatePrice || showReportPreview;
     if (!modalOpen) return;
 
     const previousBodyOverflow = document.body.style.overflow;
@@ -161,6 +163,7 @@ export default function Portfolio() {
       setShowAddDividend(false);
       setEditingDividendId(null);
       setShowUpdatePrice(false);
+      setShowReportPreview(false);
     };
     window.addEventListener('keydown', closeOnEscape);
 
@@ -169,7 +172,7 @@ export default function Portfolio() {
       document.documentElement.style.overflow = previousHtmlOverflow;
       window.removeEventListener('keydown', closeOnEscape);
     };
-  }, [showAssetModal, showAddTransaction, showAddDividend, showUpdatePrice]);
+  }, [showAssetModal, showAddTransaction, showAddDividend, showUpdatePrice, showReportPreview, savingAsset, savingDividend, savingPrice, savingTransaction]);
 
   const loadAssetsAndHealth = async () => {
     try {
@@ -307,6 +310,46 @@ export default function Portfolio() {
     ),
     [dividends]
   );
+
+  const reportAssets = useMemo<PortfolioReportAsset[]>(() => [
+    ...portfolioHoldings.map((holding: any) => ({
+      id: `stock-${holding.ticker}`,
+      name: String(holding.ticker),
+      symbol: String(holding.ticker),
+      type: 'Saham',
+      ownership: `${num(holding.totalLots) || 0} lot · ${(num(holding.totalShares) || 0).toLocaleString('id-ID')} lembar`,
+      cost: num(holding.costBasis) || 0,
+      currentValue: num(holding.marketValue) || 0,
+      profitLoss: num(holding.unrealizedPL) || 0,
+      profitLossPercent: num(holding.unrealizedPLPercent) || 0,
+    })),
+    ...portfolioInvestmentAssets.map((asset: any) => ({
+      id: `asset-${asset.id}`,
+      name: String(asset.name),
+      symbol: asset.symbol ? String(asset.symbol) : undefined,
+      type: assetTypeLabel(asset.asset_type),
+      ownership: assetQuantitySummary(asset),
+      cost: num(asset.cost_basis) || 0,
+      currentValue: num(asset.market_value) || 0,
+      profitLoss: num(asset.unrealized_pl) || 0,
+      profitLossPercent: (num(asset.cost_basis) || 0) > 0 ? ((num(asset.unrealized_pl) || 0) / (num(asset.cost_basis) || 1)) * 100 : 0,
+    })),
+  ], [portfolioHoldings, portfolioInvestmentAssets]);
+
+  const reportTransactions = useMemo<PortfolioReportTransaction[]>(() => transactionHistory.map((transaction: any) => {
+    const shares = getTxShares(transaction);
+    const price = getTxPricePerShare(transaction);
+    return {
+      id: String(transaction.id), ticker: String(transaction.ticker || '').toUpperCase(),
+      type: getTxUIType(transaction) === 'buy' ? 'BELI' : 'JUAL', date: String(transaction.date || '').slice(0, 10),
+      ownership: `${getTxLots(transaction)} lot · ${shares.toLocaleString('id-ID')} lembar`, price, total: shares * price + getTxFee(transaction),
+    };
+  }), [transactionHistory]);
+
+  const reportDividends = useMemo<PortfolioReportDividend[]>(() => dividendHistory.map((dividend: any) => ({
+    id: String(dividend.id), ticker: String(dividend.ticker || '').toUpperCase(),
+    date: getDividendPaymentDate(dividend).slice(0, 10), amount: getDividendTotal(dividend),
+  })), [dividendHistory]);
 
   // ======================
   // Handlers (mapping ke DataContext schema)
@@ -585,6 +628,9 @@ export default function Portfolio() {
           <p className="text-gray-600">Pantau kepemilikan, performa, dan pendapatan investasi Anda.</p>
         </div>
         <div className="portfolio-header-actions flex flex-wrap gap-2">
+          <button onClick={() => setShowReportPreview(true)} className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
+            <Download className="w-4 h-4" /> Export
+          </button>
           <button onClick={openAddAsset} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
             <Layers3 className="w-4 h-4" /> Tambah Instrumen
           </button>
@@ -1145,6 +1191,17 @@ export default function Portfolio() {
             </div>
           </div>
         </div>
+      )}
+
+      {showReportPreview && (
+        <PortfolioReportPreview
+          assets={reportAssets}
+          transactions={reportTransactions}
+          dividends={reportDividends}
+          metrics={portfolioMetrics}
+          initialDate={transactionForm.date}
+          onClose={() => setShowReportPreview(false)}
+        />
       )}
     </div>
   );

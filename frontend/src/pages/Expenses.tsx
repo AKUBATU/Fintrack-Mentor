@@ -1270,6 +1270,7 @@ export default function Expenses() {
       {showReportPreview && (
         <FinancialReportPreview
           allTransactions={expenses}
+          budgets={budgets}
           initialDate={historyDate}
           fundSourceLabels={fundSourceLabels}
           onClose={() => setShowReportPreview(false)}

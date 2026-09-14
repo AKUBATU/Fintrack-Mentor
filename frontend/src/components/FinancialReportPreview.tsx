@@ -1,10 +1,11 @@
 import { useMemo, useState } from 'react';
 import { Download, FileSpreadsheet, Printer, WalletCards, X } from 'lucide-react';
-import type { ExpenseTransaction } from '../contexts/DataContext';
+import type { Budget, ExpenseTransaction } from '../contexts/DataContext';
 import { formatCurrency } from '../utils/formatters';
 
 interface FinancialReportPreviewProps {
   allTransactions: ExpenseTransaction[];
+  budgets: Budget[];
   initialDate: string;
   fundSourceLabels: Record<string, string>;
   onClose: () => void;
@@ -12,6 +13,28 @@ interface FinancialReportPreviewProps {
 }
 
 type ReportPeriod = 'daily' | 'monthly' | 'range' | 'yearly' | 'all';
+
+const toDateValue = (date: Date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+const budgetBounds = (budget: Budget) => {
+  const reference = new Date(`${budget.referenceDate}T00:00:00`);
+  const start = new Date(reference);
+  const end = new Date(reference);
+  if (budget.period === 'weekly') {
+    start.setDate(reference.getDate() - ((reference.getDay() + 6) % 7));
+    end.setTime(start.getTime()); end.setDate(start.getDate() + 6);
+  } else if (budget.period === 'monthly') {
+    start.setDate(1); end.setMonth(reference.getMonth() + 1, 0);
+  } else if (budget.period === 'yearly') {
+    start.setMonth(0, 1); end.setMonth(11, 31);
+  }
+  return { start: toDateValue(start), end: toDateValue(end) };
+};
 
 const formatDate = (value: string) => new Date(`${value}T00:00:00`).toLocaleDateString('id-ID', {
   day: 'numeric',
@@ -21,6 +44,7 @@ const formatDate = (value: string) => new Date(`${value}T00:00:00`).toLocaleDate
 
 export default function FinancialReportPreview({
   allTransactions,
+  budgets,
   initialDate,
   fundSourceLabels,
   onClose,
@@ -83,6 +107,24 @@ export default function FinancialReportPreview({
       : period === 'yearly' ? selectedYear
         : period === 'range' ? `${rangeStart}_${rangeEnd}` : 'semua';
 
+  const reportBounds = period === 'daily' ? { start: selectedDate, end: selectedDate }
+    : period === 'monthly' ? { start: `${selectedMonth}-01`, end: toDateValue(new Date(Number(selectedMonth.slice(0, 4)), Number(selectedMonth.slice(5, 7)), 0)) }
+      : period === 'yearly' ? { start: `${selectedYear}-01-01`, end: `${selectedYear}-12-31` }
+        : period === 'range' ? { start: rangeStart, end: rangeEnd } : null;
+
+  const budgetRows = useMemo(() => budgets.flatMap((budget) => {
+    const bounds = budgetBounds(budget);
+    if (reportBounds && (bounds.end < reportBounds.start || bounds.start > reportBounds.end)) return [];
+    const spent = allTransactions.filter((transaction) => transaction.transactionType === 'expense'
+      && transaction.date >= bounds.start && transaction.date <= bounds.end
+      && (budget.category === 'Keseluruhan' || transaction.category === budget.category)
+      && (budget.fundSource === 'all' || transaction.fundSource === budget.fundSource))
+      .reduce((total, transaction) => total + transaction.amount, 0);
+    return [{ ...budget, spent, remaining: budget.amount - spent, percentage: budget.amount > 0 ? (spent / budget.amount) * 100 : 0 }];
+  }), [allTransactions, budgets, reportBounds?.end, reportBounds?.start]);
+
+  const budgetPeriodLabels: Record<Budget['period'], string> = { daily: 'Harian', weekly: 'Mingguan', monthly: 'Bulanan', yearly: 'Tahunan' };
+
   return (
     <div className="financial-report-overlay fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4" role="dialog" aria-modal="true" aria-labelledby="financial-report-title">
       <div className="financial-report-modal flex h-full w-full flex-col overflow-hidden bg-gray-100 sm:h-auto sm:max-h-[94dvh] sm:max-w-5xl sm:rounded-xl">
@@ -106,7 +148,7 @@ export default function FinancialReportPreview({
             <button type="button" onClick={() => onDownloadCsv(transactions, periodKey)} disabled={transactions.length === 0} className="inline-flex items-center justify-center gap-2 rounded-lg bg-gray-100 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200 disabled:opacity-50">
               <FileSpreadsheet className="h-4 w-4" /> CSV
             </button>
-            <button type="button" onClick={() => window.print()} disabled={transactions.length === 0} className="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50">
+            <button type="button" onClick={() => window.print()} disabled={transactions.length === 0 && budgetRows.length === 0} className="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50">
               <Printer className="h-4 w-4" /> Simpan PDF
             </button>
             <button type="button" onClick={onClose} className="rounded-lg p-2 text-gray-500 hover:bg-gray-100" aria-label="Tutup preview laporan"><X className="h-5 w-5" /></button>
@@ -139,6 +181,15 @@ export default function FinancialReportPreview({
                 <div className="rounded-lg border border-gray-200 p-4"><p className="mb-3 text-xs font-semibold uppercase tracking-wide text-gray-500">Pengeluaran per kategori</p>{expenseBreakdown.categories.map(([label, amount]) => <div key={label} className="flex items-center justify-between gap-3 py-1.5 text-xs"><span className="min-w-0 truncate text-gray-600">{label}</span><span className="shrink-0 font-medium tabular-nums text-gray-900">{formatCurrency(amount)}</span></div>)}</div>
                 <div className="rounded-lg border border-gray-200 p-4"><p className="mb-3 text-xs font-semibold uppercase tracking-wide text-gray-500">Penggunaan sumber saldo</p>{expenseBreakdown.sources.map(([label, amount]) => <div key={label} className="flex items-center justify-between gap-3 py-1.5 text-xs"><span className="min-w-0 truncate text-gray-600">{label}</span><span className="shrink-0 font-medium tabular-nums text-gray-900">{formatCurrency(amount)}</span></div>)}</div>
               </div>}
+
+              {budgetRows.length > 0 && <section className="mt-7">
+                <div className="mb-3"><h3 className="text-sm font-semibold text-gray-900">Ringkasan Budget</h3><p className="text-xs text-gray-500">Budget yang periodenya bersinggungan dengan laporan ini.</p></div>
+                <div className="financial-report-budget-grid grid grid-cols-1 gap-2 sm:grid-cols-2">{budgetRows.map((budget) => <div key={budget.id} className="rounded-lg border border-gray-200 p-3">
+                  <div className="flex items-start justify-between gap-2"><div className="min-w-0"><p className="truncate text-xs font-semibold text-gray-900">{budget.category}</p><p className="text-[11px] text-gray-500">{budgetPeriodLabels[budget.period]} · {fundSourceLabels[budget.fundSource] || budget.fundSource}</p></div><span className={`shrink-0 text-xs font-semibold ${budget.remaining < 0 ? 'text-red-600' : 'text-gray-900'}`}>{Math.round(budget.percentage)}%</span></div>
+                  <div className="my-2 h-1.5 overflow-hidden rounded-full bg-gray-200"><div className={`h-full rounded-full ${budget.remaining < 0 ? 'bg-red-500' : budget.percentage >= 80 ? 'bg-amber-500' : 'bg-blue-500'}`} style={{ width: `${Math.min(budget.percentage, 100)}%` }} /></div>
+                  <div className="flex justify-between gap-2 text-[11px] text-gray-500"><span>Terpakai {formatCurrency(budget.spent)}</span><span>dari {formatCurrency(budget.amount)}</span></div>
+                </div>)}</div>
+              </section>}
 
               {transactions.length > 0 ? (
                 <>
