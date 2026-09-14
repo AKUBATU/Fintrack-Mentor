@@ -2830,10 +2830,10 @@ html.dark { color-scheme: dark; background: #080d18; }
 .mentor-avatar { box-shadow: 0 4px 10px rgba(15, 23, 42, .12); }
 .mentor-message-content { display: flex; min-width: 0; max-width: min(78%, 42rem); flex-direction: column; }
 .mentor-message-user { justify-content: flex-start; }
-.mentor-message-user .mentor-message-content { margin-left: auto; max-width: min(70%, 36rem); }
+.mentor-message-user .mentor-message-content { margin-left: auto; max-width: min(78%, 42rem); }
 .mentor-bubble { line-height: 1.55; overflow-wrap: anywhere; }
 .mentor-message-assistant .mentor-bubble { border: 1px solid #e5e7eb; border-top-left-radius: .4rem; }
-.mentor-message-user .mentor-bubble { width: fit-content; border-top-right-radius: .4rem; box-shadow: 0 4px 10px rgba(37, 99, 235, .12); }
+.mentor-message-user .mentor-bubble { width: fit-content; border: 1px solid #2563eb; border-top-right-radius: .4rem; box-shadow: 0 4px 10px rgba(37, 99, 235, .12); }
 .mentor-message-user .mentor-message-content > p { text-align: right; }
 .mentor-composer {
   align-items: flex-end;
