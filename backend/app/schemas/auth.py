@@ -25,6 +25,10 @@ class ForgotPasswordIn(BaseModel):
     email: EmailStr
 
 
+class VerifyEmailIn(BaseModel):
+    token: str = Field(..., min_length=1)
+
+
 class DeleteAccountIn(BaseModel):
     password: str = Field(..., min_length=1)
 

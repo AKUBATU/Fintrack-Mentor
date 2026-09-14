@@ -12,6 +12,7 @@ from app.core.db import get_db
 from app.main import app
 from app import models as _models  # noqa: F401 - register all tables in metadata
 from app.services.receipt_service import _category
+from app.core.config import settings
 
 
 class ApiIntegrationTest(unittest.TestCase):
@@ -329,6 +330,9 @@ class ApiIntegrationTest(unittest.TestCase):
     def test_protected_data_requires_login(self):
         response = self.client.get("/api/expenses")
         self.assertEqual(response.status_code, 401)
+        self.assertEqual(response.headers.get("x-content-type-options"), "nosniff")
+        self.assertEqual(response.headers.get("x-frame-options"), "DENY")
+        self.assertTrue(response.headers.get("x-request-id"))
 
         feedback = self.client.post(
             "/api/ml/feedback",
@@ -412,12 +416,67 @@ class ApiIntegrationTest(unittest.TestCase):
         )
 
     def test_ml_prediction_falls_back_without_artifacts(self):
+        headers = self.register_and_login("ml-prediction")
         response = self.client.post(
             "/api/ml/predict-category",
             json={"text": "kopi susu", "amount": 20000},
+            headers=headers,
         )
         self.assertEqual(response.status_code, 200, response.text)
         self.assertEqual(response.json()["model_used"], "heuristic")
+
+    def test_invalid_financial_sources_and_stock_oversells_are_rejected(self):
+        headers = self.register_and_login("integrity")
+        expense = self.client.post("/api/expenses", json={
+            "date": "2026-09-14", "amount": 10000, "category": "Makan",
+            "payment_method": "Cash", "fund_source": "unknown",
+        }, headers=headers)
+        self.assertEqual(expense.status_code, 422, expense.text)
+
+        buy = self.client.post("/api/portfolio/transactions", json={
+            "ticker": "BBCA", "type": "BUY", "shares": 100,
+            "price": 8000, "date": "2026-09-01",
+        }, headers=headers)
+        self.assertEqual(buy.status_code, 200, buy.text)
+        oversell = self.client.post("/api/portfolio/transactions", json={
+            "ticker": "BBCA", "type": "SELL", "shares": 200,
+            "price": 9000, "date": "2026-09-02",
+        }, headers=headers)
+        self.assertEqual(oversell.status_code, 422, oversell.text)
+
+    def test_public_registration_requires_email_verification_when_smtp_is_enabled(self):
+        email = "verify-flow@example.com"
+        previous_host = settings.SMTP_HOST
+        settings.SMTP_HOST = "smtp.example.com"
+        try:
+            with patch("app.api.auth.send_email_verification") as sender:
+                registered = self.client.post("/api/auth/register", json={
+                    "name": "Verify Flow", "email": email.upper(), "password": "rahasia123",
+                })
+                self.assertEqual(registered.status_code, 200, registered.text)
+                token = sender.call_args.args[1]
+            blocked = self.client.post("/api/auth/login", data={"username": email, "password": "rahasia123"})
+            self.assertEqual(blocked.status_code, 403, blocked.text)
+            verified = self.client.post("/api/auth/verify-email", json={"token": token})
+            self.assertEqual(verified.status_code, 200, verified.text)
+            login = self.client.post("/api/auth/login", data={"username": email.upper(), "password": "rahasia123"})
+            self.assertEqual(login.status_code, 200, login.text)
+        finally:
+            settings.SMTP_HOST = previous_host
+
+    def test_login_rate_limit_is_enforced(self):
+        for _ in range(10):
+            response = self.client.post(
+                "/api/auth/login",
+                data={"username": "rate-limit-check@example.com", "password": "wrong-password"},
+            )
+            self.assertEqual(response.status_code, 401, response.text)
+        limited = self.client.post(
+            "/api/auth/login",
+            data={"username": "rate-limit-check@example.com", "password": "wrong-password"},
+        )
+        self.assertEqual(limited.status_code, 429, limited.text)
+        self.assertTrue(limited.headers.get("retry-after"))
 
     def test_anomaly_detection_works_without_scientific_runtime_dependencies(self):
         headers = self.register_and_login("anomaly-lightweight")

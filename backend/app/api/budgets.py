@@ -4,6 +4,7 @@ from ..core.db import get_db
 from ..schemas.budget import BudgetCreate, BudgetOut, BudgetUpdate
 from ..models.budget import Budget
 from .deps import get_current_user
+from ..services.fund_account_service import account_rows
 
 router = APIRouter(prefix="/budgets", tags=["budgets"])
 
@@ -14,6 +15,9 @@ def list_budgets(db: Session = Depends(get_db), user=Depends(get_current_user)):
 
 @router.post("", response_model=BudgetOut)
 def create_budget(payload: BudgetCreate, db: Session = Depends(get_db), user=Depends(get_current_user)):
+    valid_sources = {"all", *(row["source"] for row in account_rows(db, user.id))}
+    if payload.fund_source not in valid_sources:
+        raise HTTPException(422, "Sumber saldo tidak tersedia")
     duplicate = db.query(Budget).filter(
         Budget.user_id == user.id, Budget.category == payload.category,
         Budget.period == payload.period, Budget.fund_source == payload.fund_source,
@@ -31,6 +35,10 @@ def update_budget(budget_id: int, payload: BudgetUpdate, db: Session = Depends(g
     if not r:
         raise HTTPException(404, "Budget not found")
     data = payload.model_dump(exclude_unset=True)
+    if "fund_source" in data:
+        valid_sources = {"all", *(row["source"] for row in account_rows(db, user.id))}
+        if data["fund_source"] not in valid_sources:
+            raise HTTPException(422, "Sumber saldo tidak tersedia")
     candidate = {
         "category": data.get("category", r.category), "period": data.get("period", r.period),
         "fund_source": data.get("fund_source", r.fund_source),

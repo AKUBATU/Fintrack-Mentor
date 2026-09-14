@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from sqlalchemy.orm import Session
 from collections import defaultdict
 from math import sqrt
@@ -6,11 +6,13 @@ from ..core.db import get_db
 from ..schemas.ml import PredictCategoryIn, PredictCategoryOut, FeedbackIn, AnomalyOut
 from ..models.expense import Expense
 from .deps import get_current_user
+from ..services.rate_limit_service import enforce_rate_limit
 
 router = APIRouter(prefix="/ml", tags=["ml"])
 
 @router.post("/predict-category", response_model=PredictCategoryOut)
-def predict_category(payload: PredictCategoryIn):
+def predict_category(payload: PredictCategoryIn, request: Request, db: Session = Depends(get_db), user=Depends(get_current_user)):
+    enforce_rate_limit(request, db, "category-prediction", 60, 3600, str(user.id))
     from ..services.ml_service import categorizer
 
     label, conf, model_used, candidates = categorizer.predict(payload.text, payload.amount)

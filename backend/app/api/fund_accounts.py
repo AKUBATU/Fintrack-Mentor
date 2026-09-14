@@ -73,6 +73,9 @@ def create_transfer(payload: FundTransferCreate, db: Session = Depends(get_db), 
     available_sources = {item["source"] for item in account_rows(db, user.id)}
     if payload.from_source not in available_sources or payload.to_source not in available_sources:
         raise HTTPException(422, "Sumber saldo tidak tersedia")
+    balances = {item["source"]: item["balance"] for item in account_rows(db, user.id)}
+    if balances[payload.from_source] < payload.amount:
+        raise HTTPException(422, "Saldo sumber tidak mencukupi")
     row = FundTransfer(user_id=user.id, **payload.model_dump())
     db.add(row)
     db.commit()

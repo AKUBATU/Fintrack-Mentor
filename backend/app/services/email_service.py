@@ -35,3 +35,26 @@ def send_password_reset_email(recipient: str, token: str) -> bool:
             server.login(smtp_username, smtp_password)
         server.send_message(message)
     return True
+
+
+def send_email_verification(recipient: str, token: str) -> bool:
+    if not settings.SMTP_HOST:
+        return False
+    verification_url = f"{settings.FRONTEND_URL.rstrip('/')}/verify-email?token={token}"
+    message = EmailMessage()
+    message["Subject"] = "Verifikasi email FinTrack Mentor"
+    message["From"] = "".join(settings.SMTP_FROM_EMAIL.split())
+    message["To"] = recipient
+    message.set_content(
+        "Selamat datang di FinTrack Mentor.\n\n"
+        f"Verifikasi email Anda melalui link berikut:\n{verification_url}\n\n"
+        f"Link berlaku selama {settings.EMAIL_VERIFICATION_EXPIRE_MINUTES // 60} jam."
+    )
+    with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT, timeout=10) as server:
+        if settings.SMTP_USE_TLS:
+            server.starttls()
+        username = "".join((settings.SMTP_USERNAME or "").split())
+        if username:
+            server.login(username, "".join((settings.SMTP_PASSWORD or "").split()))
+        server.send_message(message)
+    return True

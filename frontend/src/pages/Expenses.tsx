@@ -4,6 +4,7 @@ import { Plus, Trash2, Download, AlertTriangle, Camera, Search, X, WalletCards, 
 import { toast } from 'sonner';
 import { api } from '../services/api';
 import ProcessingOverlay from '../components/ProcessingOverlay';
+import { useModalFocusTrap } from '../utils/useModalFocusTrap';
 import { formatCurrency } from '../utils/formatters';
 
 type AutoPred = { category: string; confidence: number } | null;
@@ -66,10 +67,11 @@ export default function Expenses() {
   const [savingFunds, setSavingFunds] = useState(false);
   const [accountForm, setAccountForm] = useState({ name: '', openingBalance: '' });
   const [transferForm, setTransferForm] = useState({ fromSource: 'bank', toSource: 'cash', amount: '', date: getLocalDateValue(), notes: '' });
+  const anyFinanceDialogOpen = showAddExpense || Boolean(editingExpense) || showAddBudget || Boolean(selectedReceipt) || Boolean(accountDialog) || transferDialog;
+  useModalFocusTrap(anyFinanceDialogOpen, '.finance-transaction-overlay, .fixed[role="dialog"]');
 
   useEffect(() => {
-    const modalOpen = showAddExpense || Boolean(editingExpense) || showAddBudget || Boolean(selectedReceipt) || Boolean(accountDialog) || transferDialog;
-    if (!modalOpen) return;
+    if (!anyFinanceDialogOpen) return;
 
     const previousBodyOverflow = document.body.style.overflow;
     const previousHtmlOverflow = document.documentElement.style.overflow;
@@ -91,7 +93,7 @@ export default function Expenses() {
       document.documentElement.style.overflow = previousHtmlOverflow;
       window.removeEventListener('keydown', closeOnEscape);
     };
-  }, [showAddExpense, editingExpense, showAddBudget, selectedReceipt, accountDialog, transferDialog, savingExpense, savingBudget, receiptScanning]);
+  }, [anyFinanceDialogOpen, savingExpense, savingBudget, receiptScanning]);
 
   const openAccountDialog = (source: string) => {
     const account = fundAccounts.find((item) => item.source === source);
@@ -1252,7 +1254,7 @@ export default function Expenses() {
       </div>
 
       {selectedReceipt && (
-        <div className="fixed inset-0 flex items-center justify-center z-50 p-4" style={{ backgroundColor: 'rgba(17, 24, 39, 0.35)', backdropFilter: 'blur(7px)', WebkitBackdropFilter: 'blur(7px)' }} onClick={() => setSelectedReceipt(null)}>
+        <div className="fixed inset-0 flex items-center justify-center z-50 p-4" style={{ backgroundColor: 'rgba(17, 24, 39, 0.35)', backdropFilter: 'blur(7px)', WebkitBackdropFilter: 'blur(7px)' }} onClick={() => setSelectedReceipt(null)} role="dialog" aria-modal="true" aria-label="Foto struk transaksi">
           <div className="relative max-w-3xl max-h-[90vh]" onClick={(event) => event.stopPropagation()}>
             <button onClick={() => setSelectedReceipt(null)} className="absolute -top-3 -right-3 p-2 bg-white rounded-full shadow-lg text-gray-700" aria-label="Tutup foto struk">
               <X className="w-5 h-5" />

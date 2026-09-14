@@ -192,12 +192,21 @@ export const api = {
   async accountData() {
     return request<AccountDataResponse>(`/api/account-data`);
   },
+  async exportAccountData() {
+    return request<Record<string, unknown>>(`/api/account-data/export`);
+  },
 
   async register(name: string, email: string, password: string) {
     return request<{ id: number; email: string; name: string }>(`/api/auth/register`, {
       method: 'POST',
       body: JSON.stringify({ name, email, password }),
     });
+  },
+  async verifyEmail(token: string) {
+    return request<{ message: string }>(`/api/auth/verify-email`, { method: 'POST', body: JSON.stringify({ token }) });
+  },
+  async resendVerification(email: string) {
+    return request<{ message: string }>(`/api/auth/resend-verification`, { method: 'POST', body: JSON.stringify({ email }) });
   },
 
   async login(email: string, password: string) {
@@ -365,6 +374,13 @@ export const api = {
   async addDividend(payload: any) {
     const body = normalizeDividendPayload(payload);
     return request<any>(`/api/portfolio/dividends`, { method: 'POST', body: JSON.stringify(body) });
+  },
+  async updateDividend(id: number, payload: any) {
+    const body = normalizeDividendPayload(payload);
+    return request<any>(`/api/portfolio/dividends/${id}`, { method: 'PATCH', body: JSON.stringify(body) });
+  },
+  async deleteDividend(id: number) {
+    return request<{ ok: boolean }>(`/api/portfolio/dividends/${id}`, { method: 'DELETE' });
   },
   async portfolioSummary() {
     return request<any>(`/api/portfolio/summary`);

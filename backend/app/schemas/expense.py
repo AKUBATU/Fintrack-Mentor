@@ -31,14 +31,14 @@ class ExpenseCreate(ExpenseBase):
 class ExpenseUpdate(BaseModel):
     amount: Optional[float] = Field(default=None, gt=0)
     transaction_type: Optional[Literal["income", "expense"]] = None
-    category: Optional[str] = None
-    payment_method: Optional[str] = None
+    category: Optional[str] = Field(default=None, min_length=1, max_length=80)
+    payment_method: Optional[str] = Field(default=None, min_length=1, max_length=40)
     fund_source: Optional[str] = Field(default=None, min_length=1, max_length=20)
-    merchant: Optional[str] = None
-    notes: Optional[str] = None
-    predicted_category: Optional[str] = None
+    merchant: Optional[str] = Field(default=None, max_length=120)
+    notes: Optional[str] = Field(default=None, max_length=500)
+    predicted_category: Optional[str] = Field(default=None, max_length=80)
     confidence: Optional[float] = None
-    model_used: Optional[str] = None
+    model_used: Optional[str] = Field(default=None, max_length=40)
     date: Optional[dt_date] = None
 
     model_config = ConfigDict(protected_namespaces=())

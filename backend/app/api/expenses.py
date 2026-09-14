@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile
 from fastapi.responses import Response
 from starlette.concurrency import run_in_threadpool
 from sqlalchemy.orm import Session
@@ -10,6 +10,8 @@ from .deps import get_current_user
 from ..core.config import settings
 from ..services.receipt_service import scan_receipts
 from ..services.receipt_storage import delete_receipt, read_receipt, store_receipt
+from ..services.rate_limit_service import enforce_rate_limit
+from ..services.fund_account_service import account_rows
 
 router = APIRouter(prefix="/expenses", tags=["expenses"])
 
@@ -50,6 +52,8 @@ def list_expenses(db: Session = Depends(get_db), user=Depends(get_current_user))
 
 @router.post("", response_model=ExpenseOut)
 def create_expense(payload: ExpenseCreate, db: Session = Depends(get_db), user=Depends(get_current_user)):
+    if payload.fund_source not in {row["source"] for row in account_rows(db, user.id)}:
+        raise HTTPException(422, "Sumber saldo tidak tersedia")
     r = Expense(user_id=user.id, **payload.model_dump())
     db.add(r); db.commit(); db.refresh(r)
     return to_expense_out(r)
@@ -57,9 +61,12 @@ def create_expense(payload: ExpenseCreate, db: Session = Depends(get_db), user=D
 
 @router.post("/scan-receipt", response_model=ReceiptScanOut)
 async def analyze_receipt(
+    request: Request,
     receipts: list[UploadFile] = File(...),
+    db: Session = Depends(get_db),
     user=Depends(get_current_user),
 ):
+    enforce_rate_limit(request, db, "receipt-scan", 10, 3600, str(user.id))
     if not 1 <= len(receipts) <= 4:
         raise HTTPException(400, "Kirim 1 sampai 4 foto untuk satu struk")
     images = []
@@ -83,6 +90,8 @@ def update_expense(expense_id: int, payload: ExpenseUpdate, db: Session = Depend
     if not r:
         raise HTTPException(404, "Expense not found")
     data = payload.model_dump(exclude_unset=True)
+    if "fund_source" in data and data["fund_source"] not in {row["source"] for row in account_rows(db, user.id)}:
+        raise HTTPException(422, "Sumber saldo tidak tersedia")
     for k,v in data.items():
         setattr(r, k, v)
     db.commit(); db.refresh(r)

@@ -94,7 +94,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const register = async (name: string, email: string, password: string) => {
     try {
       await api.register(name, email, password);
-      toast.success('Register berhasil! Silakan login.');
+      toast.success('Akun dibuat. Periksa email untuk verifikasi sebelum login.');
     } catch (err: any) {
       toast.error(err?.message || 'Register gagal');
       throw err;

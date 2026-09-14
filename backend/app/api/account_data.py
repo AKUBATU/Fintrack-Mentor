@@ -12,6 +12,7 @@ from ..models.investment_asset import InvestmentAsset
 from ..models.fund_transfer import FundTransfer
 from ..models.user_preference import UserPreference
 from ..models.transaction_category import TransactionCategory
+from ..models.chat_message import ChatMessage
 from ..services.fund_account_service import account_rows
 from ..services.profile_service import preference_dict
 from .deps import get_current_user
@@ -103,13 +104,7 @@ def get_account_data(db: Session = Depends(get_db), user=Depends(get_current_use
             for row in dividends
         ],
         "reports": [
-            {
-                "id": row.id,
-                "date": row.date,
-                "portfolio_value": row.portfolio_value,
-                "notes": row.notes,
-                "screenshot_url": row.screenshot_url,
-            }
+            {"id": row.id, "date": row.date, "portfolio_value": row.portfolio_value, "notes": row.notes, "screenshot_url": row.screenshot_url}
             for row in reports
         ],
         "investment_assets": [
@@ -152,3 +147,22 @@ def get_account_data(db: Session = Depends(get_db), user=Depends(get_current_use
             for row in custom_categories
         ],
     }
+
+
+@router.get("/export")
+def export_account_data(db: Session = Depends(get_db), user=Depends(get_current_user)):
+    data = get_account_data(db, user)
+    messages = db.query(ChatMessage).filter(ChatMessage.user_id == user.id).order_by(ChatMessage.created_at).all()
+    data["account"] = {
+        "id": user.id, "name": user.name, "email": user.email,
+        "email_verified": user.email_verified, "created_at": user.created_at,
+    }
+    data["chat_messages"] = [
+        {
+            "id": row.id, "session_date": row.session_date, "role": row.role,
+            "content": row.content, "created_at": row.created_at,
+        }
+        for row in messages
+    ]
+    data["receipt_notice"] = "Foto struk tidak disertakan dalam JSON; unduh foto dari transaksi terkait."
+    return data

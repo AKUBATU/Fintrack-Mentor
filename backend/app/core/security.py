@@ -44,3 +44,19 @@ def decode_password_reset_token(token: str, password_hash: str) -> int:
     if payload.get("password_version") != expected_version:
         raise ValueError("Reset token already used")
     return int(payload["sub"])
+
+
+def create_email_verification_token(user_id: int, email: str) -> str:
+    expire = datetime.now(timezone.utc) + timedelta(minutes=settings.EMAIL_VERIFICATION_EXPIRE_MINUTES)
+    return jwt.encode(
+        {"sub": str(user_id), "purpose": "email_verification", "email": email, "exp": expire},
+        settings.JWT_SECRET_KEY,
+        algorithm=settings.JWT_ALGORITHM,
+    )
+
+
+def decode_email_verification_token(token: str) -> tuple[int, str]:
+    payload = decode_token(token)
+    if payload.get("purpose") != "email_verification" or not payload.get("email"):
+        raise ValueError("Invalid verification token")
+    return int(payload["sub"]), str(payload["email"])

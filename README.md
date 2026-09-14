@@ -6,7 +6,7 @@ FinTrack Mentor is a full-stack personal wealth management application for track
 
 ## Highlights
 
-- Secure registration and JWT-based authentication
+- Secure registration, email verification, JWT-based authentication, and persistent rate limiting
 - Protected application routes and user-isolated financial data
 - Forgot-password and email-based password reset flow
 - Income and expense tracking with search, filters, budgets, notes, and transaction history
@@ -160,6 +160,7 @@ Open [http://localhost:5173](http://localhost:5173).
 | `CORS_ORIGINS` | Comma-separated allowed frontend origins |
 | `FRONTEND_URL` | Public frontend URL used in password-reset links |
 | `PASSWORD_RESET_EXPIRE_MINUTES` | Password-reset token lifetime |
+| `EMAIL_VERIFICATION_EXPIRE_MINUTES` | Email-verification token lifetime |
 | `SMTP_HOST`, `SMTP_PORT` | SMTP server configuration |
 | `SMTP_USERNAME`, `SMTP_PASSWORD` | SMTP credentials |
 | `SMTP_FROM_EMAIL` | Sender address for reset emails |
@@ -188,6 +189,8 @@ cd backend
 source .venv/bin/activate
 alembic upgrade head
 ```
+
+Before a public release, verify both `/health` and `/ready`, run the integration tests, and create a database backup through the PostgreSQL provider. Restore procedures should be tested on a separate database; a backup that has never been restored is not considered verified.
 
 Expenses, budgets, fund accounts, transfers, profile preferences, stock transactions, dividends, investment assets, receipt access, and daily chat messages are associated with the authenticated user. API queries enforce ownership so one user cannot retrieve another user's records.
 

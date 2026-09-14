@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { api } from '../services/api';
 import ProcessingOverlay from '../components/ProcessingOverlay';
 import { formatCurrency, formatCurrencyCode } from '../utils/formatters';
+import { useModalFocusTrap } from '../utils/useModalFocusTrap';
 
 const ASSET_TYPES = [
   ['stock', 'Saham'], ['etf', 'ETF'], ['money_market_fund', 'Reksa Dana Pasar Uang (RDPU)'], ['mutual_fund', 'Reksa Dana Lainnya'], ['bond', 'Obligasi'],
@@ -70,6 +71,8 @@ export default function Portfolio() {
   const updateStockTransaction = data?.updateStockTransaction as undefined | ((id: string, payload: any) => Promise<void>);
   const deleteStockTransaction = data?.deleteStockTransaction as undefined | ((id: string) => Promise<void>);
   const addDividend = data?.addDividend as undefined | ((payload: any) => Promise<void>);
+  const updateDividend = data?.updateDividend as undefined | ((id: string, payload: any) => Promise<void>);
+  const deleteDividend = data?.deleteDividend as undefined | ((id: string) => Promise<void>);
 
   // ✅ ini yang bikin error kamu: kalau context belum punya, dia undefined → kita guard biar nggak crash
   const updateHoldingPrice =
@@ -82,6 +85,7 @@ export default function Portfolio() {
   const [editingTransactionId, setEditingTransactionId] = useState<string | null>(null);
   const [savingTransaction, setSavingTransaction] = useState(false);
   const [savingDividend, setSavingDividend] = useState(false);
+  const [editingDividendId, setEditingDividendId] = useState<string | null>(null);
   const [savingPrice, setSavingPrice] = useState(false);
   const [portfolioHealth, setPortfolioHealth] = useState<any>(null);
   const [assetLoading, setAssetLoading] = useState(true);
@@ -94,6 +98,8 @@ export default function Portfolio() {
     current_price: '', currency: 'IDR', exchange_rate_to_idr: '1', acquired_date: '', notes: '',
   };
   const [assetForm, setAssetForm] = useState(emptyAssetForm);
+  const anyPortfolioDialogOpen = showAssetModal || showAddTransaction || showAddDividend || showUpdatePrice;
+  useModalFocusTrap(anyPortfolioDialogOpen, '.portfolio-form-overlay');
   const assetFields = ASSET_FIELD_LABELS[assetForm.asset_type] || DEFAULT_ASSET_FIELDS;
   const usesDirectValue = DIRECT_VALUE_ASSETS.has(assetForm.asset_type);
   const portfolioHoldings = holdings.filter((holding: any) => {
@@ -153,6 +159,7 @@ export default function Portfolio() {
       setShowAssetModal(false);
       setShowAddTransaction(false);
       setShowAddDividend(false);
+      setEditingDividendId(null);
       setShowUpdatePrice(false);
     };
     window.addEventListener('keydown', closeOnEscape);
@@ -483,15 +490,18 @@ export default function Portfolio() {
     setSavingDividend(true);
     try {
       // ✅ DataContext Dividend: { ticker, amount, recordDate, paymentDate }
-      await addDividend({
+      const payload = {
         ticker,
         amount: totalAmount,
         recordDate: dividendForm.recordDate || new Date().toISOString().split('T')[0],
         paymentDate: dividendForm.paymentDate || new Date().toISOString().split('T')[0]
-      });
+      };
+      if (editingDividendId && updateDividend) await updateDividend(editingDividendId, payload);
+      else await addDividend(payload);
 
       toast.success('Dividen berhasil dicatat!');
       setShowAddDividend(false);
+      setEditingDividendId(null);
       setDividendForm({
         ticker: '',
         dividendPerShare: '',
@@ -503,6 +513,28 @@ export default function Portfolio() {
       toast.error(e?.message || 'Gagal mencatat dividen');
     } finally {
       setSavingDividend(false);
+    }
+  };
+
+  const openEditDividend = (dividend: any) => {
+    setEditingDividendId(String(dividend.id));
+    setDividendForm({
+      ticker: dividend.ticker,
+      dividendPerShare: String(getDividendTotal(dividend)),
+      shares: '1',
+      recordDate: String(dividend.recordDate ?? dividend.record_date ?? ''),
+      paymentDate: String(dividend.paymentDate ?? dividend.payment_date ?? ''),
+    });
+    setShowAddDividend(true);
+  };
+
+  const handleDeleteDividend = async (dividend: any) => {
+    if (!deleteDividend || !window.confirm(`Hapus dividen ${dividend.ticker}?`)) return;
+    try {
+      await deleteDividend(String(dividend.id));
+      toast.success('Dividen berhasil dihapus');
+    } catch (error: any) {
+      toast.error(error?.message || 'Dividen gagal dihapus');
     }
   };
 
@@ -564,7 +596,7 @@ export default function Portfolio() {
             Update Harga
           </button>
           <button
-            onClick={() => setShowAddDividend(true)}
+            onClick={() => { setEditingDividendId(null); setDividendForm({ ticker: '', dividendPerShare: '', shares: '', recordDate: '', paymentDate: '' }); setShowAddDividend(true); }}
             className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
           >
             <DollarSign className="w-4 h-4" />
@@ -784,8 +816,9 @@ export default function Portfolio() {
                         Dibayar: {payment ? new Date(payment).toLocaleDateString('id-ID') : '-'}
                       </p>
                     </div>
-                    <div className="text-right">
+                    <div className="text-right shrink-0">
                       <p className="font-semibold text-green-600">{formatCurrency(total)}</p>
+                      <div className="mt-1 flex justify-end gap-2"><button type="button" onClick={() => openEditDividend(div)} className="text-xs text-blue-600">Edit</button><button type="button" onClick={() => void handleDeleteDividend(div)} className="text-xs text-red-600">Hapus</button></div>
                     </div>
                   </div>
                 );
@@ -968,16 +1001,16 @@ export default function Portfolio() {
         <div
           className="portfolio-form-overlay fixed inset-0 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4"
           style={{ backgroundColor: 'rgba(17, 24, 39, 0.22)', backdropFilter: 'blur(7px)', WebkitBackdropFilter: 'blur(7px)' }}
-          onClick={() => { if (!savingDividend) setShowAddDividend(false); }}
+          onClick={() => { if (!savingDividend) { setShowAddDividend(false); setEditingDividendId(null); } }}
           role="dialog"
           aria-modal="true"
           aria-labelledby="dividend-modal-title"
         >
           <div className="portfolio-form-dialog relative bg-white rounded-t-2xl sm:rounded-xl max-w-md w-full p-4 sm:p-6 max-h-[calc(100dvh-1rem)] sm:max-h-[90vh] overflow-y-auto overscroll-contain" onClick={(event) => event.stopPropagation()}>
-            <button type="button" disabled={savingDividend} onClick={() => setShowAddDividend(false)} className="absolute top-3 sm:top-4 right-3 sm:right-4 p-2 text-gray-500 hover:text-gray-800 disabled:opacity-50" aria-label="Tutup popup dividen">
+            <button type="button" disabled={savingDividend} onClick={() => { setShowAddDividend(false); setEditingDividendId(null); }} className="absolute top-3 sm:top-4 right-3 sm:right-4 p-2 text-gray-500 hover:text-gray-800 disabled:opacity-50" aria-label="Tutup popup dividen">
               <X className="w-5 h-5" />
             </button>
-            <h3 id="dividend-modal-title" className="text-xl font-bold text-gray-900 mb-4 pr-8">Catat Dividen</h3>
+            <h3 id="dividend-modal-title" className="text-xl font-bold text-gray-900 mb-4 pr-8">{editingDividendId ? 'Edit Dividen' : 'Catat Dividen'}</h3>
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Ticker</label>
@@ -1044,7 +1077,7 @@ export default function Portfolio() {
 
             <div className="sticky bottom-0 grid grid-cols-2 gap-2 mt-6 pt-3 pb-[max(0px,env(safe-area-inset-bottom))] bg-white">
               <button
-                onClick={() => setShowAddDividend(false)}
+                onClick={() => { setShowAddDividend(false); setEditingDividendId(null); }}
                 disabled={savingDividend}
                 className="min-w-0 px-3 sm:px-4 py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 disabled:opacity-50"
               >

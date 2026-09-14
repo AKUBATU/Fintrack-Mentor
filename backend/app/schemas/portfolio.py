@@ -52,7 +52,29 @@ class DividendBase(BaseModel):
     payment_date: dt_date
 
 class DividendCreate(DividendBase):
-    pass
+    @field_validator("ticker")
+    @classmethod
+    def normalize_ticker(cls, value: str):
+        value = value.strip().upper()
+        if not value:
+            raise ValueError("Ticker wajib diisi")
+        return value
+
+class DividendUpdate(BaseModel):
+    ticker: Optional[str] = None
+    amount: Optional[float] = Field(default=None, gt=0)
+    record_date: Optional[dt_date] = None
+    payment_date: Optional[dt_date] = None
+
+    @field_validator("ticker")
+    @classmethod
+    def normalize_ticker(cls, value: str | None):
+        if value is None:
+            return value
+        value = value.strip().upper()
+        if not value:
+            raise ValueError("Ticker wajib diisi")
+        return value
 
 class DividendOut(DividendBase):
     id: int

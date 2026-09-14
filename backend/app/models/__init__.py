@@ -11,5 +11,6 @@ from .user_preference import UserPreference
 from .fund_account import FundAccount
 from .fund_transfer import FundTransfer
 from .transaction_category import TransactionCategory
+from .rate_limit import RateLimitBucket
 
-__all__ = ["User","Expense","Budget","StockTransaction","Dividend","DailyReport","InvestmentAsset","ChatMessage","StockPrice","UserPreference","FundAccount","FundTransfer","TransactionCategory"]
+__all__ = ["User","Expense","Budget","StockTransaction","Dividend","DailyReport","InvestmentAsset","ChatMessage","StockPrice","UserPreference","FundAccount","FundTransfer","TransactionCategory","RateLimitBucket"]

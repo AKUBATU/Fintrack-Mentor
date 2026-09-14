@@ -1,6 +1,10 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.gzip import GZipMiddleware
 from sqlalchemy import inspect, text
+from uuid import uuid4
+import logging
+import time
 
 from .core.config import settings
 from .core.base import Base
@@ -12,9 +16,11 @@ from .models.user_preference import UserPreference
 from .models.fund_account import FundAccount
 from .models.fund_transfer import FundTransfer
 from .models.transaction_category import TransactionCategory
+from .models.rate_limit import RateLimitBucket
 from .api.router import api_router
 
 app = FastAPI(title=settings.APP_NAME)
+logger = logging.getLogger(__name__)
 
 
 @app.on_event("startup")
@@ -35,9 +41,21 @@ def create_production_schema():
     FundAccount.__table__.create(bind=engine, checkfirst=True)
     FundTransfer.__table__.create(bind=engine, checkfirst=True)
     TransactionCategory.__table__.create(bind=engine, checkfirst=True)
+    RateLimitBucket.__table__.create(bind=engine, checkfirst=True)
     Base.metadata.create_all(bind=engine)
     if engine.dialect.name == "postgresql" and settings.DATABASE_SCHEMA == "fintrack_app":
         with engine.begin() as connection:
+            connection.execute(text(
+                "ALTER TABLE fintrack_app.users ADD COLUMN IF NOT EXISTS "
+                "email_verified BOOLEAN NOT NULL DEFAULT TRUE"
+            ))
+            for statement in (
+                "CREATE INDEX IF NOT EXISTS ix_expenses_user_date ON fintrack_app.expenses (user_id, date)",
+                "CREATE INDEX IF NOT EXISTS ix_budgets_user_reference_date ON fintrack_app.budgets (user_id, reference_date)",
+                "CREATE INDEX IF NOT EXISTS ix_stock_transactions_user_date ON fintrack_app.stock_transactions (user_id, date)",
+                "CREATE INDEX IF NOT EXISTS ix_chat_messages_user_session_date ON fintrack_app.chat_messages (user_id, session_date)",
+            ):
+                connection.execute(text(statement))
             expense_columns = (
                 "transaction_type VARCHAR(10) NOT NULL DEFAULT 'expense'",
                 "merchant VARCHAR(120) NOT NULL DEFAULT ''",
@@ -147,6 +165,24 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.add_middleware(GZipMiddleware, minimum_size=1000)
+
+
+@app.middleware("http")
+async def add_security_headers(request: Request, call_next):
+    request_id = request.headers.get("x-request-id") or uuid4().hex
+    started = time.perf_counter()
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+    response.headers["Cache-Control"] = "no-store" if request.url.path.startswith("/api/") else response.headers.get("Cache-Control", "no-store")
+    response.headers["X-Request-ID"] = request_id
+    elapsed = time.perf_counter() - started
+    if elapsed >= 2:
+        logger.warning("slow_request id=%s path=%s duration=%.3f", request_id, request.url.path, elapsed)
+    return response
 
 app.include_router(
     api_router,
@@ -160,3 +196,10 @@ def health():
         "ok": True,
         "name": settings.APP_NAME,
     }
+
+
+@app.get("/ready")
+def readiness():
+    with engine.connect() as connection:
+        connection.execute(text("SELECT 1"))
+    return {"ok": True, "database": "reachable"}

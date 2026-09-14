@@ -196,6 +196,8 @@ interface DataContextType {
   ): Promise<void>
   deleteStockTransaction(id: string): Promise<void>
   addDividend(dividend: Omit<Dividend, 'id'>): Promise<void>
+  updateDividend(id: string, dividend: Omit<Dividend, 'id'>): Promise<void>
+  deleteDividend(id: string): Promise<void>
   addDailyReport(report: Omit<DailyReportEntry, 'id'>): Promise<void>
 
   updateHoldingPrice(ticker: string, price: number): Promise<void>
@@ -622,6 +624,16 @@ export function DataProvider({ children }: { children: ReactNode }) {
     setDividends((p) => [{ ...d, id: String(created.id) }, ...p])
   }
 
+  const updateDividend = async (id: string, d: Omit<Dividend, 'id'>) => {
+    await api.updateDividend(Number(id), d)
+    setDividends((items) => items.map((item) => item.id === id ? { ...d, id } : item))
+  }
+
+  const deleteDividend = async (id: string) => {
+    await api.deleteDividend(Number(id))
+    setDividends((items) => items.filter((item) => item.id !== id))
+  }
+
   const addDailyReport = async (r: Omit<DailyReportEntry, 'id'>) => {
     const created = await api.addReport(r)
     setDailyReports((p) => [{ ...r, id: String(created.id) }, ...p])
@@ -714,6 +726,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
         updateStockTransaction,
         deleteStockTransaction,
         addDividend,
+        updateDividend,
+        deleteDividend,
         addDailyReport,
         updateHoldingPrice,
         refreshInvestmentAssets,

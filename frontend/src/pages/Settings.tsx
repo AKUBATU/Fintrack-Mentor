@@ -34,7 +34,7 @@ export default function Settings() {
     const focusStocks = focusStocksInput.split(',').map((stock) => stock.trim().toUpperCase()).filter(Boolean);
     setSaving(true);
     try {
-      await updateUserProfile({ ...profile, focusStocks, onboardingCompleted: true });
+      await updateUserProfile({ ...profile, baseCurrency: 'IDR', focusStocks, onboardingCompleted: true });
       toast.success('Preferensi profil berhasil disimpan');
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Preferensi gagal disimpan');
@@ -54,8 +54,8 @@ export default function Settings() {
 
   const handleExportAccount = async () => {
     try {
-      const data = await api.accountData();
-      const blob = new Blob([JSON.stringify({ exported_at: new Date().toISOString(), account: { id: user?.id, name: user?.name, email: user?.email }, data }, null, 2)], { type: 'application/json' });
+      const data = await api.exportAccountData();
+      const blob = new Blob([JSON.stringify({ exported_at: new Date().toISOString(), data }, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const anchor = document.createElement('a');
       anchor.href = url; anchor.download = `fintrack-data-${new Date().toISOString().slice(0, 10)}.json`; anchor.click();
@@ -134,7 +134,7 @@ export default function Settings() {
 
           <div className="space-y-5">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div><label className="block text-sm font-medium text-gray-700 mb-2">Mata uang utama</label><select value={profile.baseCurrency} onChange={(event) => setProfile({ ...profile, baseCurrency: event.target.value as 'IDR' | 'USD' | 'EUR' })} className="w-full min-w-0 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"><option value="IDR">IDR — Rupiah</option><option value="USD">USD — US Dollar</option><option value="EUR">EUR — Euro</option></select><p className="text-xs text-gray-500 mt-1.5">Portofolio tetap dinormalisasi ke IDR pada versi saat ini.</p></div>
+              <div><label className="block text-sm font-medium text-gray-700 mb-2">Mata uang laporan</label><div className="w-full px-4 py-3 border border-gray-200 bg-gray-50 text-gray-700 rounded-lg">IDR — Rupiah</div><p className="text-xs text-gray-500 mt-1.5">Aset asing dikonversi ke IDR menggunakan kurs yang Anda masukkan.</p></div>
               <div><label className="block text-sm font-medium text-gray-700 mb-2">Zona waktu</label><select value={profile.timezone} onChange={(event) => setProfile({ ...profile, timezone: event.target.value as typeof profile.timezone })} className="w-full min-w-0 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"><option value="Asia/Jakarta">WIB — Jakarta</option><option value="Asia/Makassar">WITA — Makassar</option><option value="Asia/Jayapura">WIT — Jayapura</option></select></div>
             </div>
             <div>
@@ -189,7 +189,8 @@ export default function Settings() {
               <div className="flex items-start gap-2"><UserRound className="w-4 h-4 text-blue-600 mt-0.5 shrink-0" /><span>Data keuangan dipisahkan berdasarkan pemilik akun.</span></div>
             </div>
             <p className="text-xs text-gray-500 border-t border-gray-200 mt-4 pt-4">Preferensi investasi tersimpan pada akun dan tersedia di perangkat lain setelah login.</p>
-            <button type="button" onClick={() => void handleExportAccount()} className="mt-4 w-full inline-flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"><Download className="w-4 h-4" /> Export seluruh data</button>
+            <button type="button" onClick={() => void handleExportAccount()} className="mt-4 w-full inline-flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"><Download className="w-4 h-4" /> Export data akun</button>
+            <p className="mt-2 text-xs text-gray-500">File JSON mencakup data akun dan chat. Foto struk dapat diunduh dari transaksi terkait.</p>
           </section>
 
           <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
