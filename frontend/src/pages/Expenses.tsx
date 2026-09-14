@@ -6,6 +6,7 @@ import { api } from '../services/api';
 import ProcessingOverlay from '../components/ProcessingOverlay';
 import { useModalFocusTrap } from '../utils/useModalFocusTrap';
 import { formatCurrency } from '../utils/formatters';
+import FinancialReportPreview from '../components/FinancialReportPreview';
 
 type AutoPred = { category: string; confidence: number } | null;
 
@@ -65,9 +66,10 @@ export default function Expenses() {
   const [accountDialog, setAccountDialog] = useState<string | null>(null);
   const [transferDialog, setTransferDialog] = useState(false);
   const [savingFunds, setSavingFunds] = useState(false);
+  const [showReportPreview, setShowReportPreview] = useState(false);
   const [accountForm, setAccountForm] = useState({ name: '', openingBalance: '' });
   const [transferForm, setTransferForm] = useState({ fromSource: 'bank', toSource: 'cash', amount: '', date: getLocalDateValue(), notes: '' });
-  const anyFinanceDialogOpen = showAddExpense || Boolean(editingExpense) || showAddBudget || Boolean(selectedReceipt) || Boolean(accountDialog) || transferDialog;
+  const anyFinanceDialogOpen = showAddExpense || Boolean(editingExpense) || showAddBudget || Boolean(selectedReceipt) || Boolean(accountDialog) || transferDialog || showReportPreview;
   useModalFocusTrap(anyFinanceDialogOpen, '.finance-transaction-overlay, .fixed[role="dialog"]');
 
   useEffect(() => {
@@ -85,6 +87,7 @@ export default function Expenses() {
       setSelectedReceipt(null);
       setAccountDialog(null);
       setTransferDialog(false);
+      setShowReportPreview(false);
     };
     window.addEventListener('keydown', closeOnEscape);
 
@@ -577,11 +580,11 @@ export default function Expenses() {
     }
   };
 
-  const handleExportCSV = () => {
+  const handleExportCSV = (transactions = expenses, scope: 'filtered' | 'all' = 'all') => {
     const escapeCsv = (value: unknown) => `"${String(value ?? '').replace(/"/g, '""')}"`;
     const csvContent = [
       ['Tanggal', 'Jenis', 'Kategori', 'Sumber/Merchant', 'Metode', 'Sumber Saldo', 'Jumlah', 'Catatan'].map(escapeCsv).join(','),
-      ...expenses.map(e =>
+      ...transactions.map(e =>
         [e.date, e.transactionType, e.category, e.merchant, e.paymentMethod, fundSourceLabels[e.fundSource], e.amount, e.notes].map(escapeCsv).join(',')
       ),
     ].join('\n');
@@ -590,7 +593,7 @@ export default function Expenses() {
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'financial-transactions.csv';
+    a.download = `fintrack-transaksi-${scope === 'filtered' ? historyDate : 'semua'}.csv`;
     a.click();
     a.remove();
     window.URL.revokeObjectURL(url);
@@ -610,7 +613,7 @@ export default function Expenses() {
         </div>
         <div className="finance-header-actions">
           <button
-            onClick={handleExportCSV}
+            onClick={() => setShowReportPreview(true)}
             className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
           >
             <Download className="w-4 h-4" />
@@ -1262,6 +1265,17 @@ export default function Expenses() {
             <img src={selectedReceipt} alt="Foto struk transaksi" className="max-w-full max-h-[85vh] object-contain rounded-xl shadow-2xl" />
           </div>
         </div>
+      )}
+
+      {showReportPreview && (
+        <FinancialReportPreview
+          allTransactions={expenses}
+          filteredTransactions={filteredTransactions}
+          filteredPeriodLabel={selectedHistoryDateLabel}
+          fundSourceLabels={fundSourceLabels}
+          onClose={() => setShowReportPreview(false)}
+          onDownloadCsv={handleExportCSV}
+        />
       )}
     </div>
   );
