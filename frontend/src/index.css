@@ -2828,9 +2828,13 @@ html.dark { color-scheme: dark; background: #080d18; }
 .mentor-online { display: inline-flex; align-items: center; gap: .4rem; color: #15803d; font-size: .7rem; font-weight: 700; }
 .mentor-online span { width: .45rem; height: .45rem; border-radius: 999px; background: #22c55e; box-shadow: 0 0 0 3px #dcfce7; }
 .mentor-avatar { box-shadow: 0 4px 10px rgba(15, 23, 42, .12); }
+.mentor-message-content { display: flex; min-width: 0; max-width: min(78%, 42rem); flex-direction: column; }
+.mentor-message-user { justify-content: flex-start; }
+.mentor-message-user .mentor-message-content { margin-left: auto; max-width: min(70%, 36rem); }
 .mentor-bubble { line-height: 1.55; overflow-wrap: anywhere; }
 .mentor-message-assistant .mentor-bubble { border: 1px solid #e5e7eb; border-top-left-radius: .4rem; }
-.mentor-message-user .mentor-bubble { border-top-right-radius: .4rem; box-shadow: 0 5px 12px rgba(37, 99, 235, .14); }
+.mentor-message-user .mentor-bubble { width: fit-content; border-top-right-radius: .4rem; box-shadow: 0 4px 10px rgba(37, 99, 235, .12); }
+.mentor-message-user .mentor-message-content > p { text-align: right; }
 .mentor-composer {
   align-items: flex-end;
   padding: .3rem;
@@ -2924,6 +2928,7 @@ html.dark { color-scheme: dark; background: #080d18; }
   .mentor-conversation-bar { padding: .7rem 1rem; }
   .mentor-message { gap: .55rem; }
   .mentor-message-content { max-width: calc(100% - 2.6rem); }
+  .mentor-message-user .mentor-message-content { max-width: 86%; }
   .mentor-bubble { padding: .7rem .8rem; }
   .mentor-conversation .chat-messages {
     min-height: 10rem;

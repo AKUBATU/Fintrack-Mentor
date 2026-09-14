@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Bot, CalendarClock, Loader, Send, ShieldCheck, Sparkles, User } from 'lucide-react';
+import { Bot, CalendarClock, Loader, Send, ShieldCheck, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { api } from '../services/api';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -103,10 +103,10 @@ export default function ChatMentor() {
             <div className="flex min-h-40 items-center justify-center gap-2 text-sm text-gray-500"><Loader className="w-4 h-4 animate-spin" /> {t('chat.loadingHistory')}</div>
           ) : messages.map((message) => (
             <div key={message.id} className={`mentor-message flex gap-3 ${message.role === 'user' ? 'mentor-message-user flex-row-reverse' : 'mentor-message-assistant'}`}>
-              <div className={`mentor-avatar flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${message.role === 'user' ? 'bg-blue-600' : 'bg-gray-900'}`}>
-                {message.role === 'user' ? <User className="w-5 h-5 text-white" /> : <Bot className="w-5 h-5 text-white" />}
-              </div>
-              <div className={`mentor-message-content flex-1 max-w-[80%] ${message.role === 'user' ? 'items-end' : 'items-start'}`}>
+              {message.role === 'assistant' && <div className="mentor-avatar flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center bg-gray-900">
+                <Bot className="w-5 h-5 text-white" />
+              </div>}
+              <div className={`mentor-message-content ${message.role === 'user' ? 'items-end' : 'items-start'}`}>
                 <div className={`mentor-bubble rounded-2xl px-4 py-3 ${message.role === 'user' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-900'}`}><p className="text-sm whitespace-pre-wrap">{message.content}</p></div>
                 <p className="text-xs text-gray-500 mt-1 px-2">{formatTime(message.timestamp)}</p>
               </div>
