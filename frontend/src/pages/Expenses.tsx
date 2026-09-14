@@ -580,7 +580,7 @@ export default function Expenses() {
     }
   };
 
-  const handleExportCSV = (transactions = expenses, scope: 'filtered' | 'all' = 'all') => {
+  const handleExportCSV = (transactions = expenses, periodKey = 'semua') => {
     const escapeCsv = (value: unknown) => `"${String(value ?? '').replace(/"/g, '""')}"`;
     const csvContent = [
       ['Tanggal', 'Jenis', 'Kategori', 'Sumber/Merchant', 'Metode', 'Sumber Saldo', 'Jumlah', 'Catatan'].map(escapeCsv).join(','),
@@ -593,7 +593,7 @@ export default function Expenses() {
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `fintrack-transaksi-${scope === 'filtered' ? historyDate : 'semua'}.csv`;
+    a.download = `fintrack-transaksi-${periodKey}.csv`;
     a.click();
     a.remove();
     window.URL.revokeObjectURL(url);
@@ -1270,8 +1270,7 @@ export default function Expenses() {
       {showReportPreview && (
         <FinancialReportPreview
           allTransactions={expenses}
-          filteredTransactions={filteredTransactions}
-          filteredPeriodLabel={selectedHistoryDateLabel}
+          initialDate={historyDate}
           fundSourceLabels={fundSourceLabels}
           onClose={() => setShowReportPreview(false)}
           onDownloadCsv={handleExportCSV}

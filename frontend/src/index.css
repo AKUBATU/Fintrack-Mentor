@@ -3125,16 +3125,21 @@ html.dark { color-scheme: dark; background: #080d18; }
 .dark .app-main .financial-report-document .border-gray-200 { border-color: #e5e7eb; }
 
 @media (max-width: 640px) {
-  .financial-report-toolbar > div:last-child { display: grid; grid-template-columns: minmax(0, 1fr) auto auto auto; width: 100%; }
+  .financial-report-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); width: 100%; }
+  .financial-report-actions .financial-report-period,
+  .financial-report-actions .financial-report-period-input,
+  .financial-report-actions .financial-report-range { grid-column: 1 / -1; width: 100%; min-width: 0; }
+  .financial-report-actions > button { min-width: 0; }
+  .financial-report-actions > button:last-child { position: absolute; right: .5rem; top: .5rem; width: auto; }
+  .financial-report-range { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); }
+  .financial-report-range input { width: 100%; min-width: 0; }
   .financial-report-table { display: none; }
   .financial-report-mobile { display: block; }
 }
 
 @media (max-width: 420px) {
-  .financial-report-toolbar > div:last-child { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .financial-report-toolbar select { grid-column: 1 / -1; }
-  .financial-report-toolbar button { min-width: 0; }
-  .financial-report-toolbar button:last-child { position: absolute; right: .5rem; top: .5rem; width: auto; }
+  .financial-report-range { grid-template-columns: minmax(0, 1fr); }
+  .financial-report-range span { display: none; }
   .financial-report-brand { flex-direction: column; }
   .financial-report-brand > div:last-child { text-align: left; }
 }
