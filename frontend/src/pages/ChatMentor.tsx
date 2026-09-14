@@ -3,6 +3,7 @@ import { Bot, CalendarClock, Loader, Send, ShieldCheck, Sparkles } from 'lucide-
 import { toast } from 'sonner';
 import { api } from '../services/api';
 import { useLanguage } from '../contexts/LanguageContext';
+import { useAuth } from '../contexts/AuthContext';
 
 interface Message {
   id: string;
@@ -12,6 +13,7 @@ interface Message {
 }
 
 export default function ChatMentor() {
+  const { user } = useAuth();
   const { language, locale, t } = useLanguage();
   const [messages, setMessages] = useState<Message[]>(() => [{ id: 'welcome', role: 'assistant', content: t('chat.welcome'), timestamp: new Date() }]);
   const [input, setInput] = useState('');
@@ -105,6 +107,9 @@ export default function ChatMentor() {
             <div key={message.id} className={`mentor-message flex gap-3 ${message.role === 'user' ? 'mentor-message-user flex-row-reverse' : 'mentor-message-assistant'}`}>
               {message.role === 'assistant' && <div className="mentor-avatar flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center bg-gray-900">
                 <Bot className="w-5 h-5 text-white" />
+              </div>}
+              {message.role === 'user' && <div className="mentor-avatar mentor-user-avatar flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center bg-blue-600 text-sm font-semibold text-white" aria-hidden="true">
+                {user?.name?.trim()?.[0]?.toUpperCase() || 'U'}
               </div>}
               <div className={`mentor-message-content ${message.role === 'user' ? 'items-end' : 'items-start'}`}>
                 <div className={`mentor-bubble rounded-2xl px-4 py-3 ${message.role === 'user' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-900'}`}><p className="text-sm whitespace-pre-wrap">{message.content}</p></div>
