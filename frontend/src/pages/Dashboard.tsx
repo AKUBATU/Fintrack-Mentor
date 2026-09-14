@@ -148,11 +148,11 @@ export default function Dashboard() {
           <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
           <p className="text-gray-600">Lihat arus kas, budget, dan investasi Anda dalam satu ringkasan.</p>
         </div>
-        <div className="flex flex-col sm:flex-row sm:items-center gap-2 min-w-0">
-          <label className="relative min-w-0">
+        <div className="dashboard-period-controls flex flex-col sm:flex-row sm:items-center gap-2 min-w-0">
+          <label className="dashboard-month-field relative min-w-0">
             <span className="sr-only">Pilih bulan laporan</span>
             <CalendarDays className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-            <input type="month" value={selectedMonth} onChange={(event) => setSelectedMonth(event.target.value || currentMonth)} className="w-full sm:w-auto min-w-0 pl-9 pr-3 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500" />
+            <input type="month" value={selectedMonth} onChange={(event) => setSelectedMonth(event.target.value || currentMonth)} className="dashboard-month-input w-full min-w-0 pl-9 pr-3 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500" />
           </label>
           {selectedMonth !== currentMonth && <button type="button" onClick={() => setSelectedMonth(currentMonth)} className="px-3 py-2 text-sm font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100">Bulan ini</button>}
         </div>

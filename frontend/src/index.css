@@ -2712,6 +2712,40 @@ html.dark { color-scheme: dark; background: #080d18; }
 .dashboard-profit-card { order: 5; }
 .dashboard-assets-card { order: 6; }
 
+.dashboard-period-controls { max-width: 100%; }
+.dashboard-month-field {
+  box-sizing: border-box;
+  width: 11.5rem;
+  max-width: 100%;
+  overflow: hidden;
+  contain: inline-size;
+}
+.dashboard-month-input {
+  -webkit-appearance: none;
+  appearance: none;
+  box-sizing: border-box;
+  display: block;
+  width: 100%;
+  min-width: 0;
+  min-inline-size: 0;
+  max-width: 100%;
+  max-inline-size: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dashboard-month-input::-webkit-date-and-time-value,
+.dashboard-month-input::-webkit-datetime-edit,
+.dashboard-month-input::-webkit-datetime-edit-fields-wrapper {
+  box-sizing: border-box;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+}
+.dashboard-month-input::-webkit-calendar-picker-indicator {
+  flex: 0 0 auto;
+  margin: 0;
+}
+
 @media (min-width: 768px) {
   .dashboard-balance-card,
   .dashboard-portfolio-card { grid-column: span 2; }
@@ -2846,6 +2880,10 @@ html.dark { color-scheme: dark; background: #080d18; }
   .dashboard-holding-row p,
   .portfolio-mobile-list p { overflow-wrap: anywhere; }
   .app-main .text-2xl.font-bold { overflow-wrap: anywhere; }
+  .dashboard-period-controls,
+  .dashboard-month-field,
+  .dashboard-month-input { width: 100%; max-width: 100%; }
+  .dashboard-period-controls > button { width: 100%; }
   .app-main > div.fixed { padding: .75rem; }
   .app-main > div.fixed > div.bg-white {
     padding: 1rem;
