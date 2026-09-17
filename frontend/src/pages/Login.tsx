@@ -4,8 +4,6 @@ import { Eye, EyeOff, LoaderCircle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import ThemeToggle from '../components/ThemeToggle';
 import ProcessingOverlay from '../components/ProcessingOverlay';
-import { api } from '../services/api';
-import { toast } from 'sonner';
 import LanguageSelect from '../components/LanguageSelect';
 import { useLanguage } from '../contexts/LanguageContext';
 
@@ -14,7 +12,6 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [resending, setResending] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
   const { t } = useLanguage();
@@ -29,19 +26,6 @@ export default function Login() {
       console.error('Login error:', error);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const resendVerification = async () => {
-    if (!email) return toast.error(t('login.enterEmail'));
-    setResending(true);
-    try {
-      const result = await api.resendVerification(email);
-      toast.success(result.message);
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : t('login.verificationFailed'));
-    } finally {
-      setResending(false);
     }
   };
 
@@ -104,7 +88,6 @@ export default function Login() {
                   {t('login.forgot')}
                 </Link>
               </div>
-              <button type="button" disabled={resending} onClick={() => void resendVerification()} className="mt-2 text-sm text-gray-500 hover:text-blue-600 disabled:opacity-50">{resending ? t('login.resending') : t('login.resend')}</button>
             </div>
 
             <button

@@ -33,14 +33,6 @@ def register(payload: RegisterIn, request: Request, db: Session = Depends(get_db
     if get_user_by_email(db, payload.email):
         raise HTTPException(status_code=400, detail="Email already registered")
     user = create_user(db, payload.name, payload.email, payload.password)
-    if settings.SMTP_HOST:
-        try:
-            send_email_verification(user.email, create_email_verification_token(user.id, user.email))
-        except Exception as exc:
-            logger.exception("Failed to send verification email")
-            db.delete(user)
-            db.commit()
-            raise HTTPException(503, "Email verifikasi gagal dikirim. Silakan coba lagi.") from exc
     return UserOut(id=user.id, email=user.email, name=user.name)
 
 @router.post("/login", response_model=LoginOut)
@@ -49,8 +41,6 @@ def login(request: Request, form: OAuth2PasswordRequestForm = Depends(), db: Ses
     user = authenticate(db, form.username, form.password)
     if not user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Incorrect email or password")
-    if not user.email_verified:
-        raise HTTPException(status_code=403, detail="Email belum diverifikasi. Periksa inbox atau folder spam.")
     token = create_access_token(str(user.id), user.password_hash)
     return LoginOut(user=UserOut(id=user.id, email=user.email, name=user.name), access_token=token)
 

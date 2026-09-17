@@ -444,7 +444,7 @@ class ApiIntegrationTest(unittest.TestCase):
         }, headers=headers)
         self.assertEqual(oversell.status_code, 422, oversell.text)
 
-    def test_public_registration_requires_email_verification_when_smtp_is_enabled(self):
+    def test_public_registration_is_immediately_active_when_smtp_is_enabled(self):
         email = "verify-flow@example.com"
         previous_host = settings.SMTP_HOST
         settings.SMTP_HOST = "smtp.example.com"
@@ -454,11 +454,7 @@ class ApiIntegrationTest(unittest.TestCase):
                     "name": "Verify Flow", "email": email.upper(), "password": "rahasia123",
                 })
                 self.assertEqual(registered.status_code, 200, registered.text)
-                token = sender.call_args.args[1]
-            blocked = self.client.post("/api/auth/login", data={"username": email, "password": "rahasia123"})
-            self.assertEqual(blocked.status_code, 403, blocked.text)
-            verified = self.client.post("/api/auth/verify-email", json={"token": token})
-            self.assertEqual(verified.status_code, 200, verified.text)
+                sender.assert_not_called()
             login = self.client.post("/api/auth/login", data={"username": email.upper(), "password": "rahasia123"})
             self.assertEqual(login.status_code, 200, login.text)
         finally:
