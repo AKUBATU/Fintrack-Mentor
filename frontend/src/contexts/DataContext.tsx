@@ -5,6 +5,8 @@ import React, {
   useEffect,
   ReactNode,
   useMemo,
+  useCallback,
+  useRef,
 } from 'react'
 import { api, type InvestmentAssetResponse } from '../services/api'
 import { useAuth } from './AuthContext'
@@ -318,27 +320,13 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [fundAccounts, setFundAccounts] = useState<FundAccount[]>([])
   const [fundTransfers, setFundTransfers] = useState<FundTransfer[]>([])
   const [customCategories, setCustomCategories] = useState<TransactionCategory[]>([])
+  const accountSyncInFlight = useRef(false)
 
   /* ================= Load account data from backend ================= */
-  useEffect(() => {
-    if (!isAuthenticated || !user) {
-      setAccountDataLoading(false)
-      setExpenses([])
-      setBudgets([])
-      setStockTransactions([])
-      setStockHoldings([])
-      setDividends([])
-      setInvestmentAssets([])
-      setStockPrices({})
-      setDailyReports([])
-      setFundAccounts([])
-      setFundTransfers([])
-      setCustomCategories([])
-      return
-    }
-
-    const load = async () => {
-      setAccountDataLoading(true)
+  const loadAccountData = useCallback(async ({ showLoading = false, silent = false } = {}) => {
+    if (!isAuthenticated || !user || accountSyncInFlight.current) return
+    accountSyncInFlight.current = true
+    if (showLoading) setAccountDataLoading(true)
       try {
         const data = await api.accountData()
 
@@ -430,14 +418,45 @@ export function DataProvider({ children }: { children: ReactNode }) {
       setCustomCategories((data.custom_categories ?? []).map((row) => ({ id: String(row.id), transactionType: row.transaction_type, name: row.name })))
       } catch (error) {
         console.error('Failed to load account data:', error)
-        toast.error('Data akun gagal dimuat. Silakan coba login kembali.')
+        if (!silent) toast.error('Data akun gagal dimuat. Silakan coba login kembali.')
       } finally {
-        setAccountDataLoading(false)
+        if (showLoading) setAccountDataLoading(false)
+        accountSyncInFlight.current = false
       }
+  }, [isAuthenticated, user])
+
+  useEffect(() => {
+    if (!isAuthenticated || !user) {
+      setAccountDataLoading(false)
+      setExpenses([])
+      setBudgets([])
+      setStockTransactions([])
+      setStockHoldings([])
+      setDividends([])
+      setInvestmentAssets([])
+      setStockPrices({})
+      setDailyReports([])
+      setFundAccounts([])
+      setFundTransfers([])
+      setCustomCategories([])
+      return
     }
 
-    load().catch((error) => console.error('Failed to load account data:', error))
-  }, [isAuthenticated, user?.id])
+    void loadAccountData({ showLoading: true })
+
+    const syncVisibleAccount = () => {
+      if (document.visibilityState === 'visible') void loadAccountData({ silent: true })
+    }
+    const interval = window.setInterval(syncVisibleAccount, 15_000)
+    window.addEventListener('focus', syncVisibleAccount)
+    document.addEventListener('visibilitychange', syncVisibleAccount)
+
+    return () => {
+      window.clearInterval(interval)
+      window.removeEventListener('focus', syncVisibleAccount)
+      document.removeEventListener('visibilitychange', syncVisibleAccount)
+    }
+  }, [isAuthenticated, loadAccountData, user])
 
   /* ================= Auto rebuild holdings when transactions change ================= */
   useEffect(() => {
