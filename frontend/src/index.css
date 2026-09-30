@@ -2764,6 +2764,67 @@ html.dark { color-scheme: dark; background: #080d18; }
   margin: 0;
 }
 
+.dashboard-monthly-wrap-prompt { display: flex; align-items: center; gap: .875rem; padding: 1rem 1.125rem; border: 1px solid #bfdbfe; border-radius: .875rem; background: #eff6ff; }
+.dashboard-monthly-wrap-mark { display: flex; width: 2.5rem; height: 2.5rem; flex: 0 0 auto; align-items: center; justify-content: center; border-radius: .75rem; color: #1d4ed8; background: #dbeafe; }
+.dashboard-monthly-wrap-prompt > button { flex: 0 0 auto; padding: .625rem .875rem; border-radius: .625rem; color: white; background: #2563eb; font-size: .875rem; font-weight: 600; }
+.monthly-wrap-overlay { background: rgba(15, 23, 42, .54); backdrop-filter: blur(7px); -webkit-backdrop-filter: blur(7px); overscroll-behavior: none; }
+.monthly-wrap-modal { position: relative; display: flex; width: min(100%, 31rem); min-height: 36rem; max-height: min(44rem, calc(100dvh - 2rem)); flex-direction: column; overflow: hidden; border: 1px solid rgba(148, 163, 184, .35); border-radius: 1.25rem; background: #fff; box-shadow: 0 24px 70px rgba(15, 23, 42, .28); }
+.monthly-wrap-progress { display: flex; gap: .35rem; padding: 1rem 3.75rem 0 1.25rem; }
+.monthly-wrap-progress span { height: .22rem; flex: 1 1 0; border-radius: 999px; background: #e2e8f0; }
+.monthly-wrap-progress span.is-active { background: currentColor; }
+.monthly-wrap-close { position: absolute; z-index: 2; top: .65rem; right: .75rem; display: flex; width: 2.5rem; height: 2.5rem; align-items: center; justify-content: center; border-radius: 999px; color: #64748b; }
+.monthly-wrap-close:hover { background: #f1f5f9; }
+.monthly-wrap-body { display: flex; min-height: 0; flex: 1; flex-direction: column; justify-content: center; padding: 2rem 2rem 1.5rem; animation: monthly-wrap-enter .22s ease-out; }
+.monthly-wrap-icon { display: flex; width: 3rem; height: 3rem; align-items: center; justify-content: center; border-radius: .9rem; background: currentColor; }
+.monthly-wrap-icon svg { color: white; }
+.monthly-wrap-eyebrow { margin-top: 1.5rem; color: currentColor; font-size: .72rem; font-weight: 800; letter-spacing: .12em; }
+.monthly-wrap-body h2 { max-width: 24rem; margin-top: .4rem; color: #0f172a; font-size: clamp(1.75rem, 5vw, 2.4rem); font-weight: 750; line-height: 1.12; letter-spacing: -.025em; }
+.monthly-wrap-intro { display: grid; margin-top: 1.5rem; color: #475569; }
+.monthly-wrap-intro p { max-width: 23rem; line-height: 1.65; }
+.monthly-wrap-intro strong { margin-top: 1.5rem; color: #0f172a; font-size: 3rem; line-height: 1; }
+.monthly-wrap-intro span { margin-top: .35rem; font-size: .875rem; }
+.monthly-wrap-metrics { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .75rem; margin-top: 1.75rem; }
+.monthly-wrap-metrics > div, .monthly-wrap-facts > div { min-width: 0; padding: 1rem; border: 1px solid #e2e8f0; border-radius: .8rem; background: #f8fafc; }
+.monthly-wrap-metrics span, .monthly-wrap-facts span { display: block; color: #64748b; font-size: .75rem; }
+.monthly-wrap-metrics strong { display: block; margin-top: .45rem; font-size: 1.15rem; overflow-wrap: anywhere; }
+.monthly-wrap-metric-wide { grid-column: 1 / -1; }
+.monthly-wrap-facts { display: grid; gap: .65rem; margin-top: 1.5rem; }
+.monthly-wrap-facts > div { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: .2rem 1rem; }
+.monthly-wrap-facts strong { min-width: 0; overflow: hidden; color: #0f172a; text-overflow: ellipsis; white-space: nowrap; }
+.monthly-wrap-facts small { grid-column: 2; grid-row: 1 / span 2; color: #475569; font-weight: 600; }
+.monthly-wrap-budget { margin-top: 1.75rem; }
+.monthly-wrap-budget > strong { color: #0f172a; font-size: 3rem; line-height: 1; }
+.monthly-wrap-budget > p { margin-top: .5rem; color: #64748b; }
+.monthly-wrap-budget > div { display: grid; gap: .55rem; margin-top: 1.4rem; }
+.monthly-wrap-budget span { display: flex; justify-content: space-between; gap: 1rem; padding: .75rem .9rem; border: 1px solid #e2e8f0; border-radius: .7rem; color: #475569; background: #f8fafc; font-size: .84rem; }
+.monthly-wrap-finish { margin-top: 1.5rem; color: #64748b; line-height: 1.6; }
+.monthly-wrap-finish button { display: inline-flex; align-items: center; gap: .5rem; margin-top: 1.25rem; padding: .7rem .9rem; border-radius: .65rem; color: white; background: #2563eb; font-size: .875rem; font-weight: 600; }
+.monthly-wrap-nav { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: .75rem; padding: 1rem 1.25rem max(1rem, env(safe-area-inset-bottom)); border-top: 1px solid #e2e8f0; }
+.monthly-wrap-nav button { display: inline-flex; align-items: center; justify-content: center; gap: .4rem; min-height: 2.6rem; padding: .55rem .8rem; border-radius: .65rem; color: #334155; background: #f1f5f9; font-size: .82rem; font-weight: 600; }
+.monthly-wrap-nav button:last-child { justify-self: end; color: white; background: #2563eb; }
+.monthly-wrap-nav button:disabled { opacity: .35; }
+.monthly-wrap-nav > span { color: #94a3b8; font-size: .75rem; font-variant-numeric: tabular-nums; }
+.monthly-wrap-tone-blue { color: #2563eb; } .monthly-wrap-tone-green { color: #16a34a; } .monthly-wrap-tone-red { color: #dc2626; } .monthly-wrap-tone-amber { color: #d97706; } .monthly-wrap-tone-violet { color: #7c3aed; }
+@keyframes monthly-wrap-enter { from { opacity: 0; transform: translateY(.4rem); } to { opacity: 1; transform: translateY(0); } }
+.dark .dashboard-monthly-wrap-prompt { border-color: #1e3a5f; background: #10203a; }
+.dark .dashboard-monthly-wrap-mark { color: #93c5fd; background: #172f52; }
+.dark .monthly-wrap-modal { border-color: #334155; background: #111827; }
+.dark .monthly-wrap-progress span { background: #334155; } .dark .monthly-wrap-progress span.is-active { background: currentColor; }
+.dark .monthly-wrap-close { color: #94a3b8; } .dark .monthly-wrap-close:hover { background: #1e293b; }
+.dark .monthly-wrap-body h2, .dark .monthly-wrap-intro strong, .dark .monthly-wrap-facts strong, .dark .monthly-wrap-budget > strong { color: #f8fafc; }
+.dark .monthly-wrap-intro, .dark .monthly-wrap-finish, .dark .monthly-wrap-budget > p { color: #a9b7ca; }
+.dark .monthly-wrap-metrics > div, .dark .monthly-wrap-facts > div, .dark .monthly-wrap-budget span { border-color: #334155; background: #0f172a; }
+.dark .monthly-wrap-nav { border-color: #334155; } .dark .monthly-wrap-nav button { color: #dbe5f0; background: #1e293b; } .dark .monthly-wrap-nav button:last-child { color: white; background: #2563eb; }
+
+@media (max-width: 767px) {
+  .dashboard-monthly-wrap-prompt { align-items: flex-start; flex-wrap: wrap; }
+  .dashboard-monthly-wrap-prompt > button { width: 100%; }
+  .monthly-wrap-modal { min-height: min(39rem, 100dvh); max-height: 100dvh; border-width: 1px 0 0; border-radius: 1.25rem 1.25rem 0 0; }
+  .monthly-wrap-body { padding: 1.5rem 1.25rem 1rem; }
+  .monthly-wrap-nav { padding-inline: 1rem; }
+}
+@media (prefers-reduced-motion: reduce) { .monthly-wrap-body { animation: none; } }
+
 @media (min-width: 768px) {
   .dashboard-balance-card,
   .dashboard-portfolio-card { grid-column: span 2; }

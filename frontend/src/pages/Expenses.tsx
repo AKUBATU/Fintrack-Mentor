@@ -8,6 +8,7 @@ import { useModalFocusTrap } from '../utils/useModalFocusTrap';
 import { formatCurrency } from '../utils/formatters';
 import FinancialReportPreview from '../components/FinancialReportPreview';
 import { useLanguage } from '../contexts/LanguageContext';
+import { downloadTransactionsCsv } from '../utils/exportTransactionsCsv';
 
 type AutoPred = { category: string; confidence: number } | null;
 
@@ -583,22 +584,7 @@ export default function Expenses() {
   };
 
   const handleExportCSV = (transactions = expenses, periodKey = 'semua') => {
-    const escapeCsv = (value: unknown) => `"${String(value ?? '').replace(/"/g, '""')}"`;
-    const csvContent = [
-      ['Tanggal', 'Jenis', 'Kategori', 'Sumber/Merchant', 'Metode', 'Sumber Saldo', 'Jumlah', 'Catatan'].map(escapeCsv).join(','),
-      ...transactions.map(e =>
-        [e.date, e.transactionType, e.category, e.merchant, e.paymentMethod, fundSourceLabels[e.fundSource], e.amount, e.notes].map(escapeCsv).join(',')
-      ),
-    ].join('\n');
-
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `fintrack-transaksi-${periodKey}.csv`;
-    a.click();
-    a.remove();
-    window.URL.revokeObjectURL(url);
+    downloadTransactionsCsv(transactions, periodKey, fundSourceLabels);
     toast.success('Data berhasil diekspor!');
   };
 

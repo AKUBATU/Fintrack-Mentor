@@ -1,6 +1,6 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useData } from '../contexts/DataContext'
-import { TrendingUp, TrendingDown, Wallet, PieChart, DollarSign, AlertCircle, CalendarDays } from 'lucide-react'
+import { TrendingUp, TrendingDown, Wallet, PieChart, DollarSign, AlertCircle, CalendarDays, Sparkles } from 'lucide-react'
 import {
   BarChart,
   Bar,
@@ -17,6 +17,11 @@ import {
 import { formatCurrency } from '../utils/formatters'
 import { Link } from 'react-router-dom'
 import { useLanguage } from '../contexts/LanguageContext'
+import { useAuth } from '../contexts/AuthContext'
+import MonthlyWrap from '../components/MonthlyWrap'
+import FinancialReportPreview from '../components/FinancialReportPreview'
+import { downloadTransactionsCsv } from '../utils/exportTransactionsCsv'
+import { useModalFocusTrap } from '../utils/useModalFocusTrap'
 
 const getLocalDateValue = () => {
   const today = new Date()
@@ -43,11 +48,53 @@ const isInBudgetPeriod = (dateValue: string, referenceDateValue: string, period:
 }
 
 export default function Dashboard() {
+  const { user } = useAuth()
   const { locale, t, pick } = useLanguage()
-  const { accountDataLoading, expenses, holdings, budgets, investmentAssets, userProfile } = useData()
+  const { accountDataLoading, expenses, holdings, budgets, investmentAssets, userProfile, stockTransactions, dividends, fundAccounts } = useData()
   const portfolioLoading = accountDataLoading
   const currentMonth = getLocalDateValue().slice(0, 7)
   const [selectedMonth, setSelectedMonth] = useState(currentMonth)
+  const [showMonthlyWrap, setShowMonthlyWrap] = useState(false)
+  const [showPreviousReport, setShowPreviousReport] = useState(false)
+  const previousMonthDate = useMemo(() => {
+    const date = new Date()
+    date.setDate(1)
+    date.setMonth(date.getMonth() - 1)
+    return date
+  }, [])
+  const previousMonth = `${previousMonthDate.getFullYear()}-${String(previousMonthDate.getMonth() + 1).padStart(2, '0')}`
+  const previousMonthEnd = `${previousMonth}-${String(new Date(previousMonthDate.getFullYear(), previousMonthDate.getMonth() + 1, 0).getDate()).padStart(2, '0')}`
+  const previousMonthLabel = previousMonthDate.toLocaleDateString(locale, { month: 'long', year: 'numeric' })
+  const previousMonthHasData = useMemo(() => expenses.some((item) => item.date.startsWith(previousMonth))
+    || stockTransactions.some((item) => item.date.startsWith(previousMonth))
+    || dividends.some((item) => item.paymentDate.startsWith(previousMonth)), [dividends, expenses, previousMonth, stockTransactions])
+  const fundSourceLabels = useMemo(() => ({ all: pick('Semua saldo', 'All balances'), ...Object.fromEntries(fundAccounts.map((account) => [account.source, account.name])) }), [fundAccounts, pick])
+  useModalFocusTrap(showMonthlyWrap || showPreviousReport, '.monthly-wrap-overlay, .financial-report-overlay')
+
+  useEffect(() => {
+    if (accountDataLoading || !user || !previousMonthHasData) return
+    const key = `fintrack-monthly-wrap-seen:${user.id}:${previousMonth}`
+    try { if (!localStorage.getItem(key)) setShowMonthlyWrap(true) } catch { setShowMonthlyWrap(true) }
+  }, [accountDataLoading, previousMonth, previousMonthHasData, user])
+
+  useEffect(() => {
+    if (!showPreviousReport) return
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    const closeOnEscape = (event: KeyboardEvent) => { if (event.key === 'Escape') setShowPreviousReport(false) }
+    window.addEventListener('keydown', closeOnEscape)
+    return () => { document.body.style.overflow = previousOverflow; window.removeEventListener('keydown', closeOnEscape) }
+  }, [showPreviousReport])
+
+  const closeMonthlyWrap = () => {
+    if (user) try { localStorage.setItem(`fintrack-monthly-wrap-seen:${user.id}:${previousMonth}`, '1') } catch { /* Continue without persistence. */ }
+    setShowMonthlyWrap(false)
+  }
+
+  const openPreviousReport = () => {
+    closeMonthlyWrap()
+    setShowPreviousReport(true)
+  }
   const selectedMonthLabel = new Date(`${selectedMonth}-01T00:00:00`).toLocaleDateString(locale, {
     month: 'long',
     year: 'numeric',
@@ -159,6 +206,12 @@ export default function Dashboard() {
           {selectedMonth !== currentMonth && <button type="button" onClick={() => setSelectedMonth(currentMonth)} className="px-3 py-2 text-sm font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100">{pick('Bulan ini', 'This month')}</button>}
         </div>
       </div>
+
+      {previousMonthHasData && <section className="dashboard-monthly-wrap-prompt">
+        <div className="dashboard-monthly-wrap-mark"><Sparkles className="h-5 w-5" /></div>
+        <div className="min-w-0 flex-1"><p className="text-sm font-semibold text-gray-900">{pick(`Monthly Wrap ${previousMonthLabel} sudah siap`, `Your ${previousMonthLabel} Monthly Wrap is ready`)}</p><p className="mt-0.5 text-sm text-gray-500">{pick('Lihat kembali pemasukan, pengeluaran, budget, dan aktivitas investasimu.', 'Look back at your income, expenses, budgets, and investment activity.')}</p></div>
+        <button type="button" onClick={() => setShowMonthlyWrap(true)}>{pick('Lihat rangkuman', 'View wrap')}</button>
+      </section>}
 
       {/* Stats Cards */}
       <div className="dashboard-metrics-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -335,6 +388,9 @@ export default function Dashboard() {
           {(holdings ?? []).length === 0 && <p className="text-gray-500 text-center py-4">Belum ada saham aktif</p>}
         </div>
       </div>
+
+      {showMonthlyWrap && <MonthlyWrap monthKey={previousMonth} userName={user?.name} expenses={expenses} budgets={budgets} stockTransactions={stockTransactions} dividends={dividends} onClose={closeMonthlyWrap} onOpenReport={openPreviousReport} />}
+      {showPreviousReport && <FinancialReportPreview allTransactions={expenses} budgets={budgets} initialDate={previousMonthEnd} fundSourceLabels={fundSourceLabels} onClose={() => setShowPreviousReport(false)} onDownloadCsv={(transactions, periodKey) => downloadTransactionsCsv(transactions, periodKey, fundSourceLabels)} />}
     </div>
   )
 }
